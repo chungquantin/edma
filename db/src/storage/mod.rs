@@ -1,2 +1,2 @@
-pub mod rocksdb;
+pub mod kvstore;
 pub mod rule;

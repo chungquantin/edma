@@ -3,9 +3,8 @@ use std::{
 	sync::{Arc, Mutex},
 };
 
-use rocksdb::Error;
-
 use crate::{
+	err::Error,
 	interface::kv::{Key, Val},
 	util::time::get_epoch_ms,
 };

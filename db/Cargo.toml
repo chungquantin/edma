@@ -1,9 +1,15 @@
 [package]
-name = "db"
+name = "solomondb"
 version = "0.1.0"
 edition = "2021"
 readme = "CARGO.md"
-keywords = ["database", "graph-database", "key-value", "key-value-store", "kv-store"]
+keywords = [
+ "database",
+ "graph-database",
+ "key-value",
+ "key-value-store",
+ "kv-store",
+]
 categories = ["database-implementations", "data-structures", "graph"]
 description = "A scalable, distributed, collaborative graph database build by digital nomads"
 homepage = "https://github.com/surrealdb/solomondb"
@@ -14,10 +20,23 @@ license = "Apache-2.0"
 [features]
 default = ["kv-rocksdb"]
 kv-rocksdb = ["dep:rocksdb"]
+http = ["dep:surf"]
 
 [dependencies]
-rocksdb = {version ="0.19.0", optional=true}
+rocksdb = { version = "0.19.0", optional = true }
 thiserror = "1.0.37"
 
 [dev-dependencies]
 tokio = { version = "1.21.2", features = ["macros", "rt"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+surf = { version = "2.3.2", optional = true, default-features = false, features = [
+ "encoding",
+ "wasm-client",
+] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+surf = { version = "2.3.2", optional = true, default-features = false, features = [
+ "encoding",
+ "curl-client",
+] }

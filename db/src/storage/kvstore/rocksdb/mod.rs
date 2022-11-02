@@ -15,7 +15,7 @@ use rocksdb::{Error, OptimisticTransactionDB};
 pub struct RocksDBAdapter(StorageAdapter<DBType>);
 
 impl RocksDBAdapter {
-	super::rule::impl_new_type_adapter!(DBType);
+	super::super::rule::impl_new_type_adapter!(DBType);
 
 	pub fn new(path: &str, options: rocksdb::Options) -> RocksDBAdapter {
 		let db_instance = RocksDBAdapter::initialize(path, options);

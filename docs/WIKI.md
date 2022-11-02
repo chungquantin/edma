@@ -28,4 +28,14 @@ Here we take a slightly broader view: any database that from the user’s perspe
 A graph compute engine is a technology that enables global graph computational algorithms to be run against large datasets. Graph compute engines are designed to do
 things like identify clusters in your data, or answer questions such as, “how many relationships, on average, does everyone in a social network have?”
 
-The graph computing process can be handled offline, there will be an ETL (Extract - Transform - Load) pipeline that handle the stage of moving data from a system records to the offline graph compute engine. 
+The graph computing process can be handled offline, there will be an ETL (Extract - Transform - Load) pipeline that handle the stage of moving data from a system records to the offline graph compute engine.
+
+### Graph Query Language
+
+Each database has its own language interface provided to user to simplify the database operations like querying and mutating data. Some databases are successful just by diversifying variants of libraries and interfaces: From CLI to SDK to GUI. For SQL database, a very common approach is query language SQL. Relatively, Neo4j graph database also has its own query language: **Cypher**.
+
+To construct a successful query language is not easy. It requires a lot of deep knowledge of fundamental concepts of programming languages like lexical parser, abstract syntax tree, tokenizer...
+
+The parsed tokens will be handled by a query logical planner which transform those tokens to relational algebra and execute based on the instructions.
+
+### Brain storming database design & architecture
