@@ -1,6 +1,6 @@
 use std::{pin::Pin, sync::Arc};
 
-use crate::util::status::StorageVariant;
+use crate::{err::Error, util::status::StorageVariant};
 
 pub enum StorageAdapterName {
 	RocksDB,
@@ -13,11 +13,15 @@ pub struct StorageAdapter<T> {
 }
 
 impl<T> StorageAdapter<T> {
-	pub fn new(name: StorageAdapterName, db_instance: T, variant: StorageVariant) -> Self {
-		StorageAdapter {
+	pub fn new(
+		name: StorageAdapterName,
+		db_instance: T,
+		variant: StorageVariant,
+	) -> Result<Self, Error> {
+		Ok(StorageAdapter {
 			name,
 			db_instance: Arc::pin(db_instance),
 			variant,
-		}
+		})
 	}
 }

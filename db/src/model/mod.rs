@@ -1,2 +1,2 @@
 pub mod adapter;
-pub mod transaction;
+pub mod tx;

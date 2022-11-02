@@ -20,10 +20,11 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - uses: actions-rs/cargo@v1
+      - name: Install cargo-nextest
+        uses: baptiste0928/cargo-install@v1
         with:
-          command: build
-          args: --release --all-features
+          crate: cargo-nextest
+          locked: true
       - name: Build project
         uses: actions-rs/cargo@v1
         with:

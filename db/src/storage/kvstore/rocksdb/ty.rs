@@ -1,3 +1,5 @@
+extern crate rocksdb;
+
 use rocksdb::OptimisticTransactionDB;
 
 /// OptimisticTransactionDB

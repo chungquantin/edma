@@ -1361,6 +1361,8 @@ dependencies = [
 name = "solomondb"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
+ "futures",
  "rocksdb",
  "surf",
  "thiserror",

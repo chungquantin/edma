@@ -31,6 +31,10 @@ pub enum Error {
 	#[error("Value being checked was not correct")]
 	TxConditionNotMet,
 
+	/// The key being mutated is not in the database
+	#[error("The key is not in the database")]
+	TxnKeyNotFound,
+
 	/// The key being inserted in the transaction already exists
 	#[error("The key being inserted already exists")]
 	TxKeyAlreadyExists,
