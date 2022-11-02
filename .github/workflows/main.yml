@@ -1,0 +1,34 @@
+name: Main
+on: [push, pull_request]
+
+permissions:
+  contents: read # for checkout
+  pull-requests: write # for comments
+
+jobs:
+  build_and_lint:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    name: Test `cargo check/test` on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --all-features
+      - name: Build project
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --workspace --release --all-features
+      - uses: actions-rs/cargo@v1
+        with:
+          command: nextest run

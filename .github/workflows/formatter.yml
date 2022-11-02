@@ -1,0 +1,48 @@
+name: Formatter
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read # for checkout
+  pull-requests: write # for comments
+
+jobs:
+  format:
+    name: Format check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Run clippy check on workspace
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --workspace
+      - name: Format all packages
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all
+  check:
+    name: Format check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Automatically apply lint suggestions
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --fix
+      - name: Format check packages
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
