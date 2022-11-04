@@ -1,6 +1,11 @@
-use crate::{err::Error, tx::SimpleTransaction, util::status::StorageVariant};
+use crate::{err::Error, tx::SimpleTransaction};
 use async_trait::async_trait;
 use std::{pin::Pin, sync::Arc};
+
+pub enum StorageVariant {
+	RelationalStore,
+	KeyValueStore,
+}
 
 pub enum StorageAdapterName {
 	RocksDB,

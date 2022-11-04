@@ -3,15 +3,15 @@ mod cf;
 mod tx;
 mod ty;
 
+use std::env::temp_dir;
+
 use self::ty::{DBType, TxType};
 use crate::{
+	adapter::StorageVariant,
 	err::Error,
 	mac::adapter::impl_new_type_adapter,
-	model::{
-		adapter::{DatastoreAdapter, StorageAdapter, StorageAdapterName},
-		tx::DBTransaction,
-	},
-	util::{num::generate_random_i32, status::StorageVariant},
+	model::{DBTransaction, DatastoreAdapter, StorageAdapter, StorageAdapterName},
+	util::{generate_random_i32, path_to_string},
 };
 use async_trait::async_trait;
 use rocksdb::{DBCompactionStyle, OptimisticTransactionDB, Options};
@@ -24,10 +24,18 @@ crate::full_test_impl!(RocksDBAdapter::default());
 impl RocksDBAdapter {
 	impl_new_type_adapter!(DBType);
 
+	/// Generate a path to store data for RocksDB
 	fn generate_path(id: Option<i32>) -> String {
 		let random_id: i32 = generate_random_i32();
 		let id = &id.unwrap_or(random_id).to_string();
-		String::from("./.temp/rocks-") + id + ".db"
+		let path = if cfg!(target_os = "linux") {
+			"/dev/shm/".into()
+		} else {
+			temp_dir()
+		}
+		.join(format!("solomon-rocksdb-{}", id));
+
+		path_to_string(&path).unwrap()
 	}
 
 	pub fn new(path: &str, max_open_files: Option<i32>) -> Result<RocksDBAdapter, Error> {
