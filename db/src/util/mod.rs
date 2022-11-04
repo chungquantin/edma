@@ -1,3 +1,3 @@
-pub mod err;
+pub mod rand;
 pub mod status;
 pub mod time;

@@ -1,23 +1,25 @@
+use async_trait::async_trait;
 use futures::lock::MutexGuard;
 
 use super::ty::{DBType, TxType};
 use crate::{
 	err::Error,
 	interface::kv::{Key, Val},
-	model::tx::DBTransaction,
+	model::tx::{DBTransaction, SimpleTransaction},
 };
 
 impl DBTransaction<DBType, TxType> {
 	async fn get_guarded_tx(self: &Self) -> MutexGuard<Option<TxType>> {
 		self.tx.lock().await
 	}
+}
 
-	// Check if closed
-	pub fn closed(&self) -> bool {
+#[async_trait]
+impl SimpleTransaction for DBTransaction<DBType, TxType> {
+	fn closed(&self) -> bool {
 		self.ok
 	}
-	// Cancel a transaction
-	pub async fn cancel(&mut self) -> Result<(), Error> {
+	async fn cancel(&mut self) -> Result<(), Error> {
 		if self.ok {
 			return Err(Error::TxFinished);
 		}
@@ -33,8 +35,8 @@ impl DBTransaction<DBType, TxType> {
 
 		Ok(())
 	}
-	// Commit a transaction
-	pub async fn commit(&mut self) -> Result<(), Error> {
+
+	async fn commit(&mut self) -> Result<(), Error> {
 		if self.closed() {
 			return Err(Error::TxFinished);
 		}
@@ -55,10 +57,10 @@ impl DBTransaction<DBType, TxType> {
 
 		Ok(())
 	}
-	// Check if a key exists
-	pub async fn exi<K>(&mut self, key: K) -> Result<bool, Error>
+
+	async fn exi<K>(&mut self, key: K) -> Result<bool, Error>
 	where
-		K: Into<Key>,
+		K: Into<Key> + Send,
 	{
 		if self.closed() {
 			return Err(Error::TxFinished);
@@ -67,9 +69,9 @@ impl DBTransaction<DBType, TxType> {
 		Ok(!self.tx.lock().await.as_ref().unwrap().get(key.into())?.is_none())
 	}
 	// Fetch a key from the database
-	pub async fn get<K>(&mut self, key: K) -> Result<Option<Val>, Error>
+	async fn get<K>(&mut self, key: K) -> Result<Option<Val>, Error>
 	where
-		K: Into<Key>,
+		K: Into<Key> + Send,
 	{
 		if self.closed() {
 			return Err(Error::TxFinished);
@@ -79,10 +81,10 @@ impl DBTransaction<DBType, TxType> {
 		Ok(tx.as_ref().unwrap().get(key.into()).unwrap())
 	}
 	// Insert or update a key in the database
-	pub async fn set<K, V>(&mut self, key: K, val: V) -> Result<(), Error>
+	async fn set<K, V>(&mut self, key: K, val: V) -> Result<(), Error>
 	where
-		K: Into<Key>,
-		V: Into<Val>,
+		K: Into<Key> + Send,
+		V: Into<Key> + Send,
 	{
 		if self.closed() {
 			return Err(Error::TxFinished);
@@ -98,11 +100,12 @@ impl DBTransaction<DBType, TxType> {
 		tx.as_ref().unwrap().put(key.into(), val.into())?;
 		Ok(())
 	}
+
 	// Insert a key if it doesn't exist in the database
-	pub async fn put<K, V>(&mut self, key: K, val: V) -> Result<(), Error>
+	async fn put<K, V>(&mut self, key: K, val: V) -> Result<(), Error>
 	where
-		K: Into<Key>,
-		V: Into<Val>,
+		K: Into<Key> + Send,
+		V: Into<Key> + Send,
 	{
 		if self.closed() {
 			return Err(Error::TxFinished);
@@ -126,9 +129,9 @@ impl DBTransaction<DBType, TxType> {
 	}
 
 	// Delete a key
-	pub async fn del<K>(&mut self, key: K) -> Result<(), Error>
+	async fn del<K>(&mut self, key: K) -> Result<(), Error>
 	where
-		K: Into<Key>,
+		K: Into<Key> + Send,
 	{
 		if self.closed() {
 			return Err(Error::TxFinished);

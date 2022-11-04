@@ -1,5 +1,5 @@
-use std::time::{SystemTime, UNIX_EPOCH};
+use chrono::Utc;
 
-pub fn get_epoch_ms() -> u128 {
-	SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis()
+pub fn get_now() -> i64 {
+	Utc::now().timestamp()
 }

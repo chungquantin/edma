@@ -1,2 +1,2 @@
-pub mod kvstore;
-pub mod rule;
+/// Storage
+pub mod kvs;

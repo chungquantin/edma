@@ -1,6 +1,6 @@
+use crate::{err::Error, tx::SimpleTransaction, util::status::StorageVariant};
+use async_trait::async_trait;
 use std::{pin::Pin, sync::Arc};
-
-use crate::{err::Error, util::status::StorageVariant};
 
 pub enum StorageAdapterName {
 	RocksDB,
@@ -24,4 +24,18 @@ impl<T> StorageAdapter<T> {
 			variant,
 		})
 	}
+}
+
+#[async_trait]
+pub trait DatastoreAdapter<T>
+where
+	T: SimpleTransaction,
+{
+	// # Create new database transaction
+	// Set `rw` default to false means readable but not readable
+	fn transaction(&self, rw: bool) -> Result<T, Error>;
+
+	fn default() -> Self;
+
+	fn spawn(&self) -> Self;
 }

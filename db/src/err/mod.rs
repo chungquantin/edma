@@ -1,3 +1,4 @@
+/// Error
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -6,6 +7,9 @@ pub enum Error {
 	#[doc(hidden)]
 	#[error("Conditional clause is not truthy")]
 	Ignore,
+
+	#[error("Database instance is not initialized")]
+	DbNotInitialized,
 
 	/// There was a problem with the underlying datastore
 	#[error("There was a problem with the underlying datastore: {0}")]
