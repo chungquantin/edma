@@ -21,9 +21,9 @@ license = "Apache-2.0"
 
 
 [features]
-default = ["kv-rocksdb", "test-suite"]
+default = ["kv-rocksdb"]
 kv-rocksdb = ["dep:rocksdb"]
-test-suite = ["dep:rand"]
+test-suite = []
 http = ["dep:surf"]
 
 [dependencies]
@@ -34,7 +34,7 @@ chrono = "0.4.22"
 thiserror = "1.0.37"
 async-trait = "0.1.58"
 futures = "0.3.25"
-rand = { version = "0.8.5", optional = true }
+rand = "0.8.5"
 
 [dev-dependencies]
 tokio = { version = "1.21.2", features = ["macros", "rt"] }

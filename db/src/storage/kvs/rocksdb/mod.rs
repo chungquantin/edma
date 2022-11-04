@@ -6,20 +6,20 @@ mod ty;
 use self::ty::{DBType, TxType};
 use crate::{
 	err::Error,
-	full_test_impl,
 	mac::adapter::impl_new_type_adapter,
 	model::{
 		adapter::{DatastoreAdapter, StorageAdapter, StorageAdapterName},
 		tx::DBTransaction,
 	},
-	util::{rand::generate_random_i32, status::StorageVariant},
+	util::{num::generate_random_i32, status::StorageVariant},
 };
 use async_trait::async_trait;
 use rocksdb::{DBCompactionStyle, OptimisticTransactionDB, Options};
 
 pub struct RocksDBAdapter(StorageAdapter<DBType>);
 
-full_test_impl!(RocksDBAdapter::default());
+#[cfg(feature = "test-suite")]
+crate::full_test_impl!(RocksDBAdapter::default());
 
 impl RocksDBAdapter {
 	impl_new_type_adapter!(DBType);
@@ -48,7 +48,7 @@ impl DatastoreAdapter<DBTransaction<DBType, TxType>> for RocksDBAdapter {
 		RocksDBAdapter::new(path, None).unwrap()
 	}
 
-	fn spawn(self: &Self) -> Self {
+	fn spawn(&self) -> Self {
 		RocksDBAdapter::default()
 	}
 
@@ -59,7 +59,7 @@ impl DatastoreAdapter<DBTransaction<DBType, TxType>> for RocksDBAdapter {
 
 		let tx = unsafe { extend_tx_lifetime(tx) };
 
-		Ok(DBTransaction::<DBType, TxType>::new(tx, rw, db.clone())?)
+		Ok(DBTransaction::<DBType, TxType>::new(tx, rw, db.clone()).unwrap())
 	}
 }
 

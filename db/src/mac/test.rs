@@ -1,5 +1,6 @@
 /// Defines a unit test function.
 #[macro_export]
+#[cfg(feature = "test-suite")]
 macro_rules! define_test {
 	($name:ident, $datastore_adapter:expr) => {
 		#[tokio::test]
@@ -12,6 +13,7 @@ macro_rules! define_test {
 
 /// Use this macro to enable the entire standard test suite.
 #[macro_export]
+#[cfg(feature = "test-suite")]
 macro_rules! full_test_impl {
 	($code:expr) => {
 		#[cfg(test)]

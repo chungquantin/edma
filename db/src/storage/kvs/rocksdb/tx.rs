@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use futures::lock::MutexGuard;
 
 use super::ty::{DBType, TxType};
 use crate::{
@@ -7,12 +6,6 @@ use crate::{
 	interface::kv::{Key, Val},
 	model::tx::{DBTransaction, SimpleTransaction},
 };
-
-impl DBTransaction<DBType, TxType> {
-	async fn get_guarded_tx(self: &Self) -> MutexGuard<Option<TxType>> {
-		self.tx.lock().await
-	}
-}
 
 #[async_trait]
 impl SimpleTransaction for DBTransaction<DBType, TxType> {
@@ -27,7 +20,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		// Mark this transaction as done
 		self.ok = true;
 
-		let mut tx = self.get_guarded_tx().await;
+		let mut tx = self.tx.lock().await;
 		match tx.take() {
 			Some(tx) => tx.rollback()?,
 			None => unreachable!(),
@@ -49,7 +42,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		// Mark this transaction as done
 		self.ok = true;
 
-		let mut tx = self.get_guarded_tx().await;
+		let mut tx = self.tx.lock().await;
 		match tx.take() {
 			Some(tx) => tx.commit()?,
 			None => unreachable!(),
@@ -66,7 +59,8 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 			return Err(Error::TxFinished);
 		}
 
-		Ok(!self.tx.lock().await.as_ref().unwrap().get(key.into())?.is_none())
+		let tx = self.tx.lock().await;
+		Ok(!tx.as_ref().unwrap().get(key.into()).unwrap().is_none())
 	}
 	// Fetch a key from the database
 	async fn get<K>(&mut self, key: K) -> Result<Option<Val>, Error>
@@ -77,7 +71,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 			return Err(Error::TxFinished);
 		}
 
-		let tx = self.get_guarded_tx().await;
+		let tx = self.tx.lock().await;
 		Ok(tx.as_ref().unwrap().get(key.into()).unwrap())
 	}
 	// Insert or update a key in the database
@@ -96,7 +90,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		}
 
 		// Set the key
-		let tx = self.get_guarded_tx().await;
+		let tx = self.tx.lock().await;
 		tx.as_ref().unwrap().put(key.into(), val.into())?;
 		Ok(())
 	}
@@ -117,7 +111,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		}
 
 		// Future tx
-		let guarded_tx = self.get_guarded_tx().await;
+		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
 		let (key, val) = (key.into(), val.into());
 
@@ -143,7 +137,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		}
 
 		let key = key.into();
-		let guarded_tx = self.get_guarded_tx().await;
+		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
 
 		match tx.get(&key)? {
