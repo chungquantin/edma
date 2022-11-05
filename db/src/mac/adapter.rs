@@ -27,5 +27,3 @@ macro_rules! impl_new_type_adapter {
 		}
 	};
 }
-
-pub(crate) use impl_new_type_adapter;

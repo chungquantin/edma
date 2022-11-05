@@ -1,10 +1,15 @@
 /// Model
 pub mod adapter;
-pub mod graph;
+pub mod id;
+pub mod label;
+pub mod node;
+pub mod property;
+pub mod relationship;
 pub mod tx;
-pub mod vertex;
 
 pub use adapter::*;
-pub use graph::*;
+pub use id::*;
+pub use label::*;
+pub use node::*;
+pub use relationship::*;
 pub use tx::*;
-pub use vertex::*;

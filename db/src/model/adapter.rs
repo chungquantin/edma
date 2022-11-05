@@ -32,10 +32,7 @@ impl<T> StorageAdapter<T> {
 }
 
 #[async_trait]
-pub trait DatastoreAdapter<T>
-where
-	T: SimpleTransaction,
-{
+pub trait DatastoreAdapter<T: SimpleTransaction> {
 	// # Create new database transaction
 	// Set `rw` default to false means readable but not readable
 	fn transaction(&self, rw: bool) -> Result<T, Error>;

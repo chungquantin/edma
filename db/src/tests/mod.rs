@@ -1,3 +1,3 @@
-mod tx_test;
+mod adapter_test;
 
-pub use self::tx_test::*;
+pub use self::adapter_test::*;

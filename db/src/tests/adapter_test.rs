@@ -1,5 +1,6 @@
 use std::str::from_utf8;
 
+use crate::storage::DatastoreManager;
 use crate::{adapter::DatastoreAdapter, tx::SimpleTransaction};
 
 pub async fn should_set_key<T>(adapter: impl DatastoreAdapter<T>)

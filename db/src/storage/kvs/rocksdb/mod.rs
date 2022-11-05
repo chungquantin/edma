@@ -5,11 +5,10 @@ mod ty;
 
 use std::env::temp_dir;
 
-use self::ty::{DBType, TxType};
+use self::ty::{DBType, RocksDBTransaction, TxType};
 use crate::{
 	adapter::StorageVariant,
 	err::Error,
-	mac::adapter::impl_new_type_adapter,
 	model::{DBTransaction, DatastoreAdapter, StorageAdapter, StorageAdapterName},
 	util::{generate_random_i32, path_to_string},
 };
@@ -50,7 +49,7 @@ impl RocksDBAdapter {
 }
 
 #[async_trait]
-impl DatastoreAdapter<DBTransaction<DBType, TxType>> for RocksDBAdapter {
+impl DatastoreAdapter<RocksDBTransaction> for RocksDBAdapter {
 	fn default() -> Self {
 		let path = &RocksDBAdapter::generate_path(None);
 		RocksDBAdapter::new(path, None).unwrap()
@@ -60,7 +59,7 @@ impl DatastoreAdapter<DBTransaction<DBType, TxType>> for RocksDBAdapter {
 		RocksDBAdapter::default()
 	}
 
-	fn transaction(&self, rw: bool) -> Result<DBTransaction<DBType, TxType>, Error> {
+	fn transaction(&self, rw: bool) -> Result<RocksDBTransaction, Error> {
 		let inner = self.get_initialized_inner().unwrap();
 		let db = &inner.db_instance;
 		let tx = db.transaction();
