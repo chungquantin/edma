@@ -1,11 +1,30 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
+use rocksdb::BoundColumnFamily;
 
 use super::ty::{DBType, TxType};
 use crate::{
 	err::Error,
 	interface::kv::{Key, Val},
 	model::tx::{DBTransaction, SimpleTransaction},
+	CF,
 };
+
+impl DBTransaction<DBType, TxType> {
+	fn get_column_family(&self, cf: CF) -> Result<Arc<BoundColumnFamily>, Error> {
+		if cf.is_none() {
+			return Err(Error::DsColumnFamilyIsNotValid);
+		}
+		let cf_name = String::from_utf8(cf.unwrap()).unwrap();
+		let bounded_cf = self._db.cf_handle(&cf_name);
+
+		match bounded_cf {
+			Some(cf) => Ok(cf),
+			_ => Err(Error::DsNoColumnFamilyFound),
+		}
+	}
+}
 
 #[async_trait]
 impl SimpleTransaction for DBTransaction<DBType, TxType> {
@@ -51,7 +70,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		Ok(())
 	}
 
-	async fn exi<K>(&mut self, key: K) -> Result<bool, Error>
+	async fn exi<K>(&mut self, cf: CF, key: K) -> Result<bool, Error>
 	where
 		K: Into<Key> + Send,
 	{
@@ -60,10 +79,11 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		}
 
 		let tx = self.tx.lock().await;
-		Ok(!tx.as_ref().unwrap().get(key.into()).unwrap().is_none())
+		let cf = &self.get_column_family(cf).unwrap();
+		Ok(!tx.as_ref().unwrap().get_cf(cf, key.into()).unwrap().is_none())
 	}
-	// Fetch a key from the database
-	async fn get<K>(&mut self, key: K) -> Result<Option<Val>, Error>
+	// Fetch a key from the database [column family]
+	async fn get<K>(&mut self, cf: CF, key: K) -> Result<Option<Val>, Error>
 	where
 		K: Into<Key> + Send,
 	{
@@ -72,10 +92,11 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		}
 
 		let tx = self.tx.lock().await;
-		Ok(tx.as_ref().unwrap().get(key.into()).unwrap())
+		let cf = &self.get_column_family(cf).unwrap();
+		Ok(tx.as_ref().unwrap().get_cf(cf, key.into()).unwrap())
 	}
 	// Insert or update a key in the database
-	async fn set<K, V>(&mut self, key: K, val: V) -> Result<(), Error>
+	async fn set<K, V>(&mut self, cf: CF, key: K, val: V) -> Result<(), Error>
 	where
 		K: Into<Key> + Send,
 		V: Into<Key> + Send,
@@ -91,12 +112,13 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 
 		// Set the key
 		let tx = self.tx.lock().await;
-		tx.as_ref().unwrap().put(key.into(), val.into())?;
+		let cf = &self.get_column_family(cf).unwrap();
+		tx.as_ref().unwrap().put_cf(cf, key.into(), val.into())?;
 		Ok(())
 	}
 
 	// Insert a key if it doesn't exist in the database
-	async fn put<K, V>(&mut self, key: K, val: V) -> Result<(), Error>
+	async fn put<K, V>(&mut self, cf: CF, key: K, val: V) -> Result<(), Error>
 	where
 		K: Into<Key> + Send,
 		V: Into<Key> + Send,
@@ -115,15 +137,16 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		let tx = guarded_tx.as_ref().unwrap();
 		let (key, val) = (key.into(), val.into());
 
-		match tx.get(&key)? {
-			None => tx.put(key, val)?,
+		let cf = &self.get_column_family(cf).unwrap();
+		match tx.get_cf(cf, &key)? {
+			None => tx.put_cf(cf, key, val)?,
 			_ => return Err(Error::TxConditionNotMet),
 		};
 		Ok(())
 	}
 
 	// Delete a key
-	async fn del<K>(&mut self, key: K) -> Result<(), Error>
+	async fn del<K>(&mut self, cf: CF, key: K) -> Result<(), Error>
 	where
 		K: Into<Key> + Send,
 	{
@@ -140,8 +163,9 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
 
-		match tx.get(&key)? {
-			Some(_v) => tx.delete(key)?,
+		let cf = &self.get_column_family(cf).unwrap();
+		match tx.get_cf(cf, &key)? {
+			Some(_v) => tx.delete_cf(cf, key)?,
 			None => return Err(Error::TxnKeyNotFound),
 		};
 

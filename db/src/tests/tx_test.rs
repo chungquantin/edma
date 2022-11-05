@@ -7,21 +7,22 @@ where
 	T: SimpleTransaction,
 {
 	let adapter = adapter.spawn();
+	let cf = Some("test_suite:v1".into());
 	let mut tx = adapter.transaction(true).unwrap();
 
 	let key = "mock key";
 	let val = "mock value";
 
-	tx.set(key, val).await.unwrap();
-	let res = tx.get(key).await.unwrap();
+	tx.set(cf.clone(), key, val).await.unwrap();
+	let res = tx.get(cf.clone(), key).await.unwrap();
 	match res {
 		Some(v) => assert_eq!(val, from_utf8(&v).unwrap()),
 		None => panic!("Wrong value"),
 	}
 
 	let new_val = "mock value 2";
-	tx.set(key, new_val).await.unwrap();
-	let res = tx.get(key).await.unwrap();
+	tx.set(cf.clone(), key, new_val).await.unwrap();
+	let res = tx.get(cf.clone(), key).await.unwrap();
 	match res {
 		Some(v) => assert_eq!(new_val, from_utf8(&v).unwrap()),
 		None => panic!("Wrong value"),
@@ -33,14 +34,15 @@ where
 	T: SimpleTransaction,
 {
 	let adapter = adapter.spawn();
+	let cf = Some("test_suite:v1".into());
 	let mut tx = adapter.transaction(true).unwrap();
 
 	let key = "mock key";
 	let val = "mock value";
 
-	tx.set(key, val).await.unwrap();
-	tx.del(key).await.unwrap();
-	let res = tx.get(key).await.unwrap();
+	tx.set(cf.clone(), key, val).await.unwrap();
+	tx.del(cf.clone(), key).await.unwrap();
+	let res = tx.get(cf.clone(), key).await.unwrap();
 	assert_eq!(res, None);
 }
 
@@ -49,17 +51,18 @@ where
 	T: SimpleTransaction,
 {
 	let adapter = adapter.spawn();
+	let cf = Some("test_suite:v1".into());
 	let mut tx = adapter.transaction(true).unwrap();
 
 	let key = "mock key";
 	let val = "mock value";
 
-	tx.put(key, val).await.unwrap();
-	let res = tx.get(key).await.unwrap();
+	tx.put(cf.clone(), key, val).await.unwrap();
+	let res = tx.get(cf.clone(), key).await.unwrap();
 	match res {
 		Some(v) => assert_eq!(val, from_utf8(&v).unwrap()),
 		None => panic!("Wrong value"),
 	}
 
-	assert!(tx.put(key, val).await.is_err());
+	assert!(tx.put(cf.clone(), key, val).await.is_err());
 }

@@ -9,8 +9,8 @@ mod util;
 #[cfg(feature = "kv-rocksdb")]
 pub use crate::storage::kvs::RocksDBAdapter;
 
-#[cfg(feature = "test-suite")]
-#[macro_use]
+// #[cfg(feature = "test-suite")]
+// #[macro_use]
 pub mod tests;
 
 pub use crate::err::*;

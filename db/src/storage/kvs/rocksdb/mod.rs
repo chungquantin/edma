@@ -67,7 +67,7 @@ impl DatastoreAdapter<DBTransaction<DBType, TxType>> for RocksDBAdapter {
 
 		let tx = unsafe { extend_tx_lifetime(tx) };
 
-		Ok(DBTransaction::<DBType, TxType>::new(tx, rw, db.clone()).unwrap())
+		Ok(DBTransaction::<DBType, TxType>::new(tx, db.clone(), rw).unwrap())
 	}
 }
 
@@ -83,7 +83,7 @@ unsafe fn extend_tx_lifetime(
 	>(tx)
 }
 
-fn get_options(max_open_files: Option<i32>) -> Options {
+pub fn get_options(max_open_files: Option<i32>) -> Options {
 	// Current tuning based off of the total ordered example, flash
 	// storage example on
 	// https://github.com/facebook/rocksdb/wiki/RocksDB-Tuning-Guide

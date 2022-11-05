@@ -7,6 +7,8 @@ use async_trait::async_trait;
 use futures::lock::Mutex;
 use std::{pin::Pin, sync::Arc};
 
+pub type CF = Option<Vec<u8>>;
+
 /// # Distributed Database Transaction
 /// ## Atomically reference counter
 /// Shared references in Rust disallow mutation by default, and Arc is no exception: you cannot
@@ -41,14 +43,15 @@ pub trait SimpleTransaction {
 	async fn commit(&mut self) -> Result<(), Error>;
 
 	// Check if a key exists
-	async fn exi<K: Into<Key> + Send>(&mut self, key: K) -> Result<bool, Error>;
+	async fn exi<K: Into<Key> + Send>(&mut self, cf: CF, key: K) -> Result<bool, Error>;
 
 	/// Fetch a key from the database
-	async fn get<K: Into<Key> + Send>(&mut self, key: K) -> Result<Option<Val>, Error>;
+	async fn get<K: Into<Key> + Send>(&mut self, cf: CF, key: K) -> Result<Option<Val>, Error>;
 
 	/// Insert or update a key in the database
 	async fn set<K: Into<Key> + Send, V: Into<Key> + Send>(
 		&mut self,
+		cf: CF,
 		key: K,
 		val: V,
 	) -> Result<(), Error>;
@@ -56,12 +59,13 @@ pub trait SimpleTransaction {
 	/// Insert a key if it doesn't exist in the database
 	async fn put<K: Into<Key> + Send, V: Into<Key> + Send>(
 		&mut self,
+		cf: CF,
 		key: K,
 		val: V,
 	) -> Result<(), Error>;
 
 	/// Delete a key
-	async fn del<K: Into<Key> + Send>(&mut self, key: K) -> Result<(), Error>;
+	async fn del<K: Into<Key> + Send>(&mut self, cf: CF, key: K) -> Result<(), Error>;
 }
 
 impl<DBType, TxType> DBTransaction<DBType, TxType>
@@ -69,7 +73,7 @@ where
 	DBType: 'static,
 	TxType: 'static,
 {
-	pub fn new(tx: TxType, rw: bool, db: Pin<Arc<DBType>>) -> Result<Self, Error> {
+	pub fn new(tx: TxType, db: Pin<Arc<DBType>>, rw: bool) -> Result<Self, Error> {
 		Ok(DBTransaction {
 			tx: Arc::new(Mutex::new(Some(tx))),
 			ok: false,

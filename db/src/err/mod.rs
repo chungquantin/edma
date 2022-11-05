@@ -15,6 +15,12 @@ pub enum Error {
 	#[error("There was a problem with the underlying datastore: {0}")]
 	Ds(String),
 
+	#[error("No column family found in this datastore")]
+	DsNoColumnFamilyFound,
+
+	#[error("Column family is not valid")]
+	DsColumnFamilyIsNotValid,
+
 	/// There was a problem with a datastore transaction
 	#[error("There was a problem with a datastore transaction: {0}")]
 	Tx(String),
