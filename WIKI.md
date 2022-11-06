@@ -39,3 +39,26 @@ To construct a successful query language is not easy. It requires a lot of deep 
 The parsed tokens will be handled by a query logical planner which transform those tokens to relational algebra and execute based on the instructions.
 
 ### Brain storming database design & architecture
+
+After a few days of researching and reading **O'Reilly Graph Database** book (it was a very good book for graph database introduction actually), I decided to stumble into experimenting.
+
+It was quite hard to identify the uniqueness of Solomon DB. The main reason is there are too many databases already. From production-ready databases like **Cassandra, PostgreSQL** or a common graph database like **Neo4j** and **JanusGraph**. Even though my desire for being able to design an outstanding architecture is quite high, I position my current skills not capable of that. Hence, instead of trying to over complicate everything, I think starting small steps and climb up stair by stair might be a better strategy.
+
+I got inspired by the design of SurrealDB which does not build its own underlying layer but trying to maximize the power of multiple databases. And I think it is a good design to try. So the main architecture of SolomonDB will be:
+
+#### Underlying storage
+
+There are two NoSQL databases that fascinate me due to its design and scalability.
+
+-   **RocksDB:** The popular key-value database designed and maintained by team at Facebook. It is used widely by several big databases as an underlying storage. The use of RocksDB will be elaborated more in a later chapter.
+-   **Cassandra:** For anyone who works with big data, is quite familiar with this wide-column database. Cassandra is a big guy in the field with its distributed architecture and several other features for streaming and configuring node instances.
+
+#### Property graph data structure & algorithms
+
+The concepts of property graph data structure is used commonly in production system which is **read contention** and graph driven. A quite well-known examples of property graph are social network.
+
+Solomon DB will use property graph data structure to present the graph data in the system. The main problems of this data structure is applying algorithms designed for single relational graph will be a bit complicated.
+
+#### Modelling graph data
+
+Facebook's TAO graph database has a very well-explained white paper that demonstrates the approach to design Property Graph. Core components of Solomon graph model will be **Node, Relationship, Property and Label**.
