@@ -53,6 +53,12 @@ impl<'a> Component<'a> {
 			}
 		}
 	}
+
+	pub fn read_uuid(bytes: &[u8]) -> Result<Uuid, IoError> {
+		let mut fix: [u8; 16] = Default::default();
+		fix.copy_from_slice(&bytes[0..16]);
+		return Ok(Uuid::from_bytes(fix));
+	}
 }
 
 /// Gets the number of nanoseconds since unix epoch for a given datetime.
@@ -69,7 +75,7 @@ fn nanos_since_epoch(datetime: &DateTime<Utc>) -> u64 {
 ///
 /// # Arguments
 /// * `components`: The components to serialize to bytes.
-pub fn components_into_bytes(components: &[Component]) -> Vec<u8> {
+pub fn build_bytes(components: &[Component]) -> Result<Vec<u8>, IoError> {
 	let len = components.iter().fold(0, |len, component| len + component.len());
 	let mut cursor: Cursor<Vec<u8>> = Cursor::new(Vec::with_capacity(len));
 
@@ -79,7 +85,22 @@ pub fn components_into_bytes(components: &[Component]) -> Vec<u8> {
 		}
 	}
 
-	cursor.into_inner()
+	Ok(cursor.into_inner())
+}
+
+pub fn from_uuid_bytes<'a>(bytes_vec: &mut Vec<u8>) -> Result<Vec<Uuid>, IoError> {
+	let mut i = 0;
+	let l = Component::Uuid(Uuid::nil()).len();
+	let mut ans = vec![];
+	loop {
+		let slice = &bytes_vec[i * l..(i + 1) * l];
+		if slice.len() == 0 {
+			return Ok(ans);
+		}
+		let component = Component::read_uuid(slice).unwrap();
+		ans.push(component);
+		i += 1;
+	}
 }
 
 pub fn generate_random_i32() -> i32 {

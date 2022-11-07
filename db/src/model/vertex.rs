@@ -8,6 +8,7 @@ use crate::Error;
 /// Vertices are also referred to as node or points.
 #[derive(Default)]
 pub struct Vertex {
+	pub id: Uuid,
 	pub labels: LinkedList<Uuid>,
 	pub props: HashSet<Uuid, Vec<u8>>,
 }
@@ -15,6 +16,7 @@ pub struct Vertex {
 impl Vertex {
 	pub fn new(labels: Vec<Uuid>, props: HashSet<Uuid, Vec<u8>>) -> Result<Self, Error> {
 		let mut vertex = Vertex {
+			id: Uuid::new_v4(),
 			labels: LinkedList::default(),
 			props,
 		};
