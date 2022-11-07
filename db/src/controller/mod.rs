@@ -1,3 +1,3 @@
-pub mod node;
+pub mod vertex;
 
-pub use node::*;
+pub use vertex::*;
