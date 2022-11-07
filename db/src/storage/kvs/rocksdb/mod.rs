@@ -12,7 +12,6 @@ use crate::{
 	model::{DBTransaction, DatastoreAdapter, StorageAdapter, StorageAdapterName},
 	util::{generate_random_i32, path_to_string},
 };
-use async_trait::async_trait;
 use rocksdb::{DBCompactionStyle, OptimisticTransactionDB, Options};
 
 pub struct RocksDBAdapter(StorageAdapter<DBType>);
@@ -48,8 +47,9 @@ impl RocksDBAdapter {
 	}
 }
 
-#[async_trait]
-impl DatastoreAdapter<RocksDBTransaction> for RocksDBAdapter {
+impl DatastoreAdapter for RocksDBAdapter {
+	type Transaction = RocksDBTransaction;
+
 	fn default() -> Self {
 		let path = &RocksDBAdapter::generate_path(None);
 		RocksDBAdapter::new(path, None).unwrap()
@@ -107,4 +107,12 @@ pub fn get_options(max_open_files: Option<i32>) -> Options {
 	}
 
 	opts
+}
+
+#[cfg(test)]
+fn test() {
+	#[test]
+	fn should_be_true() {
+		assert!(true);
+	}
 }

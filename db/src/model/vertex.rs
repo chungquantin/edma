@@ -4,24 +4,24 @@ use uuid::Uuid;
 
 use crate::Error;
 
-/// # Property Node
-/// Nodes are also referred to as vertices or points.
+/// # Property Vertex
+/// Vertices are also referred to as node or points.
 #[derive(Default)]
-pub struct Node {
+pub struct Vertex {
 	pub labels: LinkedList<Uuid>,
 	pub props: HashSet<Uuid, Vec<u8>>,
 }
 
-impl Node {
+impl Vertex {
 	pub fn new(labels: Vec<Uuid>, props: HashSet<Uuid, Vec<u8>>) -> Result<Self, Error> {
-		let mut node = Node {
+		let mut vertex = Vertex {
 			labels: LinkedList::default(),
 			props,
 		};
 
-		node.add_labels(labels).unwrap();
+		vertex.add_labels(labels).unwrap();
 
-		Ok(node)
+		Ok(vertex)
 	}
 
 	pub fn add_label(&mut self, label: Uuid) -> Result<(), Error> {

@@ -1,12 +1,8 @@
 use std::str::from_utf8;
 
-use crate::storage::DatastoreManager;
 use crate::{adapter::DatastoreAdapter, tx::SimpleTransaction};
 
-pub async fn should_set_key<T>(adapter: impl DatastoreAdapter<T>)
-where
-	T: SimpleTransaction,
-{
+pub async fn should_set_key(adapter: impl DatastoreAdapter) {
 	let adapter = adapter.spawn();
 	let cf = Some("test_suite:v1".into());
 	let mut tx = adapter.transaction(true).unwrap();
@@ -30,7 +26,7 @@ where
 	}
 }
 
-pub async fn should_delete_key<T>(adapter: impl DatastoreAdapter<T>)
+pub async fn should_delete_key<T>(adapter: impl DatastoreAdapter)
 where
 	T: SimpleTransaction,
 {
@@ -47,7 +43,7 @@ where
 	assert_eq!(res, None);
 }
 
-pub async fn should_put_key<T>(adapter: impl DatastoreAdapter<T>)
+pub async fn should_put_key<T>(adapter: impl DatastoreAdapter)
 where
 	T: SimpleTransaction,
 {
