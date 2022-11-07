@@ -38,7 +38,7 @@ impl RocksDBAdapter {
 
 	pub fn new(path: &str, max_open_files: Option<i32>) -> Result<RocksDBAdapter, Error> {
 		let opts = get_options(max_open_files);
-		let db_instance = OptimisticTransactionDB::open_cf(&opts, path, &cf::CF_NAMES)?;
+		let db_instance = OptimisticTransactionDB::open_cf(&opts, path, cf::CF_NAMES)?;
 		Ok(RocksDBAdapter(StorageAdapter::<DBType>::new(
 			StorageAdapterName::RocksDB,
 			db_instance,
@@ -107,12 +107,4 @@ pub fn get_options(max_open_files: Option<i32>) -> Options {
 	}
 
 	opts
-}
-
-#[cfg(test)]
-fn test() {
-	#[test]
-	fn should_be_true() {
-		assert!(true);
-	}
 }

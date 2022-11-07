@@ -7,12 +7,12 @@ use crate::{
 	DBTransaction, DatastoreAdapter, Error, StorageAdapter, StorageAdapterName, StorageVariant,
 };
 
-use self::ty::CassandraDBTransaction;
+use self::ty::{CassandraDBTransaction, DBType};
 
 pub struct CassandraDBAdapter(StorageAdapter<String>);
 
 impl CassandraDBAdapter {
-	impl_new_type_adapter!(String);
+	impl_new_type_adapter!(DBType);
 
 	pub fn new(_path: &str) -> Result<CassandraDBAdapter, Error> {
 		Ok(CassandraDBAdapter(StorageAdapter::<String>::new(

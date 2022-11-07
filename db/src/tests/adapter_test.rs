@@ -26,10 +26,7 @@ pub async fn should_set_key(adapter: impl DatastoreAdapter) {
 	}
 }
 
-pub async fn should_delete_key<T>(adapter: impl DatastoreAdapter)
-where
-	T: SimpleTransaction,
-{
+pub async fn should_delete_key(adapter: impl DatastoreAdapter) {
 	let adapter = adapter.spawn();
 	let cf = Some("test_suite:v1".into());
 	let mut tx = adapter.transaction(true).unwrap();
@@ -43,10 +40,7 @@ where
 	assert_eq!(res, None);
 }
 
-pub async fn should_put_key<T>(adapter: impl DatastoreAdapter)
-where
-	T: SimpleTransaction,
-{
+pub async fn should_put_key(adapter: impl DatastoreAdapter) {
 	let adapter = adapter.spawn();
 	let cf = Some("test_suite:v1".into());
 	let mut tx = adapter.transaction(true).unwrap();
