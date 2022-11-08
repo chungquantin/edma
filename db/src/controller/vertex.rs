@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use crate::mac::Controller;
 use crate::model::adapter::DatastoreAdapter;
 use crate::util::{build_bytes, from_uuid_bytes, Component};
 use crate::SimpleTransaction;
@@ -7,25 +8,7 @@ use crate::{storage::DatastoreManager, Error, RocksDBAdapter, Vertex};
 
 use uuid::Uuid;
 
-macro_rules! impl_vertex_controller {
-	(get $datastore_adapter: ty; from $m: ident) => {
-		pub struct VertexController {
-			ds: $datastore_adapter,
-			cf: &'static str,
-		}
-
-		impl VertexController {
-			pub fn new(ds: DatastoreManager) -> Result<Self, Error> {
-				Ok(VertexController {
-					ds: ds.$m() as $datastore_adapter,
-					cf: "vertices:v1",
-				})
-			}
-		}
-	};
-}
-
-impl_vertex_controller!(get RocksDBAdapter; from rocks_db);
+impl_controller!(get RocksDBAdapter; from rocks_db for VertexController);
 
 /// Not identify the datastore adapter for vertex controller will set
 /// it default to RocksDBAdapter

@@ -88,7 +88,14 @@ pub fn build_bytes(components: &[Component]) -> Result<Vec<u8>, IoError> {
 	Ok(cursor.into_inner())
 }
 
-pub fn from_uuid_bytes<'a>(bytes_vec: &mut Vec<u8>) -> Result<Vec<Uuid>, IoError> {
+pub fn from_uuid_bytes(bytes: &Vec<u8>) -> Result<Uuid, IoError> {
+	let l = Component::Uuid(Uuid::nil()).len();
+	let slice = &bytes[0..l];
+	let component = Component::read_uuid(slice).unwrap();
+	Ok(component)
+}
+
+pub fn from_vec_uuid_bytes<'a>(bytes_vec: &Vec<u8>) -> Result<Vec<Uuid>, IoError> {
 	let mut i = 0;
 	let l = Component::Uuid(Uuid::nil()).len();
 	let mut ans = vec![];
@@ -97,7 +104,7 @@ pub fn from_uuid_bytes<'a>(bytes_vec: &mut Vec<u8>) -> Result<Vec<Uuid>, IoError
 		if slice.len() == 0 {
 			return Ok(ans);
 		}
-		let component = Component::read_uuid(slice).unwrap();
+		let component = from_uuid_bytes(&slice.to_vec()).unwrap();
 		ans.push(component);
 		i += 1;
 	}

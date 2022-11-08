@@ -20,14 +20,14 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		unimplemented!()
 	}
 
-	async fn exi<K>(&mut self, _cf: CF, _key: K) -> Result<bool, Error>
+	async fn exi<K>(&self, _cf: CF, _key: K) -> Result<bool, Error>
 	where
 		K: Into<Key> + Send,
 	{
 		unimplemented!()
 	}
 	// Fetch a key from the database [column family]
-	async fn get<K>(&mut self, _cf: CF, _key: K) -> Result<Option<Val>, Error>
+	async fn get<K>(&self, _cf: CF, _key: K) -> Result<Option<Val>, Error>
 	where
 		K: Into<Key> + Send,
 	{

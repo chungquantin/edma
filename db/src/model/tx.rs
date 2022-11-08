@@ -43,10 +43,10 @@ pub trait SimpleTransaction {
 	async fn commit(&mut self) -> Result<(), Error>;
 
 	// Check if a key exists
-	async fn exi<K: Into<Key> + Send>(&mut self, cf: CF, key: K) -> Result<bool, Error>;
+	async fn exi<K: Into<Key> + Send>(&self, cf: CF, key: K) -> Result<bool, Error>;
 
 	/// Fetch a key from the database
-	async fn get<K: Into<Key> + Send>(&mut self, cf: CF, key: K) -> Result<Option<Val>, Error>;
+	async fn get<K: Into<Key> + Send>(&self, cf: CF, key: K) -> Result<Option<Val>, Error>;
 
 	/// Insert or update a key in the database
 	async fn set<K: Into<Key> + Send, V: Into<Key> + Send>(

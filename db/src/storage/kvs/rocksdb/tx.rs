@@ -70,7 +70,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		Ok(())
 	}
 
-	async fn exi<K>(&mut self, cf: CF, key: K) -> Result<bool, Error>
+	async fn exi<K>(&self, cf: CF, key: K) -> Result<bool, Error>
 	where
 		K: Into<Key> + Send,
 	{
@@ -83,7 +83,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		Ok(tx.as_ref().unwrap().get_cf(cf, key.into()).unwrap().is_some())
 	}
 	// Fetch a key from the database [column family]
-	async fn get<K>(&mut self, cf: CF, key: K) -> Result<Option<Val>, Error>
+	async fn get<K>(&self, cf: CF, key: K) -> Result<Option<Val>, Error>
 	where
 		K: Into<Key> + Send,
 	{
