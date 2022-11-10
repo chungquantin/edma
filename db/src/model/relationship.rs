@@ -9,6 +9,7 @@ use crate::{util::get_now, Error, Identifier};
 /// - Relationships describes a connection between a source node and a target node.
 /// - Relationships always has a direction (one direction).
 /// - Relationships must have a type (one type) to define (classify) what type of relationship they are.
+#[derive(Debug, Clone, Default)]
 pub struct Relationship {
 	pub id: String,
 	/// Source node (outgoing)

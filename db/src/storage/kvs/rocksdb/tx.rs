@@ -95,6 +95,24 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		let cf = &self.get_column_family(cf).unwrap();
 		Ok(tx.as_ref().unwrap().get_cf(cf, key.into()).unwrap())
 	}
+
+	async fn multi_get<K>(&self, cf: CF, keys: Vec<K>) -> Result<Vec<Option<Val>>, Error>
+	where
+		K: Into<Key> + Send + AsRef<[u8]>,
+	{
+		if self.closed() {
+			return Err(Error::TxFinished);
+		}
+
+		let tx = self.tx.lock().await;
+		let mut values = vec![];
+		let cf = &self.get_column_family(cf).unwrap();
+		for key in keys.iter() {
+			let value = tx.as_ref().unwrap().get_cf(cf, key).unwrap();
+			values.push(value);
+		}
+		Ok(values)
+	}
 	// Insert or update a key in the database
 	async fn set<K, V>(&mut self, cf: CF, key: K, val: V) -> Result<(), Error>
 	where

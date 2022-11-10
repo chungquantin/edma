@@ -1,4 +1,4 @@
-use std::collections::{HashSet, LinkedList};
+use std::collections::HashMap;
 
 use uuid::Uuid;
 
@@ -6,18 +6,18 @@ use crate::Error;
 
 /// # Property Vertex
 /// Vertices are also referred to as node or points.
-#[derive(Default)]
+#[derive(Default, Debug, PartialEq)]
 pub struct Vertex {
 	pub id: Uuid,
-	pub labels: LinkedList<Uuid>,
-	pub props: HashSet<Uuid, Vec<u8>>,
+	pub labels: Vec<Uuid>,
+	pub props: HashMap<Uuid, Vec<u8>>,
 }
 
 impl Vertex {
-	pub fn new(labels: Vec<Uuid>, props: HashSet<Uuid, Vec<u8>>) -> Result<Self, Error> {
+	pub fn new(labels: Vec<Uuid>, props: HashMap<Uuid, Vec<u8>>) -> Result<Self, Error> {
 		let mut vertex = Vertex {
 			id: Uuid::new_v4(),
-			labels: LinkedList::default(),
+			labels: Vec::default(),
 			props,
 		};
 
@@ -27,7 +27,7 @@ impl Vertex {
 	}
 
 	pub fn add_label(&mut self, label: Uuid) -> Result<(), Error> {
-		self.labels.push_back(label);
+		self.labels.push(label);
 		Ok(())
 	}
 

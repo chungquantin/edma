@@ -99,15 +99,35 @@ pub fn from_vec_uuid_bytes<'a>(bytes_vec: &Vec<u8>) -> Result<Vec<Uuid>, IoError
 	let mut i = 0;
 	let l = Component::Uuid(Uuid::nil()).len();
 	let mut ans = vec![];
-	loop {
-		let slice = &bytes_vec[i * l..(i + 1) * l];
-		if slice.len() == 0 {
-			return Ok(ans);
+	if bytes_vec.len() > 0 {
+		loop {
+			let slice = &bytes_vec[i * l..(i + 1) * l];
+			if slice.len() == 0 {
+				return Ok(ans);
+			}
+			let component = from_uuid_bytes(&slice.to_vec()).unwrap();
+			ans.push(component);
+			i += 1;
 		}
-		let component = from_uuid_bytes(&slice.to_vec()).unwrap();
-		ans.push(component);
-		i += 1;
 	}
+	Ok(ans)
+}
+
+pub fn from_vec_bytes(bytes_vec: &Vec<u8>) -> Result<Vec<Vec<u8>>, IoError> {
+	let mut i = 0;
+	let l = Component::Uuid(Uuid::nil()).len();
+	let mut ans = vec![];
+	if bytes_vec.len() > 0 {
+		loop {
+			let slice = &bytes_vec[i * l..(i + 1) * l];
+			if slice.len() == 0 {
+				return Ok(ans);
+			}
+			ans.push(slice.to_vec());
+			i += 1;
+		}
+	}
+	Ok(ans)
 }
 
 pub fn generate_random_i32() -> i32 {

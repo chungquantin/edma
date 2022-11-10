@@ -48,6 +48,15 @@ pub trait SimpleTransaction {
 	/// Fetch a key from the database
 	async fn get<K: Into<Key> + Send>(&self, cf: CF, key: K) -> Result<Option<Val>, Error>;
 
+	// OPTIONAL Fetch multiple keys from the database
+	async fn multi_get<K: Into<Key> + Send + AsRef<[u8]>>(
+		&self,
+		_cf: CF,
+		_keys: Vec<K>,
+	) -> Result<Vec<Option<Val>>, Error> {
+		todo!();
+	}
+
 	/// Insert or update a key in the database
 	async fn set<K: Into<Key> + Send, V: Into<Key> + Send>(
 		&mut self,

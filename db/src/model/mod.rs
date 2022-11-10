@@ -10,6 +10,7 @@ pub mod vertex;
 pub use adapter::*;
 pub use id::*;
 pub use label::*;
+pub use property::*;
 pub use relationship::*;
 pub use tx::*;
 pub use vertex::*;

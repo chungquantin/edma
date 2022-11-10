@@ -1,18 +1,20 @@
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::Error;
 
+#[derive(PartialEq, Serialize, Deserialize, Eq, Debug, Clone)]
 pub enum PropertyVariant {
-	Unknown,
-	String,
-	UInt32,
-	UInt64,
-	UInt128,
-	Document,
-	VecString,
-	VecUint32,
-	VecUint64,
-	VecUint128,
+	Unknown = 0,
+	String = 1,
+	UInt32 = 2,
+	UInt64 = 3,
+	UInt128 = 4,
+	Document = 5,
+	VecString = 6,
+	VecUint32 = 7,
+	VecUint64 = 8,
+	VecUint128 = 9,
 }
 
 impl Default for PropertyVariant {
@@ -24,7 +26,7 @@ impl Default for PropertyVariant {
 /// ## Property
 /// Nodes and relationships can have properties (key-value pairs),
 /// which further describe them.
-#[derive(Default)]
+#[derive(PartialEq, Eq, Debug, Clone, Default)]
 pub struct Property {
 	pub id: Uuid,
 	pub t: PropertyVariant,

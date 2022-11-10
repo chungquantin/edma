@@ -1,5 +1,3 @@
-#![cfg(feature = "kv-rocksdb")]
-mod cf;
 mod tx;
 mod ty;
 
@@ -8,6 +6,7 @@ use std::env::temp_dir;
 use self::ty::{DBType, RocksDBTransaction, TxType};
 use crate::{
 	adapter::StorageVariant,
+	constant::cf,
 	err::Error,
 	model::{DBTransaction, DatastoreAdapter, StorageAdapter, StorageAdapterName},
 	util::{generate_random_i32, path_to_string},
