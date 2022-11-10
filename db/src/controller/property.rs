@@ -1,4 +1,4 @@
-use crate::util::{build_bytes, from_uuid_bytes, Component};
+use crate::util::{build_bytes, build_offset, deserialize_full_data, from_uuid_bytes, Component};
 use crate::{DatastoreAdapter, Error, Property, PropertyVariant, SimpleTransaction};
 
 impl_controller!(PropertyController("properties:v1"));
@@ -23,10 +23,13 @@ impl PropertyController {
 		// First four bytes are the property
 		let serialized_variant = bincode::serialize::<PropertyVariant>(&variant).unwrap();
 		let property = Property::new(name, variant).unwrap();
-		let key = build_bytes(&[Component::Uuid(property.id)]).unwrap();
+		let property_offset = &build_offset(1, serialized_variant.len());
+		let name = name.as_bytes();
+		let name_offset = &build_offset(1, name.len());
 		// Dynamic length string will be concatenated at the end
-		let val = [serialized_variant, name.as_bytes().to_vec()].concat();
+		let val = [property_offset, &serialized_variant, name_offset, name].concat();
 
+		let key = build_bytes(&[Component::Uuid(property.id)]).unwrap();
 		tx.set(cf, key, val).await.unwrap();
 		tx.commit().await.unwrap();
 		Ok(property)
@@ -39,13 +42,16 @@ impl PropertyController {
 		let val = tx.get(cf, id.to_vec()).await.unwrap();
 		match val {
 			Some(v) => {
-				let property = &v[0..4];
-				let name = &v[4..];
+				let deserialized = deserialize_full_data(v).unwrap();
+				let property = &deserialized[0].first().unwrap();
+				let name = &deserialized[1].first().unwrap();
 
+				let name = String::from_utf8(name.to_vec()).unwrap();
+				let t = bincode::deserialize::<PropertyVariant>(property).unwrap();
 				return Ok(Property {
 					id: from_uuid_bytes(&id).unwrap(),
-					name: String::from_utf8(name.to_vec()).unwrap(),
-					t: bincode::deserialize::<PropertyVariant>(property).unwrap(),
+					name,
+					t,
 				});
 			}
 			None => panic!("No label value"),

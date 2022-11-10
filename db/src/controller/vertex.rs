@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 
 use crate::model::adapter::DatastoreAdapter;
-use crate::util::{build_bytes, from_uuid_bytes, from_vec_uuid_bytes, Component};
+use crate::util::{
+	build_bytes, build_offset, deserialize_full_data, from_uuid_bytes, from_vec_uuid_bytes,
+	Component,
+};
 use crate::{Error, SimpleTransaction, Vertex};
 
 use uuid::Uuid;
@@ -24,12 +27,19 @@ impl VertexController {
 		props: HashMap<Uuid, Vec<u8>>,
 	) -> Result<Vertex, Error> {
 		let v = Vertex::new(labels, props).unwrap();
+		let uuid_len = Component::Uuid(Uuid::nil()).len();
+
 		let mut tx = self.config.ds.transaction(true).unwrap();
 		let cf = self.get_cf();
 
 		let key = build_bytes(&[Component::Uuid(v.id)]).unwrap();
-		let labels = v.labels.iter().map(|l| Component::Uuid(*l)).collect::<Vec<Component>>();
-		let val = build_bytes(&labels).unwrap();
+
+		let label_components =
+			v.labels.iter().map(|l| Component::Uuid(*l)).collect::<Vec<Component>>();
+		let labels = build_bytes(&label_components).unwrap();
+		let label_offset = &build_offset(labels.len() as u8, uuid_len);
+
+		let val = [label_offset.as_slice(), labels.as_slice()].concat();
 		tx.set(cf, key, val).await.unwrap();
 		tx.commit().await.unwrap();
 		Ok(v)
@@ -42,9 +52,14 @@ impl VertexController {
 		let value = tx.get(cf, id.to_vec()).await.unwrap();
 
 		match value {
-			Some(mut v) => {
+			Some(v) => {
 				let uuid = from_uuid_bytes(&id).unwrap();
-				let label_ids = from_vec_uuid_bytes(&mut v).unwrap();
+				let deserialized = deserialize_full_data(v.to_vec()).unwrap();
+				let mut label_ids = vec![];
+
+				for label in &deserialized[0] {
+					label_ids.push(from_uuid_bytes(&label).unwrap());
+				}
 
 				return Ok(Vertex {
 					id: uuid,

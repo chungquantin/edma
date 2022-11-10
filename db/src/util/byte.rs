@@ -22,20 +22,17 @@ pub enum Component<'a> {
 	FixedLengthString(&'a str),
 	Identifier(&'a Identifier),
 	DateTime(DateTime<Utc>),
+	Bytes(&'a [u8]),
 }
 
 impl<'a> Component<'a> {
-	// Really just implemented to not set off a clippy warning
-	pub fn is_empty(&self) -> bool {
-		false
-	}
-
 	pub fn len(&self) -> usize {
 		match *self {
 			Component::Uuid(_) => 16,
 			Component::FixedLengthString(s) => s.len(),
 			Component::Identifier(t) => t.0.len() + 1,
 			Component::DateTime(_) => 8,
+			Component::Bytes(b) => b.len(),
 		}
 	}
 
@@ -51,6 +48,7 @@ impl<'a> Component<'a> {
 				let time_to_end = nanos_since_epoch(&MAX_DATETIME) - nanos_since_epoch(&datetime);
 				cursor.write_u64::<BigEndian>(time_to_end)
 			}
+			Component::Bytes(bytes) => cursor.write_all(bytes),
 		}
 	}
 
@@ -133,4 +131,44 @@ pub fn from_vec_bytes(bytes_vec: &Vec<u8>) -> Result<Vec<Vec<u8>>, IoError> {
 pub fn generate_random_i32() -> i32 {
 	let mut rng = rand::thread_rng();
 	rng.gen::<i32>()
+}
+
+pub fn build_offset(size: u8, length: usize) -> Vec<u8> {
+	vec![size, length as u8]
+}
+
+pub fn deserialize_data_with_offset(data: Vec<u8>) -> Result<(Vec<Vec<u8>>, usize), IoError> {
+	let offset = 2;
+	let (size, length) = (&data[0], &data[1]);
+	let len = size * length;
+	let d = data[offset..len as usize + offset].to_vec();
+
+	let mut ans = Vec::new();
+
+	for i in 0..*size {
+		let ind = |x: u8| (x * length) as usize;
+		let slice = &d[ind(i)..ind(i + 1)];
+		ans.push(slice.to_vec());
+	}
+	Ok((ans, d.len() + offset))
+}
+
+type DataArray = Vec<Vec<u8>>;
+
+pub fn deserialize_full_data(data: Vec<u8>) -> Result<Vec<DataArray>, IoError> {
+	let mut answer = vec![];
+	let mut total_length = data.len();
+	let mut start = 0;
+	while total_length > 0 {
+		let slice = data[start..].to_vec();
+		println!("{:?}", slice);
+		let (data, length) = deserialize_data_with_offset(slice).unwrap();
+
+		answer.push(data);
+		println!("{:?}", answer);
+		start += length;
+		total_length -= length;
+	}
+
+	Ok(answer)
 }

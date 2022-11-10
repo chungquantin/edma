@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::HashMap;
 
 use uuid::Uuid;
 
@@ -11,7 +11,7 @@ use crate::{util::get_now, Error, Identifier};
 /// - Relationships must have a type (one type) to define (classify) what type of relationship they are.
 #[derive(Debug, Clone, Default)]
 pub struct Relationship {
-	pub id: String,
+	pub id: Uuid,
 	/// Source node (outgoing)
 	pub s_node: Uuid,
 	/// Target node (incoming)
@@ -21,18 +21,23 @@ pub struct Relationship {
 	/// Timestamp
 	pub timestamp: i64,
 	/// Properties
-	pub props: HashSet<Uuid, Vec<u8>>,
+	pub props: HashMap<Uuid, Vec<u8>>,
 }
 
 impl Relationship {
-	pub fn new(s_node: Uuid, t_node: Uuid, t: Identifier) -> Result<Self, Error> {
+	pub fn new(
+		s_node: Uuid,
+		t_node: Uuid,
+		t: Identifier,
+		props: HashMap<Uuid, Vec<u8>>,
+	) -> Result<Self, Error> {
 		Ok(Relationship {
-			id: s_node.to_string() + &t.0.to_string() + &t_node.to_string(),
+			id: Uuid::new_v4(),
 			s_node,
 			t_node,
 			t,
 			timestamp: get_now(),
-			props: HashSet::default(),
+			props: HashMap::default(),
 		})
 	}
 }

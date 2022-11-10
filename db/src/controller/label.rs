@@ -19,7 +19,7 @@ impl LabelController {
 
 		let cf = self.get_cf();
 		let key = build_bytes(&[Component::Uuid(label.id)]).unwrap();
-		let val = name;
+		let val = name.as_bytes();
 
 		tx.set(cf, key, val).await.unwrap();
 		tx.commit().await.unwrap();

@@ -2,6 +2,16 @@
 use thiserror::Error;
 
 #[derive(Error, Debug)]
+pub enum ValidationError {
+	#[error("Value length is too long")]
+	ValueTooLong,
+	#[error("Invalid value data")]
+	InvalidValue,
+}
+
+pub type ValidationResult<T> = Result<T, ValidationError>;
+
+#[derive(Error, Debug)]
 pub enum Error {
 	/// This error is used for ignoring a document when processing a query
 	#[doc(hidden)]
