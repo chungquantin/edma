@@ -11,6 +11,29 @@ permissions:
 
 jobs:
   format:
+    name: Format apply
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Automatically apply lint suggestions
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --fix --workspace
+      - name: Format check packages
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Apply formatting changes
+          branch: ${{ github.head_ref }}
+  check:
     name: Format check
     runs-on: ubuntu-latest
     steps:
@@ -28,21 +51,4 @@ jobs:
         with:
           command: fmt
           args: --all
-  check:
-    name: Format check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-      - name: Automatically apply lint suggestions
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --fix
-      - name: Format check packages
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+  

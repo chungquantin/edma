@@ -8,7 +8,7 @@ pub const MAX_LABELS: u8 = 5;
 
 /// # Property Vertex
 /// Vertices are also referred to as node or points.
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Debug, PartialEq, Eq)]
 pub struct Vertex {
 	pub id: Uuid,
 	pub labels: Vec<Uuid>,

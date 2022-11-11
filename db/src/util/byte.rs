@@ -62,7 +62,7 @@ impl<'a> Component<'a> {
 	pub fn read_uuid(bytes: &[u8]) -> Result<Uuid, IoError> {
 		let mut fix: [u8; 16] = Default::default();
 		fix.copy_from_slice(&bytes[0..16]);
-		return Ok(Uuid::from_bytes(fix));
+		Ok(Uuid::from_bytes(fix))
 	}
 }
 
@@ -93,21 +93,21 @@ pub fn build_bytes(components: &[Component]) -> Result<Vec<u8>, IoError> {
 	Ok(cursor.into_inner())
 }
 
-pub fn from_uuid_bytes(bytes: &Vec<u8>) -> Result<Uuid, IoError> {
+pub fn from_uuid_bytes(bytes: &[u8]) -> Result<Uuid, IoError> {
 	let l = Component::Uuid(Uuid::nil()).len();
 	let slice = &bytes[0..l];
 	let component = Component::read_uuid(slice).unwrap();
 	Ok(component)
 }
 
-pub fn from_vec_uuid_bytes<'a>(bytes_vec: &Vec<u8>) -> Result<Vec<Uuid>, IoError> {
+pub fn from_vec_uuid_bytes(bytes_vec: &Vec<u8>) -> Result<Vec<Uuid>, IoError> {
 	let mut i = 0;
 	let l = Component::Uuid(Uuid::nil()).len();
 	let mut ans = vec![];
-	if bytes_vec.len() > 0 {
+	if !bytes_vec.is_empty() {
 		loop {
 			let slice = &bytes_vec[i * l..(i + 1) * l];
-			if slice.len() == 0 {
+			if slice.is_empty() {
 				return Ok(ans);
 			}
 			let component = from_uuid_bytes(&slice.to_vec()).unwrap();
@@ -122,10 +122,10 @@ pub fn from_vec_bytes(bytes_vec: &Vec<u8>) -> Result<Vec<Vec<u8>>, IoError> {
 	let mut i = 0;
 	let l = Component::Uuid(Uuid::nil()).len();
 	let mut ans = vec![];
-	if bytes_vec.len() > 0 {
+	if !bytes_vec.is_empty() {
 		loop {
 			let slice = &bytes_vec[i * l..(i + 1) * l];
-			if slice.len() == 0 {
+			if slice.is_empty() {
 				return Ok(ans);
 			}
 			ans.push(slice.to_vec());
@@ -170,7 +170,7 @@ pub fn deserialize_data_with_offset(
 				let slice = &d[ind(i)..ind(i + 1)];
 				ans.push(slice.to_vec());
 			}
-			return Ok((ans, d.len() + offset));
+			Ok((ans, d.len() + offset))
 		}
 	}
 }

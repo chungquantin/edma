@@ -60,11 +60,11 @@ impl PropertyController {
 
 				let name = String::from_utf8(name.to_vec()).unwrap();
 				let t = bincode::deserialize::<PropertyVariant>(property).unwrap();
-				return Ok(Property {
+				Ok(Property {
 					id: from_uuid_bytes(&id).unwrap(),
 					name,
 					t,
-				});
+				})
 			}
 			None => panic!("No label value"),
 		}

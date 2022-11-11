@@ -74,14 +74,14 @@ impl VertexController {
 				let mut label_ids = vec![];
 
 				for label in &deserialized[0] {
-					label_ids.push(from_uuid_bytes(&label).unwrap());
+					label_ids.push(from_uuid_bytes(label).unwrap());
 				}
 
-				return Ok(Vertex {
+				Ok(Vertex {
 					id: uuid,
 					labels: label_ids,
 					props: HashMap::default(),
-				});
+				})
 			}
 			None => panic!("No vertex found"),
 		}
