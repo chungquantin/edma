@@ -6,7 +6,7 @@ on:
     branches: [master]
 
 permissions:
-  contents: read # for checkout
+  contents: write # for checkout
   pull-requests: write # for comments
 
 jobs:
@@ -51,4 +51,3 @@ jobs:
         with:
           command: fmt
           args: --all
-  

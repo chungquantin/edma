@@ -10,6 +10,12 @@ pub enum AccountDiscriminator {
 	Relationship = 4,
 }
 
+impl AccountDiscriminator {
+	pub fn serialize(&self) -> Vec<u8> {
+		bincode::serialize(self).unwrap()
+	}
+}
+
 pub fn serialize_discriminator(ad: AccountDiscriminator) -> Result<Vec<u8>, Error> {
 	bincode::serialize(&ad)
 }

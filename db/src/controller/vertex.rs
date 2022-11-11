@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::{
 	model::adapter::DatastoreAdapter,
 	serialize_discriminator,
-	util::{build_bytes, build_offset, deserialize_full_data, from_uuid_bytes, Component},
+	util::{build_bytes, build_offset, deserialize_byte_data, from_uuid_bytes, Component},
 	AccountDiscriminator, Error, Label, SimpleTransaction, Vertex,
 };
 
@@ -34,7 +34,7 @@ impl VertexController {
 
 		let label_components =
 			labels.iter().map(|l| Component::Uuid(l.id)).collect::<Vec<Component>>();
-		let property_components =
+		let prop_components =
 			props.iter().map(|p| Component::Property(p.0, p.1)).collect::<Vec<Component>>();
 
 		// Handle byte concatenate for label components
@@ -46,16 +46,15 @@ impl VertexController {
 		let labels_concat = [l_dis, l, l_offset].concat();
 
 		// Handle byte concatenate for property components
-		let _properties = &build_bytes(&property_components).unwrap();
-		let _property_discriminator =
-			serialize_discriminator(AccountDiscriminator::Property).unwrap();
-		let (p_dis, p) = (_property_discriminator.as_slice(), _properties.as_slice());
-		let properties_concat = [p_dis, p].concat();
+		let _props = &build_bytes(&prop_components).unwrap();
+		let _prop_discriminator = serialize_discriminator(AccountDiscriminator::Property).unwrap();
+		let (p_dis, p) = (_prop_discriminator.as_slice(), _props.as_slice());
+		let props_concat = [p_dis, p].concat();
 
 		let v = Vertex::new(labels.to_vec(), props).unwrap();
 		let key = build_bytes(&[Component::Uuid(v.id)]).unwrap();
 
-		let val = [labels_concat, properties_concat].concat();
+		let val = [labels_concat, props_concat].concat();
 		tx.set(cf, key, val).await.unwrap();
 		tx.commit().await.unwrap();
 		Ok(v)
@@ -70,17 +69,36 @@ impl VertexController {
 		match value {
 			Some(v) => {
 				let uuid = from_uuid_bytes(&id).unwrap();
-				let deserialized = deserialize_full_data(v.to_vec(), true).unwrap();
-				let mut label_ids = vec![];
+				let deserialized = deserialize_byte_data(v.to_vec(), true).unwrap();
+				let mut properties = HashMap::<Uuid, Vec<u8>>::new();
+				let mut label_ids = Vec::<Uuid>::new();
 
-				for label in &deserialized[0] {
-					label_ids.push(from_uuid_bytes(label).unwrap());
+				for (data, raw_discriminator) in deserialized.iter() {
+					match bincode::deserialize::<AccountDiscriminator>(raw_discriminator) {
+						Ok(discriminator) => match discriminator {
+							AccountDiscriminator::Property => {
+								let uuid_len = Component::Uuid(Uuid::nil()).len();
+								for slice in data {
+									let (uuid, value) = (&slice[..uuid_len], &slice[uuid_len..]);
+									properties
+										.insert(from_uuid_bytes(uuid).unwrap(), value.to_vec());
+								}
+							}
+							AccountDiscriminator::Label => {
+								for label in data {
+									label_ids.push(from_uuid_bytes(label).unwrap());
+								}
+							}
+							_ => unreachable!(),
+						},
+						_ => panic!("No match discriminator found"),
+					}
 				}
 
 				Ok(Vertex {
 					id: uuid,
 					labels: label_ids,
-					props: HashMap::default(),
+					props: properties,
 				})
 			}
 			None => panic!("No vertex found"),
@@ -103,6 +121,7 @@ async fn should_create_label() {
 		.create_properties(vec![
 			("name", PropertyVariant::String),
 			("age", PropertyVariant::UInt128),
+			("addresses", PropertyVariant::VecString),
 		])
 		.await
 		.unwrap();
@@ -111,8 +130,9 @@ async fn should_create_label() {
 		.create_vertex(
 			labels,
 			HashMap::from([
-				(properties[0].id, "example name".as_bytes().to_vec()),
+				(properties[0].id, "example name 1234".as_bytes().to_vec()),
 				(properties[1].id, Vec::from([15])),
+				(properties[2].id, ["address 1", "address 2"].concat().as_bytes().to_vec()),
 			]),
 		)
 		.await

@@ -57,7 +57,6 @@ impl LabelController {
 async fn should_create_label() {
 	let lc = LabelController::default();
 	let res = lc.create_label("Person").await.unwrap();
-	println!("{:?}", res);
 	let label = lc.get_label(res.id.as_bytes().to_vec()).await.unwrap();
 	assert_eq!(label, res);
 }

@@ -1,4 +1,4 @@
-use crate::util::{build_bytes, build_offset, deserialize_full_data, from_uuid_bytes, Component};
+use crate::util::{build_bytes, build_offset, deserialize_byte_data, from_uuid_bytes, Component};
 use crate::{DatastoreAdapter, Error, Property, PropertyVariant, SimpleTransaction};
 
 impl_controller!(PropertyController("properties:v1"));
@@ -54,9 +54,9 @@ impl PropertyController {
 		let val = tx.get(cf, id.to_vec()).await.unwrap();
 		match val {
 			Some(v) => {
-				let deserialized = deserialize_full_data(v, false).unwrap();
-				let property = &deserialized[0].first().unwrap();
-				let name = &deserialized[1].first().unwrap();
+				let deserialized = deserialize_byte_data(v, false).unwrap();
+				let property = &deserialized[0].0.first().unwrap();
+				let name = &deserialized[1].0.first().unwrap();
 
 				let name = String::from_utf8(name.to_vec()).unwrap();
 				let t = bincode::deserialize::<PropertyVariant>(property).unwrap();

@@ -9,6 +9,11 @@ use uuid::Uuid;
 
 use crate::{AccountDiscriminator, Identifier};
 
+type ByteData = Vec<u8>;
+type ByteDataArray = Vec<ByteData>;
+// Description: (List of return bytes, length of bytes vec, discriminator)
+type DeserializeResult = Result<(ByteDataArray, usize, ByteData), IoError>;
+
 lazy_static! {
 	/// The maximum possible datetime.
 	pub static ref MAX_DATETIME: DateTime<Utc> =
@@ -110,7 +115,7 @@ pub fn from_vec_uuid_bytes(bytes_vec: &Vec<u8>) -> Result<Vec<Uuid>, IoError> {
 			if slice.is_empty() {
 				return Ok(ans);
 			}
-			let component = from_uuid_bytes(&slice.to_vec()).unwrap();
+			let component = from_uuid_bytes(slice).unwrap();
 			ans.push(component);
 			i += 1;
 		}
@@ -144,22 +149,38 @@ pub fn build_offset(size: u8, length: usize) -> Vec<u8> {
 	vec![size, length as u8]
 }
 
-pub fn deserialize_data_with_offset(
-	data: Vec<u8>,
-	has_discriminator: bool,
-) -> Result<(Vec<Vec<u8>>, usize), IoError> {
+pub fn deserialize_data_with_offset(data: ByteData, has_discriminator: bool) -> DeserializeResult {
 	let mut offset = 2;
 	let mut discriminator = AccountDiscriminator::None;
 	if has_discriminator {
 		offset = 6;
-		discriminator = bincode::deserialize(&data[..offset]).unwrap();
+		discriminator = bincode::deserialize(&data[..offset - 2]).unwrap();
 	}
 
 	match discriminator {
-		AccountDiscriminator::Property => todo!(),
+		AccountDiscriminator::Property => {
+			let mut total_len: u8 = 0;
+			let mut ans = Vec::new();
+			let uuid_len = Component::Uuid(Uuid::nil()).len();
+
+			while (total_len as usize) < data.len() {
+				let mut o = total_len as usize;
+				if total_len == 0 {
+					o += offset - 2;
+				}
+				let len_index = uuid_len + o;
+				let (uuid, len) = (&data[o..len_index], data[len_index]);
+				assert!(uuid.len() == uuid_len);
+
+				let d = &data[len_index + 1..=len_index + len as usize];
+				total_len += len_index as u8 + 1 + len - total_len;
+				ans.push([uuid, d].concat());
+			}
+
+			Ok((ans, data.len(), discriminator.serialize()))
+		}
 		_ => {
 			let (size, length) = (&data[offset - 2], &data[offset - 1]);
-			println!("size: {} - length: {} - data: {:?}", size, length, data);
 			let len = size * length;
 			let d = data[offset..len as usize + offset].to_vec();
 
@@ -170,25 +191,24 @@ pub fn deserialize_data_with_offset(
 				let slice = &d[ind(i)..ind(i + 1)];
 				ans.push(slice.to_vec());
 			}
-			Ok((ans, d.len() + offset))
+			Ok((ans, d.len() + offset, discriminator.serialize()))
 		}
 	}
 }
 
-type DataArray = Vec<Vec<u8>>;
-
-pub fn deserialize_full_data(
+pub fn deserialize_byte_data(
 	data: Vec<u8>,
 	has_discriminator: bool,
-) -> Result<Vec<DataArray>, IoError> {
+) -> Result<Vec<(ByteDataArray, ByteData)>, IoError> {
 	let mut result = vec![];
 	let mut total_length = data.len();
 	let mut start = 0;
 	while total_length > 0 {
 		let slice = data[start..].to_vec();
-		let (data, length) = deserialize_data_with_offset(slice, has_discriminator).unwrap();
+		let (data, length, discriminator) =
+			deserialize_data_with_offset(slice, has_discriminator).unwrap();
 
-		result.push(data);
+		result.push((data, discriminator));
 		start += length;
 		total_length -= length;
 	}
