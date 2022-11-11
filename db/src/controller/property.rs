@@ -35,6 +35,18 @@ impl PropertyController {
 		Ok(property)
 	}
 
+	pub async fn create_properties(
+		&self,
+		properties: Vec<(&str, PropertyVariant)>,
+	) -> Result<Vec<Property>, Error> {
+		let mut result = vec![];
+		for (name, variant) in properties {
+			let property = self.create_property(name, variant).await.unwrap();
+			result.push(property);
+		}
+		Ok(result)
+	}
+
 	pub async fn get_property(&self, id: Vec<u8>) -> Result<Property, Error> {
 		let tx = self.config.ds.transaction(false).unwrap();
 
@@ -42,7 +54,7 @@ impl PropertyController {
 		let val = tx.get(cf, id.to_vec()).await.unwrap();
 		match val {
 			Some(v) => {
-				let deserialized = deserialize_full_data(v).unwrap();
+				let deserialized = deserialize_full_data(v, false).unwrap();
 				let property = &deserialized[0].first().unwrap();
 				let name = &deserialized[1].first().unwrap();
 
@@ -66,4 +78,18 @@ async fn should_create_property() {
 	let res = pc.create_property("Name", PropertyVariant::String).await.unwrap();
 	let property = pc.get_property(res.id.as_bytes().to_vec()).await.unwrap();
 	assert_eq!(property, res);
+}
+
+#[cfg(test)]
+#[tokio::test]
+async fn should_create_properties() {
+	let pc = PropertyController::default();
+	let properties = pc
+		.create_properties(vec![
+			("name", PropertyVariant::String),
+			("age", PropertyVariant::UInt128),
+		])
+		.await
+		.unwrap();
+	assert_eq!(properties.len(), 2);
 }

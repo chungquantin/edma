@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use uuid::Uuid;
 
-use crate::util::{build_bytes, from_uuid_bytes, Component};
-use crate::{DatastoreAdapter, Error, Identifier, Property, Relationship, SimpleTransaction};
+use crate::util::{build_bytes, Component};
+use crate::{DatastoreAdapter, Error, Identifier, Relationship, SimpleTransaction};
 
 impl_controller!(RelationshipController("relationships:v1"));
 

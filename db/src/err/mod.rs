@@ -9,6 +9,12 @@ pub enum ValidationError {
 	InvalidValue,
 }
 
+#[derive(Error, Debug)]
+pub enum ControllerError {
+	#[error("Exceed number of max label")]
+	ExceedMaxLabel,
+}
+
 pub type ValidationResult<T> = Result<T, ValidationError>;
 
 #[derive(Error, Debug)]

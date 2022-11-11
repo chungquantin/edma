@@ -37,7 +37,7 @@ impl Relationship {
 			t_node,
 			t,
 			timestamp: get_now(),
-			props: HashMap::default(),
+			props,
 		})
 	}
 }

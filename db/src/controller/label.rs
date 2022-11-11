@@ -26,6 +26,16 @@ impl LabelController {
 		Ok(label)
 	}
 
+	pub async fn create_labels(&self, names: Vec<&str>) -> Result<Vec<Label>, Error> {
+		let mut result = Vec::<Label>::new();
+		for name in names.iter() {
+			let label = self.create_label(name).await.unwrap();
+			result.push(label);
+		}
+
+		Ok(result)
+	}
+
 	pub async fn get_label(&self, id: Vec<u8>) -> Result<Label, Error> {
 		let tx = self.config.ds.transaction(false).unwrap();
 

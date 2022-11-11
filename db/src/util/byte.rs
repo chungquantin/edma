@@ -7,7 +7,7 @@ use lazy_static::lazy_static;
 use rand::Rng;
 use uuid::Uuid;
 
-use crate::Identifier;
+use crate::{AccountDiscriminator, Identifier};
 
 lazy_static! {
 	/// The maximum possible datetime.
@@ -19,6 +19,7 @@ lazy_static! {
 
 pub enum Component<'a> {
 	Uuid(Uuid),
+	Property(&'a Uuid, &'a [u8]),
 	FixedLengthString(&'a str),
 	Identifier(&'a Identifier),
 	DateTime(DateTime<Utc>),
@@ -33,6 +34,7 @@ impl<'a> Component<'a> {
 			Component::Identifier(t) => t.0.len() + 1,
 			Component::DateTime(_) => 8,
 			Component::Bytes(b) => b.len(),
+			Component::Property(_, d) => d.len(),
 		}
 	}
 
@@ -49,6 +51,11 @@ impl<'a> Component<'a> {
 				cursor.write_u64::<BigEndian>(time_to_end)
 			}
 			Component::Bytes(bytes) => cursor.write_all(bytes),
+			Component::Property(id, data) => {
+				cursor.write_all(id.as_bytes())?; // Property id
+				cursor.write_u8(data.len() as u8)?; // Length of property value
+				cursor.write_all(data) // Property byte value
+			}
 		}
 	}
 
@@ -137,38 +144,54 @@ pub fn build_offset(size: u8, length: usize) -> Vec<u8> {
 	vec![size, length as u8]
 }
 
-pub fn deserialize_data_with_offset(data: Vec<u8>) -> Result<(Vec<Vec<u8>>, usize), IoError> {
-	let offset = 2;
-	let (size, length) = (&data[0], &data[1]);
-	let len = size * length;
-	let d = data[offset..len as usize + offset].to_vec();
-
-	let mut ans = Vec::new();
-
-	for i in 0..*size {
-		let ind = |x: u8| (x * length) as usize;
-		let slice = &d[ind(i)..ind(i + 1)];
-		ans.push(slice.to_vec());
+pub fn deserialize_data_with_offset(
+	data: Vec<u8>,
+	has_discriminator: bool,
+) -> Result<(Vec<Vec<u8>>, usize), IoError> {
+	let mut offset = 2;
+	let mut discriminator = AccountDiscriminator::None;
+	if has_discriminator {
+		offset = 6;
+		discriminator = bincode::deserialize(&data[..offset]).unwrap();
 	}
-	Ok((ans, d.len() + offset))
+
+	match discriminator {
+		AccountDiscriminator::Property => todo!(),
+		_ => {
+			let (size, length) = (&data[offset - 2], &data[offset - 1]);
+			println!("size: {} - length: {} - data: {:?}", size, length, data);
+			let len = size * length;
+			let d = data[offset..len as usize + offset].to_vec();
+
+			let mut ans = Vec::new();
+
+			for i in 0..*size {
+				let ind = |x: u8| (x * length) as usize;
+				let slice = &d[ind(i)..ind(i + 1)];
+				ans.push(slice.to_vec());
+			}
+			return Ok((ans, d.len() + offset));
+		}
+	}
 }
 
 type DataArray = Vec<Vec<u8>>;
 
-pub fn deserialize_full_data(data: Vec<u8>) -> Result<Vec<DataArray>, IoError> {
-	let mut answer = vec![];
+pub fn deserialize_full_data(
+	data: Vec<u8>,
+	has_discriminator: bool,
+) -> Result<Vec<DataArray>, IoError> {
+	let mut result = vec![];
 	let mut total_length = data.len();
 	let mut start = 0;
 	while total_length > 0 {
 		let slice = data[start..].to_vec();
-		println!("{:?}", slice);
-		let (data, length) = deserialize_data_with_offset(slice).unwrap();
+		let (data, length) = deserialize_data_with_offset(slice, has_discriminator).unwrap();
 
-		answer.push(data);
-		println!("{:?}", answer);
+		result.push(data);
 		start += length;
 		total_length -= length;
 	}
 
-	Ok(answer)
+	Ok(result)
 }
