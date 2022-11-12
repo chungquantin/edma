@@ -21,10 +21,11 @@ license = "Apache-2.0"
 
 
 [features]
-default = ["kv-rocksdb", "kv-cassandradb"]
+default = ["kv-rocksdb", "kv-cassandradb", "debug-suite"]
 kv-rocksdb = ["dep:rocksdb"]
 kv-cassandradb = []
 test-suite = []
+debug-suite = []
 http = ["dep:surf"]
 
 [dependencies]

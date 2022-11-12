@@ -80,7 +80,9 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 
 		let tx = self.tx.lock().await;
 		let cf = &self.get_column_family(cf).unwrap();
-		Ok(tx.as_ref().unwrap().get_cf(cf, key.into()).unwrap().is_some())
+		let result = tx.as_ref().unwrap().get_cf(cf, key.into()).unwrap().is_some();
+
+		Ok(result)
 	}
 	// Fetch a key from the database [column family]
 	async fn get<K>(&self, cf: CF, key: K) -> Result<Option<Val>, Error>

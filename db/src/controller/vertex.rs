@@ -69,6 +69,7 @@ impl VertexController {
 		Ok(v)
 	}
 
+	/// # Get single vertex from datastore
 	pub async fn get_vertex(&self, id: Vec<u8>) -> Result<Vertex, Error> {
 		let cf = self.get_cf();
 		let tx = self.config.ds.transaction(false).unwrap();
@@ -112,5 +113,17 @@ impl VertexController {
 			}
 			None => panic!("No vertex found"),
 		}
+	}
+
+	/// # Get multiple vertices from datastore
+	pub async fn get_vertices(&self, ids: Vec<Vec<u8>>) -> Result<Vec<Vertex>, Error> {
+		let mut vertices = Vec::<Vertex>::new();
+
+		for id in ids.iter() {
+			let vertex = self.get_vertex(id.to_vec()).await.unwrap();
+			vertices.push(vertex);
+		}
+
+		Ok(vertices)
 	}
 }
