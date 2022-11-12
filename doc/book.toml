@@ -1,0 +1,7 @@
+[book]
+title = "Akashic records: The Solomon book"
+authors = ["The Solomon DB Project Developers"]
+
+[output.html]
+git-repository-url = "https://github.com/nomadiz/solomon-db//tree/master/doc"
+site-url = "https://github.com/nomadiz/solomon-db/"
