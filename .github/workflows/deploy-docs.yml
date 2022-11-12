@@ -22,8 +22,9 @@ jobs:
       - name: Build book
         run: |
           git checkout master
+          cd doc
           mdbook build
-          mv book ${{ runner.temp }}/book/devel
+          mv book ${{ runner.temp }}/book
       - name: Deploy to GitHub
         run: |
           cd ${{ runner.temp }}/book
