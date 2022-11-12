@@ -2,8 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
 	model::adapter::DatastoreAdapter,
-	serialize_discriminator,
-	util::{build_bytes, build_offset, deserialize_byte_data, from_uuid_bytes, Component},
+	util::{build_bytes, build_meta, deserialize_byte_data, from_uuid_bytes, Component},
 	AccountDiscriminator, Error, Label, SimpleTransaction, Vertex,
 };
 
@@ -21,6 +20,14 @@ impl Default for VertexController {
 
 impl VertexController {
 	/// # Create a new vertex from labels and properties
+	/// ## Description
+	/// Because Vertex has multiple dynamic sized attributes:
+	/// - labels: Vec<Label>
+	/// - props: HashMap<Uuid, Vec<u8>>
+	/// It will be a bit more complicated.
+	///
+	/// Data will be store in Vertex as
+	/// + label_discriminator | label_meta | label data
 	pub async fn create_vertex(
 		&self,
 		labels: Vec<Label>,
@@ -35,19 +42,21 @@ impl VertexController {
 		let label_components =
 			labels.iter().map(|l| Component::Uuid(l.id)).collect::<Vec<Component>>();
 		let prop_components =
-			props.iter().map(|p| Component::Property(p.0, p.1)).collect::<Vec<Component>>();
+			props.iter().map(|(id, val)| Component::Property(id, val)).collect::<Vec<Component>>();
 
 		// Handle byte concatenate for label components
-		let _label_discriminator = serialize_discriminator(AccountDiscriminator::Label).unwrap();
+		let label_discriminator = AccountDiscriminator::Label.serialize();
 		let _labels = build_bytes(&label_components).unwrap();
-		let _label_offset = &build_offset(ll, uuid_len);
-		let (l_dis, l, l_offset) =
-			(_label_discriminator.as_slice(), _label_offset.as_slice(), _labels.as_slice());
-		let labels_concat = [l_dis, l, l_offset].concat();
+		let label_meta = &build_meta(ll, uuid_len);
+		// (Label discriminator, Label byte array, Label metadata)
+		let (l_dis, l, l_meta) =
+			(label_discriminator.as_slice(), label_meta.as_slice(), _labels.as_slice());
+		let labels_concat = [l_dis, l, l_meta].concat();
 
 		// Handle byte concatenate for property components
+		let _prop_discriminator = AccountDiscriminator::Property.serialize();
 		let _props = &build_bytes(&prop_components).unwrap();
-		let _prop_discriminator = serialize_discriminator(AccountDiscriminator::Property).unwrap();
+		// (Property discriminator, Property byte array - meta for each property generated)
 		let (p_dis, p) = (_prop_discriminator.as_slice(), _props.as_slice());
 		let props_concat = [p_dis, p].concat();
 
@@ -104,42 +113,4 @@ impl VertexController {
 			None => panic!("No vertex found"),
 		}
 	}
-}
-
-// #[cfg(feature = "test-suite")]
-#[cfg(test)]
-#[tokio::test]
-async fn should_create_label() {
-	use crate::{LabelController, PropertyController, PropertyVariant};
-
-	let vc = VertexController::default();
-	let lc = LabelController::default();
-	let pc = PropertyController::default();
-
-	let raw_labels = ["Person", "Student", "Employee"];
-	let properties = pc
-		.create_properties(vec![
-			("name", PropertyVariant::String),
-			("age", PropertyVariant::UInt128),
-			("addresses", PropertyVariant::VecString),
-		])
-		.await
-		.unwrap();
-	let labels = lc.create_labels(raw_labels.to_vec()).await.unwrap();
-	let res = vc
-		.create_vertex(
-			labels,
-			HashMap::from([
-				(properties[0].id, "example name 1234".as_bytes().to_vec()),
-				(properties[1].id, Vec::from([15])),
-				(properties[2].id, ["address 1", "address 2"].concat().as_bytes().to_vec()),
-			]),
-		)
-		.await
-		.unwrap();
-	assert_eq!(res.labels.len(), raw_labels.len());
-
-	let vertex = vc.get_vertex(res.id.as_bytes().to_vec()).await.unwrap();
-	assert_eq!(vertex, res);
-	assert_eq!(vertex.labels.len(), raw_labels.len());
 }

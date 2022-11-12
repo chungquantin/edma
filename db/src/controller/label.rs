@@ -1,5 +1,7 @@
-use crate::util::{build_bytes, from_uuid_bytes, Component};
-use crate::{DatastoreAdapter, Error, Label, SimpleTransaction};
+use crate::util::{
+	build_bytes, build_meta, deserialize_data_with_meta, from_uuid_bytes, Component,
+};
+use crate::{AccountDiscriminator, DatastoreAdapter, Error, Label, SimpleTransaction};
 
 impl_controller!(LabelController("labels:v1"));
 
@@ -19,7 +21,9 @@ impl LabelController {
 
 		let cf = self.get_cf();
 		let key = build_bytes(&[Component::Uuid(label.id)]).unwrap();
-		let val = name.as_bytes();
+		let discriminator = AccountDiscriminator::Label.serialize();
+		let meta = &build_meta(1, name.len());
+		let val = [discriminator, meta.to_vec(), name.as_bytes().to_vec()].concat();
 
 		tx.set(cf, key, val).await.unwrap();
 		tx.commit().await.unwrap();
@@ -40,23 +44,16 @@ impl LabelController {
 		let tx = self.config.ds.transaction(false).unwrap();
 
 		let cf = self.get_cf();
-		let val = tx.get(cf, id.to_vec()).await.unwrap();
-		match val {
-			Some(v) => Ok(Label {
-				id: from_uuid_bytes(&id).unwrap(),
-				name: String::from_utf8(v).unwrap(),
-			}),
+		let raw = tx.get(cf, id.to_vec()).await.unwrap();
+		match raw {
+			Some(r) => {
+				let (data, _, _) = deserialize_data_with_meta(r, true).unwrap();
+				Ok(Label {
+					id: from_uuid_bytes(&id).unwrap(),
+					name: String::from_utf8(data[0].to_vec()).unwrap(),
+				})
+			}
 			None => panic!("No label value"),
 		}
 	}
-}
-
-// #[cfg(feature = "test-suite")]
-#[cfg(test)]
-#[tokio::test]
-async fn should_create_label() {
-	let lc = LabelController::default();
-	let res = lc.create_label("Person").await.unwrap();
-	let label = lc.get_label(res.id.as_bytes().to_vec()).await.unwrap();
-	assert_eq!(label, res);
 }

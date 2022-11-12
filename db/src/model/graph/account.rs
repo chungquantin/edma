@@ -1,4 +1,3 @@
-use bincode::Error;
 use serde::{Deserialize, Serialize};
 
 #[derive(PartialEq, Serialize, Deserialize, Eq, Debug, Clone)]
@@ -14,8 +13,4 @@ impl AccountDiscriminator {
 	pub fn serialize(&self) -> Vec<u8> {
 		bincode::serialize(self).unwrap()
 	}
-}
-
-pub fn serialize_discriminator(ad: AccountDiscriminator) -> Result<Vec<u8>, Error> {
-	bincode::serialize(&ad)
 }

@@ -1,5 +1,5 @@
-use crate::util::{build_bytes, build_offset, deserialize_byte_data, from_uuid_bytes, Component};
-use crate::{DatastoreAdapter, Error, Property, PropertyVariant, SimpleTransaction};
+use crate::util::{build_bytes, build_meta, deserialize_byte_data, from_uuid_bytes, Component};
+use crate::{DatastoreAdapter, Error, PropType, Property, SimpleTransaction};
 
 impl_controller!(PropertyController("properties:v1"));
 
@@ -12,22 +12,18 @@ impl Default for PropertyController {
 }
 
 impl PropertyController {
-	pub async fn create_property(
-		&self,
-		name: &str,
-		variant: PropertyVariant,
-	) -> Result<Property, Error> {
+	pub async fn create_property(&self, name: &str, variant: PropType) -> Result<Property, Error> {
 		let mut tx = self.config.ds.transaction(true).unwrap();
 
 		let cf = self.get_cf();
 		// First four bytes are the property
-		let serialized_variant = bincode::serialize::<PropertyVariant>(&variant).unwrap();
+		let serialized_variant = bincode::serialize::<PropType>(&variant).unwrap();
 		let property = Property::new(name, variant).unwrap();
-		let property_offset = &build_offset(1, serialized_variant.len());
+		let property_meta = &build_meta(1, serialized_variant.len());
 		let name = name.as_bytes();
-		let name_offset = &build_offset(1, name.len());
+		let name_meta = &build_meta(1, name.len());
 		// Dynamic length string will be concatenated at the end
-		let val = [property_offset, &serialized_variant, name_offset, name].concat();
+		let val = [property_meta, &serialized_variant, name_meta, name].concat();
 
 		let key = build_bytes(&[Component::Uuid(property.id)]).unwrap();
 		tx.set(cf, key, val).await.unwrap();
@@ -37,7 +33,7 @@ impl PropertyController {
 
 	pub async fn create_properties(
 		&self,
-		properties: Vec<(&str, PropertyVariant)>,
+		properties: Vec<(&str, PropType)>,
 	) -> Result<Vec<Property>, Error> {
 		let mut result = vec![];
 		for (name, variant) in properties {
@@ -59,7 +55,7 @@ impl PropertyController {
 				let name = &deserialized[1].0.first().unwrap();
 
 				let name = String::from_utf8(name.to_vec()).unwrap();
-				let t = bincode::deserialize::<PropertyVariant>(property).unwrap();
+				let t = bincode::deserialize::<PropType>(property).unwrap();
 				Ok(Property {
 					id: from_uuid_bytes(&id).unwrap(),
 					name,
@@ -69,27 +65,4 @@ impl PropertyController {
 			None => panic!("No label value"),
 		}
 	}
-}
-
-#[cfg(test)]
-#[tokio::test]
-async fn should_create_property() {
-	let pc = PropertyController::default();
-	let res = pc.create_property("Name", PropertyVariant::String).await.unwrap();
-	let property = pc.get_property(res.id.as_bytes().to_vec()).await.unwrap();
-	assert_eq!(property, res);
-}
-
-#[cfg(test)]
-#[tokio::test]
-async fn should_create_properties() {
-	let pc = PropertyController::default();
-	let properties = pc
-		.create_properties(vec![
-			("name", PropertyVariant::String),
-			("age", PropertyVariant::UInt128),
-		])
-		.await
-		.unwrap();
-	assert_eq!(properties.len(), 2);
 }

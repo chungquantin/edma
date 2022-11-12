@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::Error;
 
 #[derive(PartialEq, Serialize, Deserialize, Eq, Debug, Clone)]
-pub enum PropertyVariant {
+pub enum PropType {
 	Unknown = 0,
 	String = 1,
 	UInt32 = 2,
@@ -17,9 +17,9 @@ pub enum PropertyVariant {
 	VecUint128 = 9,
 }
 
-impl Default for PropertyVariant {
+impl Default for PropType {
 	fn default() -> Self {
-		PropertyVariant::Unknown
+		PropType::Unknown
 	}
 }
 
@@ -29,12 +29,12 @@ impl Default for PropertyVariant {
 #[derive(PartialEq, Eq, Debug, Clone, Default)]
 pub struct Property {
 	pub id: Uuid,
-	pub t: PropertyVariant,
+	pub t: PropType,
 	pub name: String,
 }
 
 impl Property {
-	pub fn new(name: &str, t: PropertyVariant) -> Result<Self, Error> {
+	pub fn new(name: &str, t: PropType) -> Result<Self, Error> {
 		Ok(Property {
 			id: Uuid::new_v4(),
 			name: name.to_string(),

@@ -105,55 +105,29 @@ pub fn from_uuid_bytes(bytes: &[u8]) -> Result<Uuid, IoError> {
 	Ok(component)
 }
 
-pub fn from_vec_uuid_bytes(bytes_vec: &Vec<u8>) -> Result<Vec<Uuid>, IoError> {
-	let mut i = 0;
-	let l = Component::Uuid(Uuid::nil()).len();
-	let mut ans = vec![];
-	if !bytes_vec.is_empty() {
-		loop {
-			let slice = &bytes_vec[i * l..(i + 1) * l];
-			if slice.is_empty() {
-				return Ok(ans);
-			}
-			let component = from_uuid_bytes(slice).unwrap();
-			ans.push(component);
-			i += 1;
-		}
-	}
-	Ok(ans)
-}
-
-pub fn from_vec_bytes(bytes_vec: &Vec<u8>) -> Result<Vec<Vec<u8>>, IoError> {
-	let mut i = 0;
-	let l = Component::Uuid(Uuid::nil()).len();
-	let mut ans = vec![];
-	if !bytes_vec.is_empty() {
-		loop {
-			let slice = &bytes_vec[i * l..(i + 1) * l];
-			if slice.is_empty() {
-				return Ok(ans);
-			}
-			ans.push(slice.to_vec());
-			i += 1;
-		}
-	}
-	Ok(ans)
-}
-
 pub fn generate_random_i32() -> i32 {
 	let mut rng = rand::thread_rng();
 	rng.gen::<i32>()
 }
 
-pub fn build_offset(size: u8, length: usize) -> Vec<u8> {
+pub fn build_meta(size: u8, length: usize) -> Vec<u8> {
 	vec![size, length as u8]
 }
 
-pub fn deserialize_data_with_offset(data: ByteData, has_discriminator: bool) -> DeserializeResult {
-	let mut offset = 2;
+/// # Deserialize data with metadata
+/// Metadata: [size, length]
+///
+/// Based on the information of metadata to slice the raw byte data
+pub fn deserialize_data_with_meta(data: ByteData, has_discriminator: bool) -> DeserializeResult {
+	let meta_length = 2;
+	let mut offset = meta_length;
 	let mut discriminator = AccountDiscriminator::None;
+	// If byte data includes discriminator, offset will be
+	// - meta length (2) + discriminator length (4) = offset (6)
 	if has_discriminator {
-		offset = 6;
+		let discriminator_length = 4;
+		offset = meta_length + discriminator_length;
+		// Binary deserialize byte data into AccountDiscriminator
 		discriminator = bincode::deserialize(&data[..offset - 2]).unwrap();
 	}
 
@@ -197,7 +171,7 @@ pub fn deserialize_data_with_offset(data: ByteData, has_discriminator: bool) -> 
 }
 
 pub fn deserialize_byte_data(
-	data: Vec<u8>,
+	data: ByteData,
 	has_discriminator: bool,
 ) -> Result<Vec<(ByteDataArray, ByteData)>, IoError> {
 	let mut result = vec![];
@@ -206,7 +180,7 @@ pub fn deserialize_byte_data(
 	while total_length > 0 {
 		let slice = data[start..].to_vec();
 		let (data, length, discriminator) =
-			deserialize_data_with_offset(slice, has_discriminator).unwrap();
+			deserialize_data_with_meta(slice, has_discriminator).unwrap();
 
 		result.push((data, discriminator));
 		start += length;

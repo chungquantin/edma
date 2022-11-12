@@ -9,13 +9,12 @@ use crate::{util::get_now, Error, Identifier};
 /// - Relationships describes a connection between a source node and a target node.
 /// - Relationships always has a direction (one direction).
 /// - Relationships must have a type (one type) to define (classify) what type of relationship they are.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Relationship {
-	pub id: Uuid,
-	/// Source node (outgoing)
-	pub s_node: Uuid,
-	/// Target node (incoming)
-	pub t_node: Uuid,
+	/// Source vertex (inbound)
+	pub source: Uuid,
+	/// Target vertex (outbound)
+	pub target: Uuid,
 	/// Relationship type
 	pub t: Identifier,
 	/// Timestamp
@@ -26,15 +25,14 @@ pub struct Relationship {
 
 impl Relationship {
 	pub fn new(
-		s_node: Uuid,
-		t_node: Uuid,
+		source: Uuid,
+		target: Uuid,
 		t: Identifier,
 		props: HashMap<Uuid, Vec<u8>>,
 	) -> Result<Self, Error> {
 		Ok(Relationship {
-			id: Uuid::new_v4(),
-			s_node,
-			t_node,
+			source,
+			target,
 			t,
 			timestamp: get_now(),
 			props,
