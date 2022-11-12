@@ -1,6 +1,12 @@
 <p align="center">
 <img src="https://user-images.githubusercontent.com/56880684/201497081-40976107-ef47-4a12-bf6d-ceafc8da3464.png" width="40%"/>
 </p>
+<p align="center">
+    <a href="https://github.com/nomadiz/solomon-db/graphs/contributors" alt="Contributors">
+        <img src="https://img.shields.io/github/contributors/nomadiz/solomon-db" /></a>
+    <a href="https://github.com/nomadiz/solomon-db/pulse" alt="Activity">
+        <img src="https://img.shields.io/github/commit-activity/m/nomadiz/solomon-db" /></a>
+</p>
 
 # Solomon Database
 
