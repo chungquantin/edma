@@ -1,4 +1,4 @@
-use crate::util::{build_bytes, build_meta, deserialize_byte_data, from_uuid_bytes, Component};
+use crate::util::{build_bytes, from_uuid_bytes, Component};
 use crate::{DatastoreAdapter, Error, PropType, Property, SimpleTransaction};
 
 impl_controller!(PropertyController("properties:v1"));
@@ -16,16 +16,10 @@ impl PropertyController {
 		let mut tx = self.config.ds.transaction(true).unwrap();
 
 		let cf = self.get_cf();
-		// First four bytes are the property
-		let serialized_variant = bincode::serialize::<PropType>(&variant).unwrap();
 		let property = Property::new(name, variant).unwrap();
-		let property_meta = &build_meta(1, serialized_variant.len());
-		let name = name.as_bytes();
-		let name_meta = &build_meta(1, name.len());
-		// Dynamic length string will be concatenated at the end
-		let val = [property_meta, &serialized_variant, name_meta, name].concat();
-
 		let key = build_bytes(&[Component::Uuid(property.id)]).unwrap();
+		let val = Property::serialize(&property).unwrap();
+
 		tx.set(cf, key, val).await.unwrap();
 		tx.commit().await.unwrap();
 		Ok(property)
@@ -36,10 +30,19 @@ impl PropertyController {
 		properties: Vec<(&str, PropType)>,
 	) -> Result<Vec<Property>, Error> {
 		let mut result = vec![];
+		let mut tx = self.config.ds.transaction(true).unwrap();
+
 		for (name, variant) in properties {
-			let property = self.create_property(name, variant).await.unwrap();
+			let cf = self.get_cf();
+			let property = Property::new(name, variant).unwrap();
+			let key = build_bytes(&[Component::Uuid(property.id)]).unwrap();
+			let val = Property::serialize(&property).unwrap();
+
+			tx.set(cf, key, val).await.unwrap();
 			result.push(property);
 		}
+
+		tx.commit().await.unwrap();
 		Ok(result)
 	}
 
@@ -50,12 +53,7 @@ impl PropertyController {
 		let val = tx.get(cf, id.to_vec()).await.unwrap();
 		match val {
 			Some(v) => {
-				let deserialized = deserialize_byte_data(v, false).unwrap();
-				let property = &deserialized[0].0.first().unwrap();
-				let name = &deserialized[1].0.first().unwrap();
-
-				let name = String::from_utf8(name.to_vec()).unwrap();
-				let t = bincode::deserialize::<PropType>(property).unwrap();
+				let (name, t) = Property::deserialize(v).unwrap();
 				Ok(Property {
 					id: from_uuid_bytes(&id).unwrap(),
 					name,

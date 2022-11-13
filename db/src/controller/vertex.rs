@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use crate::{
 	model::adapter::DatastoreAdapter,
-	util::{build_bytes, build_meta, deserialize_byte_data, from_uuid_bytes, Component},
-	AccountDiscriminator, Error, Label, SimpleTransaction, Vertex,
+	util::{build_bytes, deserialize_byte_data, from_uuid_bytes, Component},
+	AccountDiscriminator, Error, Label, Property, SimpleTransaction, Vertex,
 };
 
 use uuid::Uuid;
@@ -33,37 +33,16 @@ impl VertexController {
 		labels: Vec<Label>,
 		props: HashMap<Uuid, Vec<u8>>,
 	) -> Result<Vertex, Error> {
-		let uuid_len = Component::Uuid(Uuid::nil()).len();
-		let ll = labels.len() as u8; // Label list length
-
 		let mut tx = self.config.ds.transaction(true).unwrap();
 		let cf = self.get_cf();
 
-		let label_components =
-			labels.iter().map(|l| Component::Uuid(l.id)).collect::<Vec<Component>>();
-		let prop_components =
-			props.iter().map(|(id, val)| Component::Property(id, val)).collect::<Vec<Component>>();
-
-		// Handle byte concatenate for label components
-		let label_discriminator = AccountDiscriminator::Label.serialize();
-		let _labels = build_bytes(&label_components).unwrap();
-		let label_meta = &build_meta(ll, uuid_len);
-		// (Label discriminator, Label byte array, Label metadata)
-		let (l_dis, l, l_meta) =
-			(label_discriminator.as_slice(), label_meta.as_slice(), _labels.as_slice());
-		let labels_concat = [l_dis, l, l_meta].concat();
-
-		// Handle byte concatenate for property components
-		let _prop_discriminator = AccountDiscriminator::Property.serialize();
-		let _props = &build_bytes(&prop_components).unwrap();
-		// (Property discriminator, Property byte array - meta for each property generated)
-		let (p_dis, p) = (_prop_discriminator.as_slice(), _props.as_slice());
-		let props_concat = [p_dis, p].concat();
+		let labels_bytes = Label::multi_serialize(&labels).unwrap();
+		let properties_bytes = Property::multi_serialize(&props).unwrap();
 
 		let v = Vertex::new(labels.to_vec(), props).unwrap();
 		let key = build_bytes(&[Component::Uuid(v.id)]).unwrap();
 
-		let val = [labels_concat, props_concat].concat();
+		let val = [labels_bytes, properties_bytes].concat();
 		tx.set(cf, key, val).await.unwrap();
 		tx.commit().await.unwrap();
 		Ok(v)

@@ -2,7 +2,7 @@
 #[cfg(test)]
 mod test {
 	#[tokio::test]
-	async fn should_create_label() {
+	async fn should_create_vertex() {
 		use std::collections::HashMap;
 
 		use crate::{LabelController, PropType, PropertyController, VertexController};

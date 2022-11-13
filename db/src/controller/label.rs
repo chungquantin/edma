@@ -1,7 +1,7 @@
 use crate::util::{
-	build_bytes, build_meta, deserialize_data_with_meta, from_uuid_bytes, Component,
+	build_bytes, deserialize_data_with_meta, from_uuid_bytes, Component,
 };
-use crate::{AccountDiscriminator, DatastoreAdapter, Error, Label, SimpleTransaction};
+use crate::{DatastoreAdapter, Error, Label, SimpleTransaction};
 
 impl_controller!(LabelController("labels:v1"));
 
@@ -21,9 +21,7 @@ impl LabelController {
 
 		let cf = self.get_cf();
 		let key = build_bytes(&[Component::Uuid(label.id)]).unwrap();
-		let discriminator = AccountDiscriminator::Label.serialize();
-		let meta = &build_meta(1, name.len());
-		let val = [discriminator, meta.to_vec(), name.as_bytes().to_vec()].concat();
+		let val = Label::serialize(&label).unwrap();
 
 		tx.set(cf, key, val).await.unwrap();
 		tx.commit().await.unwrap();
@@ -31,11 +29,18 @@ impl LabelController {
 	}
 
 	pub async fn create_labels(&self, names: Vec<&str>) -> Result<Vec<Label>, Error> {
+		let mut tx = self.config.ds.transaction(true).unwrap();
 		let mut result = Vec::<Label>::new();
 		for name in names.iter() {
-			let label = self.create_label(name).await.unwrap();
+			let label = Label::new(name).unwrap();
+			let cf = self.get_cf();
+			let key = build_bytes(&[Component::Uuid(label.id)]).unwrap();
+			let val = Label::serialize(&label).unwrap();
+
+			tx.set(cf, key, val).await.unwrap();
 			result.push(label);
 		}
+		tx.commit().await.unwrap();
 
 		Ok(result)
 	}
