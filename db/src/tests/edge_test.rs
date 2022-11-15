@@ -6,7 +6,7 @@ mod test {
 	use crate::{
 		storage::{DBRef, Datastore},
 		util::generate_path,
-		EdgeController, EdgePropertyController,
+		EdgeController,
 	};
 
 	#[tokio::test]
@@ -19,7 +19,6 @@ mod test {
 		let vc = VertexController::new(r);
 		let ec = EdgeController::new(r);
 		let lc = LabelController::new(r);
-		let epc = EdgePropertyController::new(r);
 
 		let raw_labels = ["Person", "Student", "Employee"];
 
@@ -56,9 +55,6 @@ mod test {
 			)
 			.await
 			.unwrap();
-
-		let value = epc.count().await.unwrap();
-		println!("Value: {:?}", value);
 
 		let res = ec.get(v1.id, v2.id, "LIKE").await.unwrap();
 

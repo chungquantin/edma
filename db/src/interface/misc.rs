@@ -8,3 +8,4 @@ pub struct JsonData {
 
 /// Miscellaneous
 pub type Uint8Array = Vec<u8>;
+pub type KeyValuePair = (Vec<u8>, Vec<u8>);

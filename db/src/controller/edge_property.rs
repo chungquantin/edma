@@ -1,18 +1,25 @@
 use serde_json::{json, Map, Value};
 use uuid::Uuid;
 
+use crate::interface::KeyValuePair;
+use crate::util::build_json_value;
 use crate::util::{build_bytes, Component};
 use crate::{Error, Identifier, SimpleTransaction};
 
 impl_controller!(EdgePropertyController("edge-properties:v1"));
 
 impl<'a> EdgePropertyController<'a> {
-	fn key(&self, out_id: Uuid, t: &Identifier, in_id: Uuid) -> Vec<u8> {
+	fn edge_key(&self, out_id: Uuid, t: &Identifier, in_id: Uuid) -> Vec<u8> {
+		build_bytes(&[Component::Uuid(out_id), Component::Identifier(t), Component::Uuid(in_id)])
+			.unwrap()
+	}
+
+	fn key(&self, out_id: Uuid, t: &Identifier, in_id: Uuid, k: &String) -> Vec<u8> {
 		build_bytes(&[
 			Component::Uuid(out_id),
 			Component::Identifier(t),
 			Component::Uuid(in_id),
-			// Component::FixedLengthString(&name.0),
+			Component::Bytes(k.as_bytes()),
 		])
 		.unwrap()
 	}
@@ -33,8 +40,9 @@ impl<'a> EdgePropertyController<'a> {
 
 		for k in o.keys() {
 			let val = o.get(k).unwrap();
-			let json_value = build_bytes(&[Component::JsonValue(val)]).unwrap();
-			let key = self.key(out_id, t, in_id);
+			let json_value =
+				build_bytes(&[Component::JsonValueType(val), Component::JsonValue(val)]).unwrap();
+			let key = self.key(out_id, t, in_id, k);
 
 			tx.set(cf.clone(), key, json_value).await.unwrap();
 		}
@@ -45,14 +53,14 @@ impl<'a> EdgePropertyController<'a> {
 
 	pub fn iterate(
 		&self,
-		iterator: Vec<Result<(Vec<u8>, Vec<u8>), Error>>,
+		offset: usize,
+		iterator: Vec<Result<KeyValuePair, Error>>,
 	) -> Result<Value, Error> {
-		let uuid_len = Component::Uuid(Uuid::nil()).len();
 		let mut map: Map<String, Value> = Map::default();
 		iterator.iter().for_each(|p| {
 			let (k, v) = p.as_ref().unwrap();
-			let attr = String::from_utf8(k[uuid_len..].to_vec()).unwrap();
-			let value = Value::from(v.to_vec());
+			let attr = String::from_utf8(k[offset..].to_vec()).unwrap();
+			let value = build_json_value(v.to_vec()).unwrap();
 			map.insert(attr, value);
 		});
 
@@ -64,7 +72,7 @@ impl<'a> EdgePropertyController<'a> {
 		let cf = self.get_cf();
 
 		let iterator = tx.iterate(cf).await.unwrap();
-		Ok(self.iterate(iterator).unwrap())
+		Ok(self.iterate(0, iterator).unwrap())
 	}
 
 	pub async fn iterate_from_attributes(
@@ -76,8 +84,9 @@ impl<'a> EdgePropertyController<'a> {
 		let tx = &self.get_ds().transaction(false).unwrap();
 		let cf = self.get_cf();
 
-		let key = self.key(out_id, t, in_id);
-		let iterator = tx.prefix_iterate(cf, key).await.unwrap();
-		Ok(self.iterate(iterator).unwrap())
+		let t_id = Identifier::new(t.to_string()).unwrap();
+		let key = self.edge_key(out_id, &t_id, in_id);
+		let iterator = tx.prefix_iterate(cf, key.to_vec()).await.unwrap();
+		Ok(self.iterate(key.len(), iterator).unwrap())
 	}
 }

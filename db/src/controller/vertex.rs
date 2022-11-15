@@ -42,9 +42,7 @@ impl<'a> VertexController<'a> {
 		let cf = self.get_cf();
 
 		let tx = self.get_ds().transaction(false).unwrap();
-
 		let value = tx.get(cf, id.to_vec()).await.unwrap();
-
 		match value {
 			Some(v) => {
 				let uuid = from_uuid_bytes(&id).unwrap();

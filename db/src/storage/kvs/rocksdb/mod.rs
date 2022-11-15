@@ -23,7 +23,6 @@ impl RocksDBAdapter {
 	// Path example: rocksdb://dev/smh/solomon-db
 	pub fn new(path: &str, max_open_files: Option<i32>) -> Result<RocksDBAdapter, Error> {
 		let path = &path["rocksdb:".len()..];
-		println!("path {}", path);
 		let opts = get_options(max_open_files);
 		let db_instance = OptimisticTransactionDB::open_cf(&opts, path, cf::CF_NAMES)?;
 		Ok(RocksDBAdapter(StorageAdapter::<DBType>::new(

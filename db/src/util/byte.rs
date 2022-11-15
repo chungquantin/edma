@@ -1,6 +1,6 @@
 use std::io::{Cursor, Error as IoError, Write};
 
-use byteorder::{BigEndian, WriteBytesExt};
+use byteorder::{BigEndian, ByteOrder, WriteBytesExt};
 use chrono::{DateTime, NaiveDateTime, Timelike, Utc};
 
 use lazy_static::lazy_static;
@@ -8,7 +8,7 @@ use rand::Rng;
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::{AccountDiscriminator, Identifier};
+use crate::{AccountDiscriminator, Error, Identifier};
 
 type ByteData = Vec<u8>;
 type ByteDataArray = Vec<ByteData>;
@@ -30,6 +30,7 @@ pub enum Component<'a> {
 	DateTime(DateTime<Utc>),
 	Bytes(&'a [u8]),
 	JsonValue(&'a Value),
+	JsonValueType(&'a Value),
 }
 
 impl<'a> Component<'a> {
@@ -40,7 +41,7 @@ impl<'a> Component<'a> {
 			Component::Identifier(t) => t.0.len() + 1,
 			Component::DateTime(_) => 8,
 			Component::Bytes(b) => b.len(),
-			Component::JsonValue(v) => v.to_string().len(),
+			Component::JsonValue(v) | Component::JsonValueType(v) => v.to_string().len(),
 		}
 	}
 
@@ -57,7 +58,23 @@ impl<'a> Component<'a> {
 				cursor.write_u64::<BigEndian>(time_to_end)
 			}
 			Component::Bytes(bytes) => cursor.write_all(bytes),
-			Component::JsonValue(value) => cursor.write_all(value.to_string().as_bytes()),
+			Component::JsonValueType(value) => match value {
+				v if v.is_string() => cursor.write_all(&[1]),
+				v if v.is_boolean() => cursor.write_all(&[2]),
+				v if v.is_i64() => cursor.write_all(&[3]),
+				v if v.is_u64() => cursor.write_all(&[4]),
+				v if v.is_f64() => cursor.write_all(&[5]),
+				_ => unimplemented!(),
+			},
+			Component::JsonValue(value) => match value {
+				v if v.is_string() => cursor.write_all(v.as_str().unwrap().as_bytes()),
+				v if v.is_boolean() => cursor
+					.write_all(&[unsafe { std::mem::transmute::<bool, u8>(v.as_bool().unwrap()) }]),
+				v if v.is_i64() => cursor.write_i64::<BigEndian>(v.as_i64().unwrap()),
+				v if v.is_u64() => cursor.write_u64::<BigEndian>(v.as_u64().unwrap()),
+				v if v.is_f64() => cursor.write_f64::<BigEndian>(v.as_f64().unwrap()),
+				_ => unimplemented!(),
+			},
 		}
 	}
 
@@ -83,7 +100,7 @@ fn nanos_since_epoch(datetime: &DateTime<Utc>) -> u64 {
 /// # Arguments
 /// * `components`: The components to serialize to bytes.
 pub fn build_bytes(components: &[Component]) -> Result<Vec<u8>, IoError> {
-	let len = components.iter().fold(0, |len, component| len + component.len());
+	let len = build_bytes_length(components).unwrap();
 	let mut cursor: Cursor<Vec<u8>> = Cursor::new(Vec::with_capacity(len));
 
 	for component in components {
@@ -93,6 +110,11 @@ pub fn build_bytes(components: &[Component]) -> Result<Vec<u8>, IoError> {
 	}
 
 	Ok(cursor.into_inner())
+}
+
+pub fn build_bytes_length(components: &[Component]) -> Result<usize, IoError> {
+	let len = components.iter().fold(0, |len, component| len + component.len());
+	Ok(len)
 }
 
 pub fn from_uuid_bytes(bytes: &[u8]) -> Result<Uuid, IoError> {
@@ -128,22 +150,18 @@ pub fn deserialize_data_with_meta(data: ByteData, has_discriminator: bool) -> De
 		discriminator = bincode::deserialize(&data[..offset - 2]).unwrap();
 	}
 
-	match discriminator {
-		_ => {
-			let (size, length) = (&data[offset - 2], &data[offset - 1]);
-			let len = size * length;
-			let d = data[offset..len as usize + offset].to_vec();
+	let (size, length) = (&data[offset - 2], &data[offset - 1]);
+	let len = size * length;
+	let d = data[offset..len as usize + offset].to_vec();
 
-			let mut ans = Vec::new();
+	let mut ans = Vec::new();
 
-			for i in 0..*size {
-				let ind = |x: u8| (x * length) as usize;
-				let slice = &d[ind(i)..ind(i + 1)];
-				ans.push(slice.to_vec());
-			}
-			Ok((ans, d.len() + offset, discriminator.serialize()))
-		}
+	for i in 0..*size {
+		let ind = |x: u8| (x * length) as usize;
+		let slice = &d[ind(i)..ind(i + 1)];
+		ans.push(slice.to_vec());
 	}
+	Ok((ans, d.len() + offset, discriminator.serialize()))
 }
 
 pub fn deserialize_byte_data(
@@ -164,4 +182,24 @@ pub fn deserialize_byte_data(
 	}
 
 	Ok(result)
+}
+
+pub fn build_json_value(v: Vec<u8>) -> Result<Value, Error> {
+	let variant = &v[..1];
+	let v = v[1..].to_vec();
+	let value = match variant {
+		// String
+		[1] => Value::from(String::from_utf8(v).unwrap()),
+		// Boolean
+		[2] => Value::from(v[0] != 0),
+		// i64
+		[3] => Value::from(BigEndian::read_i64(&v)),
+		// u64
+		[4] => Value::from(BigEndian::read_u64(&v)),
+		// f64
+		[5] => Value::from(BigEndian::read_f64(&v)),
+		_ => unimplemented!(),
+	};
+
+	Ok(value)
 }

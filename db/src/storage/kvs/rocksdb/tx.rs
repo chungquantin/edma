@@ -1,15 +1,31 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rocksdb::{BoundColumnFamily, IteratorMode};
+use rocksdb::{BoundColumnFamily, DBAccess, DBIteratorWithThreadMode, IteratorMode};
 
 use super::ty::{DBType, TxType};
 use crate::{
 	err::Error,
-	interface::kv::{Key, Val},
+	interface::{
+		kv::{Key, Val},
+		KeyValuePair,
+	},
 	model::tx::{DBTransaction, SimpleTransaction},
 	CF,
 };
+
+fn take_with_prefix<T: DBAccess>(
+	iterator: DBIteratorWithThreadMode<T>,
+	prefix: Vec<u8>,
+) -> impl Iterator<Item = Result<(Box<[u8]>, Box<[u8]>), rocksdb::Error>> + '_ {
+	iterator.take_while(move |item| -> bool {
+		if let Ok((ref k, _)) = *item {
+			k.starts_with(&prefix)
+		} else {
+			true
+		}
+	})
+}
 
 impl DBTransaction<DBType, TxType> {
 	fn get_column_family(&self, cf: CF) -> Result<Arc<BoundColumnFamily>, Error> {
@@ -207,7 +223,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 	}
 
 	// Iterate key value elements with handler
-	async fn iterate(&self, cf: CF) -> Result<Vec<Result<(Val, Val), Error>>, Error> {
+	async fn iterate(&self, cf: CF) -> Result<Vec<Result<KeyValuePair, Error>>, Error> {
 		if self.closed() {
 			return Err(Error::TxFinished);
 		}
@@ -232,7 +248,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		&self,
 		cf: CF,
 		prefix: P,
-	) -> Result<Vec<Result<(Val, Val), Error>>, Error>
+	) -> Result<Vec<Result<KeyValuePair, Error>>, Error>
 	where
 		P: Into<Key> + Send,
 	{
@@ -242,12 +258,12 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
-
 		let cf = &self.get_column_family(cf).unwrap();
+		let prefix: Key = prefix.into();
+		let iterator = tx.prefix_iterator_cf(cf, &prefix);
+		let taken_iterator = take_with_prefix(iterator, prefix);
 
-		let iterator = tx.prefix_iterator_cf(cf, prefix.into());
-
-		Ok(iterator
+		Ok(taken_iterator
 			.map(|v| {
 				let (k, v) = v.unwrap();
 				Ok((k.to_vec(), v.to_vec()))

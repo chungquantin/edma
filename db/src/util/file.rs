@@ -22,6 +22,5 @@ pub fn generate_path(id: Option<i32>) -> String {
 	}
 	.join(format!("solomon-rocksdb-{}", id));
 
-	let f = String::from("rocksdb:") + &path_to_string(&path).unwrap();
-	f
+	String::from("rocksdb:") + &path_to_string(&path).unwrap()
 }

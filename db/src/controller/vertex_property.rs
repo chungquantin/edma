@@ -1,24 +1,11 @@
-use rocksdb::{DBAccess, DBIteratorWithThreadMode};
 use serde_json::{json, Map, Value};
 use uuid::Uuid;
 
-use crate::util::{build_bytes, Component};
+use crate::interface::KeyValuePair;
+use crate::util::{build_bytes, build_json_value, Component};
 use crate::{Error, SimpleTransaction};
 
 impl_controller!(VertexPropertyController("vertex-properties:v1"));
-
-fn take_with_prefix<T: DBAccess>(
-	iterator: DBIteratorWithThreadMode<T>,
-	prefix: Vec<u8>,
-) -> impl Iterator<Item = Result<(Box<[u8]>, Box<[u8]>), rocksdb::Error>> + '_ {
-	iterator.take_while(move |item| -> bool {
-		if let Ok((ref k, _)) = *item {
-			k.starts_with(&prefix)
-		} else {
-			true
-		}
-	})
-}
 
 impl<'a> VertexPropertyController<'a> {
 	pub fn key(&self, vertex_id: Uuid, k: &String) -> Result<Vec<u8>, Error> {
@@ -34,25 +21,22 @@ impl<'a> VertexPropertyController<'a> {
 		for k in o.keys() {
 			let cf = self.get_cf();
 			let val = o.get(k).unwrap();
-			let json_value = build_bytes(&[Component::JsonValue(val)]).unwrap();
+			let json_value =
+				build_bytes(&[Component::JsonValueType(val), Component::JsonValue(val)]).unwrap();
 			let key = self.key(vertex_id, k).unwrap();
-			println!("Key: {:?}", key);
 			tx.put(cf, key, json_value).await.unwrap();
 		}
 		tx.commit().await.unwrap();
 		Ok(data)
 	}
 
-	pub fn iterate(
-		&self,
-		iterator: Vec<Result<(Vec<u8>, Vec<u8>), Error>>,
-	) -> Result<Value, Error> {
+	pub fn iterate(&self, iterator: Vec<Result<KeyValuePair, Error>>) -> Result<Value, Error> {
 		let uuid_len = Component::Uuid(Uuid::nil()).len();
 		let mut map: Map<String, Value> = Map::default();
 		iterator.iter().for_each(|p| {
 			let (k, v) = p.as_ref().unwrap();
 			let attr = String::from_utf8(k[uuid_len..].to_vec()).unwrap();
-			let value = Value::from(v.to_vec());
+			let value = build_json_value(v.to_vec()).unwrap();
 			map.insert(attr, value);
 		});
 
@@ -64,7 +48,6 @@ impl<'a> VertexPropertyController<'a> {
 		let cf = self.get_cf();
 		let prefix = build_bytes(&[Component::Bytes(&vertex_id)]).unwrap();
 		let iterator = tx.prefix_iterate(cf, prefix).await.unwrap();
-		// take_with_prefix(iterator, prefix);
 		Ok(self.iterate(iterator).unwrap())
 	}
 }
