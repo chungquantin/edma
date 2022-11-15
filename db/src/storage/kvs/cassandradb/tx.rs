@@ -12,6 +12,11 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 	fn closed(&self) -> bool {
 		unimplemented!()
 	}
+
+	async fn count(&mut self, _cf: CF) -> Result<usize, Error> {
+		todo!()
+	}
+
 	async fn cancel(&mut self) -> Result<(), Error> {
 		unimplemented!()
 	}
@@ -55,6 +60,21 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 	async fn del<K>(&mut self, _cf: CF, _key: K) -> Result<(), Error>
 	where
 		K: Into<Key> + Send,
+	{
+		unimplemented!()
+	}
+
+	async fn iterate(&self, _cf: CF) -> Result<Vec<Result<(Val, Val), Error>>, Error> {
+		unimplemented!()
+	}
+
+	async fn prefix_iterate<P>(
+		&self,
+		_cf: CF,
+		_prefix: P,
+	) -> Result<Vec<Result<(Val, Val), Error>>, Error>
+	where
+		P: Into<Key> + Send,
 	{
 		unimplemented!()
 	}

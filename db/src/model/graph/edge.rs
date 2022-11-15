@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-
+use serde_json::Value;
 use uuid::Uuid;
 
 use crate::{util::get_now, Error, Identifier};
@@ -10,7 +9,7 @@ use crate::{util::get_now, Error, Identifier};
 /// - Relationships always has a direction (one direction).
 /// - Relationships must have a type (one type) to define (classify) what type of relationship they are.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct Relationship {
+pub struct Edge {
 	/// Source vertex (inbound)
 	pub source: Uuid,
 	/// Target vertex (outbound)
@@ -20,17 +19,12 @@ pub struct Relationship {
 	/// Timestamp
 	pub timestamp: i64,
 	/// Properties
-	pub props: HashMap<Uuid, Vec<u8>>,
+	pub props: Value,
 }
 
-impl Relationship {
-	pub fn new(
-		source: Uuid,
-		target: Uuid,
-		t: Identifier,
-		props: HashMap<Uuid, Vec<u8>>,
-	) -> Result<Self, Error> {
-		Ok(Relationship {
+impl Edge {
+	pub fn new(source: Uuid, target: Uuid, t: Identifier, props: Value) -> Result<Self, Error> {
+		Ok(Edge {
 			source,
 			target,
 			t,

@@ -1572,6 +1572,7 @@ dependencies = [
  "chrono",
  "futures",
  "lazy_static",
+ "log",
  "phf",
  "rand 0.8.5",
  "rocksdb",

@@ -19,5 +19,3 @@ pub mod tests;
 pub use crate::controller::*;
 pub use crate::err::*;
 pub use crate::model::*;
-
-impl_global_config!(RocksDBAdapter);

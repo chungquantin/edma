@@ -1,9 +1,10 @@
+pub mod edge;
+pub mod edge_property;
 pub mod label;
-pub mod property;
-pub mod relationship;
 pub mod vertex;
+pub mod vertex_property;
 
+pub use edge::*;
+pub use edge_property::*;
 pub use label::*;
-pub use property::*;
-pub use relationship::*;
 pub use vertex::*;

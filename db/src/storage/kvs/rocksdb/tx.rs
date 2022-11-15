@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rocksdb::BoundColumnFamily;
+use rocksdb::{BoundColumnFamily, IteratorMode};
 
 use super::ty::{DBType, TxType};
 use crate::{
@@ -31,6 +31,20 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 	fn closed(&self) -> bool {
 		self.ok
 	}
+
+	async fn count(&mut self, cf: CF) -> Result<usize, Error> {
+		if self.closed() {
+			return Err(Error::TxFinished);
+		}
+
+		let mut tx = self.tx.lock().await;
+		let cf = &self.get_column_family(cf).unwrap();
+		match tx.take() {
+			Some(tx) => Ok(tx.iterator_cf(cf, IteratorMode::Start).count()),
+			None => unreachable!(),
+		}
+	}
+
 	async fn cancel(&mut self) -> Result<(), Error> {
 		if self.ok {
 			return Err(Error::TxFinished);
@@ -190,5 +204,54 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		};
 
 		Ok(())
+	}
+
+	// Iterate key value elements with handler
+	async fn iterate(&self, cf: CF) -> Result<Vec<Result<(Val, Val), Error>>, Error> {
+		if self.closed() {
+			return Err(Error::TxFinished);
+		}
+
+		let guarded_tx = self.tx.lock().await;
+		let tx = guarded_tx.as_ref().unwrap();
+
+		let cf = &self.get_column_family(cf).unwrap();
+
+		let iterator = tx.iterator_cf(cf, IteratorMode::Start);
+
+		Ok(iterator
+			.map(|v| {
+				let (k, v) = v.unwrap();
+				Ok((k.to_vec(), v.to_vec()))
+			})
+			.collect())
+	}
+
+	// Iterate key value elements with handler
+	async fn prefix_iterate<P>(
+		&self,
+		cf: CF,
+		prefix: P,
+	) -> Result<Vec<Result<(Val, Val), Error>>, Error>
+	where
+		P: Into<Key> + Send,
+	{
+		if self.closed() {
+			return Err(Error::TxFinished);
+		}
+
+		let guarded_tx = self.tx.lock().await;
+		let tx = guarded_tx.as_ref().unwrap();
+
+		let cf = &self.get_column_family(cf).unwrap();
+
+		let iterator = tx.prefix_iterator_cf(cf, prefix.into());
+
+		Ok(iterator
+			.map(|v| {
+				let (k, v) = v.unwrap();
+				Ok((k.to_vec(), v.to_vec()))
+			})
+			.collect())
 	}
 }

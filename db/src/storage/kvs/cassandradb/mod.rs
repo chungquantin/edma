@@ -18,6 +18,7 @@ impl CassandraDBAdapter {
 		Ok(CassandraDBAdapter(StorageAdapter::<String>::new(
 			StorageAdapterName::CassandraDB,
 			String::from(""),
+			String::from(""),
 			StorageVariant::KeyValueStore,
 		)?))
 	}

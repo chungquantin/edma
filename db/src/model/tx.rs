@@ -39,6 +39,9 @@ pub trait SimpleTransaction {
 	// Cancel a transaction
 	async fn cancel(&mut self) -> Result<(), Error>;
 
+	// Count number of items
+	async fn count(&mut self, cf: CF) -> Result<usize, Error>;
+
 	// Commit a transaction
 	async fn commit(&mut self) -> Result<(), Error>;
 
@@ -47,15 +50,6 @@ pub trait SimpleTransaction {
 
 	/// Fetch a key from the database
 	async fn get<K: Into<Key> + Send>(&self, cf: CF, key: K) -> Result<Option<Val>, Error>;
-
-	// OPTIONAL Fetch multiple keys from the database
-	async fn multi_get<K: Into<Key> + Send + AsRef<[u8]>>(
-		&self,
-		_cf: CF,
-		_keys: Vec<K>,
-	) -> Result<Vec<Option<Val>>, Error> {
-		todo!();
-	}
 
 	/// Insert or update a key in the database
 	async fn set<K: Into<Key> + Send, V: Into<Key> + Send>(
@@ -75,6 +69,25 @@ pub trait SimpleTransaction {
 
 	/// Delete a key
 	async fn del<K: Into<Key> + Send>(&mut self, cf: CF, key: K) -> Result<(), Error>;
+
+	// OPTIONAL Fetch multiple keys from the database
+	async fn multi_get<K: Into<Key> + Send + AsRef<[u8]>>(
+		&self,
+		_cf: CF,
+		_keys: Vec<K>,
+	) -> Result<Vec<Option<Val>>, Error> {
+		todo!();
+	}
+
+	// Iterate elements in key value store
+	async fn iterate(&self, cf: CF) -> Result<Vec<Result<(Val, Val), Error>>, Error>;
+
+	// Iterate elements with prefixx in key value store
+	async fn prefix_iterate<P: Into<Key> + Send>(
+		&self,
+		cf: CF,
+		prefix: P,
+	) -> Result<Vec<Result<(Val, Val), Error>>, Error>;
 }
 
 impl<DBType, TxType> DBTransaction<DBType, TxType>

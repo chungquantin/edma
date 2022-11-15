@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-
+use serde_json::Value;
 use uuid::Uuid;
 
 use crate::{ControllerError, Error, Label};
@@ -12,20 +11,25 @@ pub const MAX_LABELS: u8 = 5;
 pub struct Vertex {
 	pub id: Uuid,
 	pub labels: Vec<Uuid>,
-	pub props: HashMap<Uuid, Vec<u8>>,
+	pub props: Value,
 }
 
 impl Vertex {
-	pub fn new(labels: Vec<Label>, props: HashMap<Uuid, Vec<u8>>) -> Result<Self, Error> {
+	pub fn new(labels: Vec<Label>) -> Result<Self, Error> {
 		let mut vertex = Vertex {
 			id: Uuid::new_v4(),
 			labels: Vec::default(),
-			props,
+			props: Value::default(),
 		};
 
 		vertex.add_labels(labels).unwrap();
 
 		Ok(vertex)
+	}
+
+	pub fn add_props(&mut self, props: Value) -> Result<(), ControllerError> {
+		self.props = props;
+		Ok(())
 	}
 
 	pub fn add_label(&mut self, label: &Label) -> Result<(), ControllerError> {

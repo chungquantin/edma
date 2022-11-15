@@ -1,34 +1,32 @@
-#[cfg(feature = "test-suite")]
+// #[cfg(feature = "test-suite")]
 #[cfg(test)]
 mod test {
+	use serde_json::json;
+
+	use crate::{
+		storage::{DBRef, Datastore},
+		util::generate_path,
+	};
+
 	#[tokio::test]
 	async fn should_create_vertex() {
-		use std::collections::HashMap;
+		use crate::{LabelController, VertexController};
 
-		use crate::{LabelController, PropType, PropertyController, VertexController};
-
-		let vc = VertexController::default();
-		let lc = LabelController::default();
-		let pc = PropertyController::default();
+		let path = generate_path(None);
+		let ds = Datastore::new(&path).unwrap();
+		let r = DBRef::new(&ds);
+		let vc = VertexController::new(r);
+		let lc = LabelController::new(r);
 
 		let raw_labels = ["Person", "Student", "Employee"];
-		let properties = pc
-			.create_properties(vec![
-				("name", PropType::String),
-				("age", PropType::UInt128),
-				("addresses", PropType::VecString),
-			])
-			.await
-			.unwrap();
 		let labels = lc.create_labels(raw_labels.to_vec()).await.unwrap();
 		let res = vc
 			.create_vertex(
 				labels,
-				HashMap::from([
-					(properties[0].id, "example name 1234".as_bytes().to_vec()),
-					(properties[1].id, Vec::from([15])),
-					(properties[2].id, ["address 1", "address 2"].concat().as_bytes().to_vec()),
-				]),
+				json!({
+					"name": "example name",
+					"age": 12
+				}),
 			)
 			.await
 			.unwrap();

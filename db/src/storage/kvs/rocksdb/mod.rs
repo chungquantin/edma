@@ -1,7 +1,5 @@
-mod tx;
-mod ty;
-
-use std::env::temp_dir;
+pub mod tx;
+pub mod ty;
 
 use self::ty::{DBType, RocksDBTransaction, TxType};
 use crate::{
@@ -9,10 +7,11 @@ use crate::{
 	constant::cf,
 	err::Error,
 	model::{DBTransaction, DatastoreAdapter, StorageAdapter, StorageAdapterName},
-	util::{generate_random_i32, path_to_string},
+	util::generate_path,
 };
 use rocksdb::{DBCompactionStyle, OptimisticTransactionDB, Options};
 
+#[derive(Debug)]
 pub struct RocksDBAdapter(StorageAdapter<DBType>);
 
 #[cfg(feature = "test-suite")]
@@ -21,25 +20,15 @@ crate::full_test_impl!(RocksDBAdapter::default());
 impl RocksDBAdapter {
 	impl_new_type_adapter!(DBType);
 
-	/// Generate a path to store data for RocksDB
-	fn generate_path(id: Option<i32>) -> String {
-		let random_id: i32 = generate_random_i32();
-		let id = &id.unwrap_or(random_id).to_string();
-		let path = if cfg!(target_os = "linux") {
-			"/dev/shm/".into()
-		} else {
-			temp_dir()
-		}
-		.join(format!("solomon-rocksdb-{}", id));
-
-		path_to_string(&path).unwrap()
-	}
-
+	// Path example: rocksdb://dev/smh/solomon-db
 	pub fn new(path: &str, max_open_files: Option<i32>) -> Result<RocksDBAdapter, Error> {
+		let path = &path["rocksdb:".len()..];
+		println!("path {}", path);
 		let opts = get_options(max_open_files);
 		let db_instance = OptimisticTransactionDB::open_cf(&opts, path, cf::CF_NAMES)?;
 		Ok(RocksDBAdapter(StorageAdapter::<DBType>::new(
 			StorageAdapterName::RocksDB,
+			path.to_string(),
 			db_instance,
 			StorageVariant::KeyValueStore,
 		)?))
@@ -50,7 +39,7 @@ impl DatastoreAdapter for RocksDBAdapter {
 	type Transaction = RocksDBTransaction;
 
 	fn default() -> Self {
-		let path = &RocksDBAdapter::generate_path(None);
+		let path = &generate_path(None);
 		RocksDBAdapter::new(path, None).unwrap()
 	}
 

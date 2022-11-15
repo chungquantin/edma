@@ -5,6 +5,7 @@ use chrono::{DateTime, NaiveDateTime, Timelike, Utc};
 
 use lazy_static::lazy_static;
 use rand::Rng;
+use serde_json::Value;
 use uuid::Uuid;
 
 use crate::{AccountDiscriminator, Identifier};
@@ -24,11 +25,11 @@ lazy_static! {
 
 pub enum Component<'a> {
 	Uuid(Uuid),
-	Property(&'a Uuid, &'a [u8]),
 	FixedLengthString(&'a str),
 	Identifier(&'a Identifier),
 	DateTime(DateTime<Utc>),
 	Bytes(&'a [u8]),
+	JsonValue(&'a Value),
 }
 
 impl<'a> Component<'a> {
@@ -39,7 +40,7 @@ impl<'a> Component<'a> {
 			Component::Identifier(t) => t.0.len() + 1,
 			Component::DateTime(_) => 8,
 			Component::Bytes(b) => b.len(),
-			Component::Property(_, d) => d.len(),
+			Component::JsonValue(v) => v.to_string().len(),
 		}
 	}
 
@@ -56,11 +57,7 @@ impl<'a> Component<'a> {
 				cursor.write_u64::<BigEndian>(time_to_end)
 			}
 			Component::Bytes(bytes) => cursor.write_all(bytes),
-			Component::Property(id, data) => {
-				cursor.write_all(id.as_bytes())?; // Property id
-				cursor.write_u8(data.len() as u8)?; // Length of property value
-				cursor.write_all(data) // Property byte value
-			}
+			Component::JsonValue(value) => cursor.write_all(value.to_string().as_bytes()),
 		}
 	}
 
@@ -132,27 +129,6 @@ pub fn deserialize_data_with_meta(data: ByteData, has_discriminator: bool) -> De
 	}
 
 	match discriminator {
-		AccountDiscriminator::Property => {
-			let mut total_len: u8 = 0;
-			let mut ans = Vec::new();
-			let uuid_len = Component::Uuid(Uuid::nil()).len();
-
-			while (total_len as usize) < data.len() {
-				let mut o = total_len as usize;
-				if total_len == 0 {
-					o += offset - 2;
-				}
-				let len_index = uuid_len + o;
-				let (uuid, len) = (&data[o..len_index], data[len_index]);
-				assert!(uuid.len() == uuid_len);
-
-				let d = &data[len_index + 1..=len_index + len as usize];
-				total_len += len_index as u8 + 1 + len - total_len;
-				ans.push([uuid, d].concat());
-			}
-
-			Ok((ans, data.len(), discriminator.serialize()))
-		}
 		_ => {
 			let (size, length) = (&data[offset - 2], &data[offset - 1]);
 			let len = size * length;
