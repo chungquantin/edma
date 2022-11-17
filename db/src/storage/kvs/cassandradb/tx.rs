@@ -78,4 +78,15 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 	{
 		unimplemented!()
 	}
+
+	async fn suffix_iterate<S>(
+		&self,
+		_cf: CF,
+		_suffix: S,
+	) -> Result<Vec<Result<(Val, Val), Error>>, Error>
+	where
+		S: Into<Key> + Send,
+	{
+		unimplemented!()
+	}
 }

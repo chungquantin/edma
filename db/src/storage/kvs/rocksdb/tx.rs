@@ -27,6 +27,19 @@ fn take_with_prefix<T: DBAccess>(
 	})
 }
 
+fn take_with_suffix<T: DBAccess>(
+	iterator: DBIteratorWithThreadMode<T>,
+	suffix: Vec<u8>,
+) -> impl Iterator<Item = Result<(Box<[u8]>, Box<[u8]>), rocksdb::Error>> + '_ {
+	iterator.take_while(move |item| -> bool {
+		if let Ok((ref k, _)) = *item {
+			k.ends_with(&suffix)
+		} else {
+			true
+		}
+	})
+}
+
 impl DBTransaction<DBType, TxType> {
 	fn get_column_family(&self, cf: CF) -> Result<Arc<BoundColumnFamily>, Error> {
 		if cf.is_none() {
@@ -236,6 +249,34 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		let iterator = tx.iterator_cf(cf, IteratorMode::Start);
 
 		Ok(iterator
+			.map(|v| {
+				let (k, v) = v.unwrap();
+				Ok((k.to_vec(), v.to_vec()))
+			})
+			.collect())
+	}
+
+	async fn suffix_iterate<S>(
+		&self,
+		cf: CF,
+		suffix: S,
+	) -> Result<Vec<Result<KeyValuePair, Error>>, Error>
+	where
+		S: Into<Key> + Send,
+	{
+		if self.closed() {
+			return Err(Error::TxFinished);
+		}
+
+		let guarded_tx = self.tx.lock().await;
+		let tx = guarded_tx.as_ref().unwrap();
+		let cf = &self.get_column_family(cf).unwrap();
+		let suffix: Key = suffix.into();
+
+		let iterator = tx.iterator_cf(cf, IteratorMode::Start);
+		let taken_iterator = take_with_suffix(iterator, suffix);
+
+		Ok(taken_iterator
 			.map(|v| {
 				let (k, v) = v.unwrap();
 				Ok((k.to_vec(), v.to_vec()))

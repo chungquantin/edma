@@ -1,6 +1,9 @@
 use crate::{
 	err::Error,
-	interface::kv::{Key, Val},
+	interface::{
+		kv::{Key, Val},
+		KeyValuePair,
+	},
 	util::time::get_now,
 };
 use async_trait::async_trait;
@@ -80,14 +83,21 @@ pub trait SimpleTransaction {
 	}
 
 	// Iterate elements in key value store
-	async fn iterate(&self, cf: CF) -> Result<Vec<Result<(Val, Val), Error>>, Error>;
+	async fn iterate(&self, cf: CF) -> Result<Vec<Result<KeyValuePair, Error>>, Error>;
 
 	// Iterate elements with prefixx in key value store
 	async fn prefix_iterate<P: Into<Key> + Send>(
 		&self,
 		cf: CF,
 		prefix: P,
-	) -> Result<Vec<Result<(Val, Val), Error>>, Error>;
+	) -> Result<Vec<Result<KeyValuePair, Error>>, Error>;
+
+	// Iterate elements with prefixx in key value store
+	async fn suffix_iterate<S: Into<Key> + Send>(
+		&self,
+		cf: CF,
+		suffix: S,
+	) -> Result<Vec<Result<KeyValuePair, Error>>, Error>;
 }
 
 impl<DBType, TxType> DBTransaction<DBType, TxType>

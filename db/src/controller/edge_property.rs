@@ -43,7 +43,6 @@ impl<'a> EdgePropertyController<'a> {
 			let json_value =
 				build_bytes(&[Component::JsonValueType(val), Component::JsonValue(val)]).unwrap();
 			let key = self.key(out_id, t, in_id, k);
-
 			tx.set(cf.clone(), key, json_value).await.unwrap();
 		}
 
@@ -70,9 +69,8 @@ impl<'a> EdgePropertyController<'a> {
 	pub async fn iterate_for_all(&'a self) -> Result<Value, Error> {
 		let tx = &self.get_ds().transaction(false).unwrap();
 		let cf = self.get_cf();
-
 		let iterator = tx.iterate(cf).await.unwrap();
-		Ok(self.iterate(0, iterator).unwrap())
+		self.iterate(0, iterator)
 	}
 
 	pub async fn iterate_from_attributes(
@@ -83,10 +81,9 @@ impl<'a> EdgePropertyController<'a> {
 	) -> Result<Value, Error> {
 		let tx = &self.get_ds().transaction(false).unwrap();
 		let cf = self.get_cf();
-
 		let t_id = Identifier::new(t.to_string()).unwrap();
 		let key = self.edge_key(out_id, &t_id, in_id);
 		let iterator = tx.prefix_iterate(cf, key.to_vec()).await.unwrap();
-		Ok(self.iterate(key.len(), iterator).unwrap())
+		self.iterate(key.len(), iterator)
 	}
 }

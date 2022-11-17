@@ -48,6 +48,6 @@ impl<'a> VertexPropertyController<'a> {
 		let cf = self.get_cf();
 		let prefix = build_bytes(&[Component::Bytes(&vertex_id)]).unwrap();
 		let iterator = tx.prefix_iterate(cf, prefix).await.unwrap();
-		Ok(self.iterate(iterator).unwrap())
+		self.iterate(iterator)
 	}
 }

@@ -175,6 +175,24 @@ macro_rules! impl_global_transaction {
 				}
 			}
 
+			async fn suffix_iterate<S>(
+				&self,
+				cf: CF,
+				suffix: S,
+			) -> Result<Vec<Result<(Val, Val), Error>>, Error>
+			where
+				S: Into<Key> + Send,
+			{
+				match self {
+					$(
+						Transaction {
+							inner: Inner::$x(ds),
+							..
+						} => ds.suffix_iterate(cf, suffix).await,
+					)*
+				}
+			}
+
 			async fn iterate(&self, cf: CF) -> Result<Vec<Result<(Val, Val), Error>>, Error> {
 				match self {
 					$(

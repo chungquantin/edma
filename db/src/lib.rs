@@ -4,6 +4,7 @@ mod interface;
 mod mac;
 mod constant;
 mod controller;
+mod db;
 mod model;
 mod storage;
 mod util;
