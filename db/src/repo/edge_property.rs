@@ -37,6 +37,7 @@ impl<'a> EdgePropertyRepository<'a> {
 		}
 	}
 
+	// Need to rollback if edge creation throws error
 	pub async fn create(
 		&self,
 		in_id: Uuid,

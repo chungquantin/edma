@@ -1,7 +1,7 @@
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::interface::KeyValuePair;
+use crate::interface::{Key, KeyValuePair};
 use crate::util::{build_bytes, from_i64_bytes, from_uuid_bytes, Component};
 use crate::{Edge, EdgePropertyRepository, Error, Identifier, SimpleTransaction};
 
@@ -13,34 +13,67 @@ impl<'a> EdgeRepository<'a> {
 			.unwrap()
 	}
 
+	pub async fn invert_edge(
+		&self,
+		in_id: Uuid,
+		t: &str,
+		out_id: Uuid,
+		props: Value,
+	) -> Result<(Key, Edge), Error> {
+		let epc = EdgePropertyRepository::new(self.ds_ref);
+		let t_id = &Identifier::new(t).unwrap();
+		let key = self.key(out_id, t_id, in_id);
+		let edge_properties = epc.create(out_id, t, in_id, props).await.unwrap();
+		let inverted_edge = Edge::new(in_id, t_id.clone(), out_id, edge_properties).unwrap();
+		Ok((key, inverted_edge))
+	}
+
 	pub async fn create(
 		&self,
 		in_id: Uuid,
 		t: &str,
 		out_id: Uuid,
 		props: Value,
+		bidirectional: bool,
 	) -> Result<Edge, Error> {
 		let mut tx = self.get_ds().transaction(true).unwrap();
 
-		let cf = self.get_cf();
+		let cf = self.get_cf().unwrap();
 		let epc = EdgePropertyRepository::new(self.ds_ref);
-		let props = epc.create(in_id, t, out_id, props).await.unwrap();
-		let t = &Identifier::new(t).unwrap();
-		let key = self.key(in_id, t, out_id);
-
-		let edge = Edge::new(in_id, t.clone(), out_id, props).unwrap();
-		tx.set(cf, key, edge.timestamp.to_be_bytes()).await.unwrap();
+		let t_id = &Identifier::new(t).unwrap();
+		let edge_properties = epc.create(in_id, t, out_id, props.clone()).await.unwrap();
+		let edge = Edge::new(in_id, t_id.clone(), out_id, edge_properties).unwrap();
+		let key = self.key(in_id, t_id, out_id);
+		let timestamp_byte = edge.timestamp.to_be_bytes();
+		tx.set(Some(cf.to_vec()), key, timestamp_byte).await.unwrap();
+		// Creating inverted edge
+		if bidirectional {
+			let (key, inverted_edge) = self.invert_edge(in_id, t, out_id, props).await.unwrap();
+			tx.set(Some(cf.to_vec()), key, timestamp_byte).await.unwrap();
+			assert_eq!(edge, inverted_edge);
+		}
 		tx.commit().await.unwrap();
 
 		Ok(edge)
 	}
 
-	pub async fn delete(&self, in_id: Uuid, t: &str, out_id: Uuid) -> Result<(), Error> {
+	pub async fn delete(
+		&self,
+		in_id: Uuid,
+		t: &str,
+		out_id: Uuid,
+		bidirectional: bool,
+	) -> Result<(), Error> {
 		let mut tx = self.get_ds().transaction(true).unwrap();
-		let cf = self.get_cf();
+		let cf = self.get_cf().unwrap();
 		let t = &Identifier::new(t).unwrap();
 		let key = self.key(in_id, t, out_id);
-		tx.del(cf, key).await.unwrap();
+		tx.del(Some(cf.to_vec()), key).await.unwrap();
+		if bidirectional {
+			// Deleting inverted edge
+			let inverted_key = self.key(out_id, t, in_id);
+			tx.del(Some(cf.to_vec()), inverted_key).await.unwrap();
+		}
 		tx.commit().await
 	}
 

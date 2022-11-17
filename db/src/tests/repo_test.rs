@@ -92,14 +92,18 @@ mod repository_test {
 				json!({
 					"name": "mock example"
 				}),
+				true,
 			)
 			.await
 			.unwrap();
 
 		let res = er.get(v1.id, "LIKE", v2.id).await.unwrap();
+		let inverted_res = er.get(v2.id, "LIKE", v1.id).await.unwrap();
 
 		assert_eq!(edge, res);
 		assert_eq!(res.in_id, v1.id);
 		assert_eq!(res.out_id, v2.id);
+		assert_eq!(res.in_id, inverted_res.out_id);
+		assert_eq!(res.out_id, inverted_res.in_id);
 	}
 }
