@@ -11,6 +11,10 @@ use uuid::Uuid;
 impl_controller!(VertexController("vertices:v1"));
 
 impl<'a> VertexController<'a> {
+	pub fn key(&self, id: Uuid) -> Vec<u8> {
+		build_bytes(&[Component::Uuid(id)]).unwrap()
+	}
+
 	/// # Create a new vertex from labels and properties
 	/// ## Description
 	/// Because Vertex has multiple dynamic sized attributes:
@@ -20,7 +24,7 @@ impl<'a> VertexController<'a> {
 	///
 	/// Data will be store in Vertex as
 	/// + label_discriminator | label_meta | label data
-	pub async fn create_vertex(&self, labels: Vec<Label>, props: Value) -> Result<Vertex, Error> {
+	pub async fn create(&self, labels: Vec<Label>, props: Value) -> Result<Vertex, Error> {
 		let mut tx = self.get_ds().transaction(true).unwrap();
 		let cf = self.get_cf();
 
@@ -30,7 +34,7 @@ impl<'a> VertexController<'a> {
 		let props = vpc.create(v.id, props).await.unwrap();
 		v.add_props(props).unwrap();
 
-		let key = build_bytes(&[Component::Uuid(v.id)]).unwrap();
+		let key = self.key(v.id);
 
 		let val = [labels_bytes].concat();
 		tx.set(cf, key, val).await.unwrap();
@@ -66,8 +70,16 @@ impl<'a> VertexController<'a> {
 		})
 	}
 
+	pub async fn delete(&self, id: Vec<u8>) -> Result<(), Error> {
+		let mut tx = self.get_ds().transaction(true).unwrap();
+		let cf = self.get_cf();
+		let key = id;
+		tx.del(cf, key).await.unwrap();
+		tx.commit().await
+	}
+
 	/// # Get single vertex from datastore
-	pub async fn get_vertex(&self, id: Vec<u8>) -> Result<Vertex, Error> {
+	pub async fn get(&self, id: Vec<u8>) -> Result<Vertex, Error> {
 		let cf = self.get_cf();
 
 		let tx = self.get_ds().transaction(false).unwrap();
@@ -93,11 +105,11 @@ impl<'a> VertexController<'a> {
 	}
 
 	/// # Get multiple vertices from datastore
-	pub async fn get_vertices(&self, ids: Vec<Vec<u8>>) -> Result<Vec<Vertex>, Error> {
+	pub async fn multi_get(&self, ids: Vec<Vec<u8>>) -> Result<Vec<Vertex>, Error> {
 		let mut vertices = Vec::<Vertex>::new();
 
 		for id in ids.iter() {
-			let vertex = self.get_vertex(id.to_vec()).await.unwrap();
+			let vertex = self.get(id.to_vec()).await.unwrap();
 			vertices.push(vertex);
 		}
 

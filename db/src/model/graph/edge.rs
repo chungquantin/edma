@@ -11,11 +11,11 @@ use crate::{util::get_now, Error, Identifier};
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Edge {
 	/// Source vertex (inbound)
-	pub source: Uuid,
-	/// Target vertex (outbound)
-	pub target: Uuid,
+	pub in_id: Uuid,
 	/// Relationship type
 	pub t: Identifier,
+	/// Target vertex (outbound)
+	pub out_id: Uuid,
 	/// Timestamp
 	pub timestamp: i64,
 	/// Properties
@@ -23,10 +23,10 @@ pub struct Edge {
 }
 
 impl Edge {
-	pub fn new(source: Uuid, target: Uuid, t: Identifier, props: Value) -> Result<Self, Error> {
+	pub fn new(in_id: Uuid, t: Identifier, out_id: Uuid, props: Value) -> Result<Self, Error> {
 		Ok(Edge {
-			source,
-			target,
+			in_id,
+			out_id,
 			t,
 			timestamp: get_now(),
 			props,

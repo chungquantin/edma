@@ -15,7 +15,7 @@ impl<'a> VertexPropertyController<'a> {
 	pub async fn create(&self, vertex_id: Uuid, data: Value) -> Result<Value, Error> {
 		let mut tx = self.get_ds().transaction(true).unwrap();
 		if !data.is_object() {
-			panic!("Data is not an object");
+			panic!("Data type must be object");
 		}
 		let o = data.as_object().unwrap();
 		for k in o.keys() {
@@ -30,7 +30,7 @@ impl<'a> VertexPropertyController<'a> {
 		Ok(data)
 	}
 
-	pub fn iterate(&self, iterator: Vec<Result<KeyValuePair, Error>>) -> Result<Value, Error> {
+	fn iterate(&self, iterator: Vec<Result<KeyValuePair, Error>>) -> Result<Value, Error> {
 		let uuid_len = Component::Uuid(Uuid::nil()).len();
 		let mut map: Map<String, Value> = Map::default();
 		iterator.iter().for_each(|p| {

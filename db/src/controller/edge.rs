@@ -14,36 +14,40 @@ impl<'a> EdgeController<'a> {
 
 	pub async fn create(
 		&self,
-		source_vertex: Uuid,
-		target_vertex: Uuid,
+		in_id: Uuid,
 		t: &str,
+		out_id: Uuid,
 		props: Value,
 	) -> Result<Edge, Error> {
 		let mut tx = self.get_ds().transaction(true).unwrap();
 
 		let cf = self.get_cf();
-		let t_id = Identifier::new(t.to_string()).unwrap();
-		let key = self.key(target_vertex, &t_id, source_vertex);
 		let epc = EdgePropertyController::new(self.ds_ref);
-		let props = epc.create(source_vertex, &t_id, target_vertex, props).await.unwrap();
+		let props = epc.create(in_id, t, out_id, props).await.unwrap();
+		let t = &Identifier::new(t).unwrap();
+		let key = self.key(in_id, t, out_id);
 
 		tx.set(cf, key, []).await.unwrap();
 		tx.commit().await.unwrap();
 
-		let edge = Edge::new(source_vertex, target_vertex, t_id, props).unwrap();
+		let edge = Edge::new(in_id, t.clone(), out_id, props).unwrap();
 		Ok(edge)
 	}
 
-	pub async fn get(
-		&self,
-		source_vertex: Uuid,
-		target_vertex: Uuid,
-		t: &str,
-	) -> Result<Edge, Error> {
-		let t_id = Identifier::new(t.to_string()).unwrap();
+	pub async fn delete(&self, in_id: Uuid, t: &str, out_id: Uuid) -> Result<(), Error> {
+		let mut tx = self.get_ds().transaction(true).unwrap();
+		let cf = self.get_cf();
+		let t = &Identifier::new(t).unwrap();
+		let key = self.key(in_id, t, out_id);
+		tx.del(cf, key).await.unwrap();
+		tx.commit().await
+	}
+
+	pub async fn get(&self, in_id: Uuid, t: &str, out_id: Uuid) -> Result<Edge, Error> {
 		let epc = EdgePropertyController::new(self.ds_ref);
-		let props = epc.iterate_from_attributes(source_vertex, &t_id, target_vertex).await.unwrap();
-		let edge = Edge::new(source_vertex, target_vertex, t_id, props).unwrap();
+		let props = epc.iterate_from_edge(in_id, t, out_id).await.unwrap();
+		let t = Identifier::new(t).unwrap();
+		let edge = Edge::new(in_id, t, out_id, props).unwrap();
 		Ok(edge)
 	}
 }

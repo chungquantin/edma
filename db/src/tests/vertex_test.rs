@@ -19,9 +19,9 @@ mod test {
 		let lc = LabelController::new(r);
 
 		let raw_labels = ["Person", "Student", "Employee"];
-		let labels = lc.create_labels(raw_labels.to_vec()).await.unwrap();
+		let labels = lc.multi_create(raw_labels.to_vec()).await.unwrap();
 		let res = vc
-			.create_vertex(
+			.create(
 				labels,
 				json!({
 					"name": "example name",
@@ -32,7 +32,7 @@ mod test {
 			.unwrap();
 		assert_eq!(res.labels.len(), raw_labels.len());
 
-		let vertex = vc.get_vertex(res.id.as_bytes().to_vec()).await.unwrap();
+		let vertex = vc.get(res.id.as_bytes().to_vec()).await.unwrap();
 		assert_eq!(vertex, res);
 		assert_eq!(vertex.labels.len(), raw_labels.len());
 	}

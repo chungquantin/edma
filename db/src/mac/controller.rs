@@ -16,11 +16,11 @@ macro_rules! impl_controller {
 				}
 			}
 
-			pub fn get_cf(&self) -> Option<Vec<u8>> {
+			fn get_cf(&self) -> Option<Vec<u8>> {
 				Some(self.cf.into())
 			}
 
-			pub fn get_ds(&self) -> &Datastore {
+			fn get_ds(&self) -> &Datastore {
 				self.ds_ref.db
 			}
 

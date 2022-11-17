@@ -22,9 +22,9 @@ mod test {
 
 		let raw_labels = ["Person", "Student", "Employee"];
 
-		let labels = lc.create_labels(raw_labels.to_vec()).await.unwrap();
+		let labels = lc.multi_create(raw_labels.to_vec()).await.unwrap();
 		let v1 = vc
-			.create_vertex(
+			.create(
 				labels.to_vec(),
 				json!({
 					"name": "mock example"
@@ -35,7 +35,7 @@ mod test {
 		assert_eq!(v1.labels.len(), raw_labels.len());
 
 		let v2 = vc
-			.create_vertex(
+			.create(
 				labels.to_vec(),
 				json!({
 					"name": "mock example"
@@ -47,8 +47,8 @@ mod test {
 		let edge = ec
 			.create(
 				v1.id,
-				v2.id,
 				"LIKE",
+				v2.id,
 				json!({
 					"name": "mock example"
 				}),
@@ -56,10 +56,10 @@ mod test {
 			.await
 			.unwrap();
 
-		let res = ec.get(v1.id, v2.id, "LIKE").await.unwrap();
+		let res = ec.get(v1.id, "LIKE", v2.id).await.unwrap();
 
 		assert_eq!(edge, res);
-		assert_eq!(res.source, v1.id);
-		assert_eq!(res.target, v2.id);
+		assert_eq!(res.in_id, v1.id);
+		assert_eq!(res.out_id, v2.id);
 	}
 }
