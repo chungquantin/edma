@@ -42,8 +42,9 @@ impl<'a> VertexController<'a> {
 		Ok(v)
 	}
 
-	async fn deserialize(&self, id: Vec<u8>, v: Vec<u8>) -> Result<Vertex, Error> {
-		let uuid = from_uuid_bytes(&id).unwrap();
+	async fn from_pair(&self, p: &KeyValuePair) -> Result<Vertex, Error> {
+		let (k, v) = p;
+		let uuid = from_uuid_bytes(&k).unwrap();
 		let deserialized = deserialize_byte_data(v.to_vec(), true).unwrap();
 		let mut label_ids = Vec::<Uuid>::new();
 
@@ -62,7 +63,7 @@ impl<'a> VertexController<'a> {
 		}
 
 		let vpc = VertexPropertyController::new(self.ds_ref);
-		let props = vpc.iterate_from_vertex(id).await.unwrap();
+		let props = vpc.iterate_from_vertex(k.to_vec()).await.unwrap();
 		Ok(Vertex {
 			id: uuid,
 			labels: label_ids,
@@ -85,7 +86,7 @@ impl<'a> VertexController<'a> {
 		let tx = self.get_ds().transaction(false).unwrap();
 		let value = tx.get(cf, id.to_vec()).await.unwrap();
 		match value {
-			Some(v) => self.deserialize(id, v).await,
+			Some(v) => self.from_pair(&(id, v)).await,
 			None => panic!("No vertex found"),
 		}
 	}
@@ -96,8 +97,8 @@ impl<'a> VertexController<'a> {
 	) -> Result<Vec<Vertex>, Error> {
 		let mut result: Vec<Vertex> = vec![];
 		for pair in iterator.iter() {
-			let (k, v) = pair.as_ref().unwrap();
-			let vertex = self.deserialize(k.to_vec(), v.to_vec()).await.unwrap();
+			let p_ref = pair.as_ref().unwrap();
+			let vertex = self.from_pair(p_ref).await.unwrap();
 			result.push(vertex);
 		}
 

@@ -19,6 +19,24 @@ impl<'a> EdgePropertyController<'a> {
 		build_bytes(&[Component::Bytes(&edge_key), Component::Bytes(k.as_bytes())]).unwrap()
 	}
 
+	pub async fn get_value(
+		&self,
+		in_id: Uuid,
+		t: &str,
+		out_id: Uuid,
+		k: &String,
+	) -> Result<Value, Error> {
+		let tx = self.get_ds().transaction(false).unwrap();
+		let cf = self.get_cf();
+		let t_id = Identifier::new(t).unwrap();
+		let key = self.key(in_id, &t_id, out_id, k);
+		let value = tx.get(cf, key).await.unwrap();
+		match value {
+			Some(v) => Ok(build_json_value(v.to_vec()).unwrap()),
+			_ => panic!("Not match key found"),
+		}
+	}
+
 	pub async fn create(
 		&self,
 		in_id: Uuid,

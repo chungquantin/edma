@@ -120,8 +120,14 @@ pub fn build_bytes_length(components: &[Component]) -> Result<usize, IoError> {
 pub fn from_uuid_bytes(bytes: &[u8]) -> Result<Uuid, IoError> {
 	let l = Component::Uuid(Uuid::nil()).len();
 	let slice = &bytes[0..l];
-	let component = Component::read_uuid(slice).unwrap();
-	Ok(component)
+	let uuid = Component::read_uuid(slice).unwrap();
+	Ok(uuid)
+}
+
+pub fn from_i64_bytes(i64_bytes: Vec<u8>) -> Result<i64, IoError> {
+	let mut fix: [u8; 8] = Default::default();
+	fix.copy_from_slice(&i64_bytes[0..8]);
+	Ok(i64::from_be_bytes(fix))
 }
 
 pub fn generate_random_i32() -> i32 {

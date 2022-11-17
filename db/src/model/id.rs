@@ -69,6 +69,14 @@ impl FromStr for Identifier {
 	}
 }
 
+impl TryFrom<Vec<u8>> for Identifier {
+	type Error = ValidationError;
+
+	fn try_from(b: Vec<u8>) -> Result<Self, Self::Error> {
+		Self::new(String::from_utf8(b).unwrap())
+	}
+}
+
 impl TryFrom<String> for Identifier {
 	type Error = ValidationError;
 
