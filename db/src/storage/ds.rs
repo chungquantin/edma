@@ -54,15 +54,24 @@ impl Datastore {
 	}
 
 	pub fn transaction(&self, write: bool) -> Result<Transaction, Error> {
-		match &self.inner {
-			#[cfg(feature = "kv-rocksdb")]
-			Inner::RocksDB(v) => {
-				let tx = v.transaction(write)?;
-				Ok(Transaction {
-					inner: super::tx::Inner::RocksDB(tx),
-				})
-			}
-			_ => unimplemented!(),
+		macro_rules! impl_transaction_method {
+			($($x: ident feat $f: expr),*) => {
+				match &self.inner {
+					$(
+						#[cfg(feature = $f)]
+						Inner::$x(v) => {
+							let tx = v.transaction(write)?;
+							Ok(Transaction {
+								inner: super::tx::Inner::$x(tx),
+							})
+						}
+					)*
+				}
+			};
 		}
+		impl_transaction_method!(
+			RocksDB feat "kv-rocksdb",
+			CassandraDB feat "kv-cassandradb"
+		)
 	}
 }

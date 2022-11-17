@@ -40,20 +40,10 @@ impl<'a> EdgeController<'a> {
 		target_vertex: Uuid,
 		t: &str,
 	) -> Result<Edge, Error> {
-		let tx = self.get_ds().transaction(false).unwrap();
-		let cf = self.get_cf();
 		let t_id = Identifier::new(t.to_string()).unwrap();
-		let key = self.key(target_vertex, &t_id, source_vertex);
-
 		let epc = EdgePropertyController::new(self.ds_ref);
-		let exist = tx.exi(cf, key).await.unwrap();
-		if exist {
-			let props =
-				epc.iterate_from_attributes(source_vertex, &t_id, target_vertex).await.unwrap();
-			let edge = Edge::new(source_vertex, target_vertex, t_id, props).unwrap();
-			return Ok(edge);
-		} else {
-			panic!();
-		};
+		let props = epc.iterate_from_attributes(source_vertex, &t_id, target_vertex).await.unwrap();
+		let edge = Edge::new(source_vertex, target_vertex, t_id, props).unwrap();
+		Ok(edge)
 	}
 }

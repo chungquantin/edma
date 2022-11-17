@@ -1,7 +1,9 @@
 pub mod tx;
 pub mod ty;
 
-use self::ty::{DBType, RocksDBTransaction, TxType};
+pub use tx::*;
+pub use ty::*;
+
 use crate::{
 	adapter::StorageVariant,
 	constant::cf,

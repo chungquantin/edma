@@ -1,14 +1,13 @@
-use std::sync::Arc;
+pub mod tx;
+pub mod ty;
 
-mod tx;
-mod ty;
+pub use tx::*;
+pub use ty::*;
 
 use crate::{
 	DBTransaction, DatastoreAdapter, Error, StorageAdapter, StorageAdapterName, StorageVariant,
 };
-
-use self::ty::{CassandraDBTransaction, DBType};
-
+use std::sync::Arc;
 pub struct CassandraDBAdapter(StorageAdapter<String>);
 
 impl CassandraDBAdapter {
