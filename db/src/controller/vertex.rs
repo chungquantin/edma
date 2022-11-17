@@ -44,7 +44,7 @@ impl<'a> VertexController<'a> {
 
 	async fn from_pair(&self, p: &KeyValuePair) -> Result<Vertex, Error> {
 		let (k, v) = p;
-		let uuid = from_uuid_bytes(&k).unwrap();
+		let uuid = from_uuid_bytes(k).unwrap();
 		let deserialized = deserialize_byte_data(v.to_vec(), true).unwrap();
 		let mut label_ids = Vec::<Uuid>::new();
 
