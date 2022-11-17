@@ -3,9 +3,8 @@ mod interface;
 #[macro_use]
 mod mac;
 mod constant;
-mod controller;
-mod db;
 mod model;
+mod repo;
 mod storage;
 mod util;
 
@@ -17,6 +16,6 @@ pub use crate::storage::kvs::RocksDBAdapter;
 #[macro_use]
 pub mod tests;
 
-pub use crate::controller::*;
 pub use crate::err::*;
 pub use crate::model::*;
+pub use crate::repo::*;

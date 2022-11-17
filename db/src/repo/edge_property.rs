@@ -6,9 +6,9 @@ use crate::util::build_json_value;
 use crate::util::{build_bytes, Component};
 use crate::{Error, Identifier, SimpleTransaction};
 
-impl_controller!(EdgePropertyController("edge-properties:v1"));
+impl_controller!(EdgePropertyRepository("edge-properties:v1"));
 
-impl<'a> EdgePropertyController<'a> {
+impl<'a> EdgePropertyRepository<'a> {
 	fn edge_key(&self, in_id: Uuid, t: &Identifier, out_id: Uuid) -> Vec<u8> {
 		build_bytes(&[Component::Uuid(in_id), Component::Identifier(t), Component::Uuid(out_id)])
 			.unwrap()

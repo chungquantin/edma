@@ -3,11 +3,11 @@ use uuid::Uuid;
 
 use crate::interface::KeyValuePair;
 use crate::util::{build_bytes, from_i64_bytes, from_uuid_bytes, Component};
-use crate::{Edge, EdgePropertyController, Error, Identifier, SimpleTransaction};
+use crate::{Edge, EdgePropertyRepository, Error, Identifier, SimpleTransaction};
 
-impl_controller!(EdgeController("edges:v1"));
+impl_controller!(EdgeRepository("edges:v1"));
 
-impl<'a> EdgeController<'a> {
+impl<'a> EdgeRepository<'a> {
 	fn key(&self, in_id: Uuid, t: &Identifier, out_id: Uuid) -> Vec<u8> {
 		build_bytes(&[Component::Uuid(in_id), Component::Uuid(out_id), Component::Identifier(t)])
 			.unwrap()
@@ -23,7 +23,7 @@ impl<'a> EdgeController<'a> {
 		let mut tx = self.get_ds().transaction(true).unwrap();
 
 		let cf = self.get_cf();
-		let epc = EdgePropertyController::new(self.ds_ref);
+		let epc = EdgePropertyRepository::new(self.ds_ref);
 		let props = epc.create(in_id, t, out_id, props).await.unwrap();
 		let t = &Identifier::new(t).unwrap();
 		let key = self.key(in_id, t, out_id);
@@ -45,7 +45,7 @@ impl<'a> EdgeController<'a> {
 	}
 
 	pub async fn get(&self, in_id: Uuid, t: &str, out_id: Uuid) -> Result<Edge, Error> {
-		let epc = EdgePropertyController::new(self.ds_ref);
+		let epc = EdgePropertyRepository::new(self.ds_ref);
 		let props = epc.iterate_from_edge(in_id, t, out_id).await.unwrap();
 		let t = Identifier::new(t).unwrap();
 		let edge = Edge::new(in_id, t, out_id, props).unwrap();
@@ -55,7 +55,7 @@ impl<'a> EdgeController<'a> {
 	async fn from_pair(&self, p: &KeyValuePair) -> Result<Edge, Error> {
 		let (k, v) = p;
 		let uuid_len = Component::Uuid(Uuid::nil()).len();
-		let epc = EdgePropertyController::new(self.ds_ref);
+		let epc = EdgePropertyRepository::new(self.ds_ref);
 		let (in_id, out_id, t) = (&k[0..uuid_len], &k[uuid_len..uuid_len * 2], &k[uuid_len * 2..]);
 		let t_id = Identifier::try_from(t.to_vec()).unwrap();
 		let in_id = from_uuid_bytes(in_id).unwrap();

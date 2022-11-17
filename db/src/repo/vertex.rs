@@ -1,16 +1,16 @@
 use crate::{
 	interface::KeyValuePair,
 	util::{build_bytes, deserialize_byte_data, from_uuid_bytes, Component},
-	vertex_property::VertexPropertyController,
+	vertex_property::VertexPropertyRepository,
 	AccountDiscriminator, Error, Label, SimpleTransaction, Vertex,
 };
 
 use serde_json::Value;
 use uuid::Uuid;
 
-impl_controller!(VertexController("vertices:v1"));
+impl_controller!(VertexRepository("vertices:v1"));
 
-impl<'a> VertexController<'a> {
+impl<'a> VertexRepository<'a> {
 	pub fn key(&self, id: Uuid) -> Vec<u8> {
 		build_bytes(&[Component::Uuid(id)]).unwrap()
 	}
@@ -29,7 +29,7 @@ impl<'a> VertexController<'a> {
 		let cf = self.get_cf();
 
 		let labels_bytes = Label::multi_serialize(&labels).unwrap();
-		let vpc = VertexPropertyController::new(self.ds_ref);
+		let vpc = VertexPropertyRepository::new(self.ds_ref);
 		let mut v = Vertex::new(labels.to_vec()).unwrap();
 		let props = vpc.create(v.id, props).await.unwrap();
 		v.add_props(props).unwrap();
@@ -62,7 +62,7 @@ impl<'a> VertexController<'a> {
 			}
 		}
 
-		let vpc = VertexPropertyController::new(self.ds_ref);
+		let vpc = VertexPropertyRepository::new(self.ds_ref);
 		let props = vpc.iterate_from_vertex(k.to_vec()).await.unwrap();
 		Ok(Vertex {
 			id: uuid,

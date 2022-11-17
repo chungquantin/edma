@@ -3,9 +3,9 @@ use uuid::Uuid;
 use crate::util::{build_bytes, deserialize_data_with_meta, from_uuid_bytes, Component};
 use crate::{Error, Label, SimpleTransaction};
 
-impl_controller!(LabelController("labels:v1"));
+impl_controller!(LabelRepository("labels:v1"));
 
-impl<'a> LabelController<'a> {
+impl<'a> LabelRepository<'a> {
 	pub fn key(&self, id: Uuid) -> Vec<u8> {
 		build_bytes(&[Component::Uuid(id)]).unwrap()
 	}
