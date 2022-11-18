@@ -1,3 +1,4 @@
+use gremlin::GValue;
 use serde_json::{json, Map, Value};
 use uuid::Uuid;
 
@@ -37,32 +38,24 @@ impl<'a> EdgePropertyRepository<'a> {
 		}
 	}
 
-	// Need to rollback if edge creation throws error
-	pub async fn create(
+	// # Create a new property
+	// (key, field, value)
+	pub async fn property(
 		&self,
 		in_id: Uuid,
 		t: &str,
 		out_id: Uuid,
-		data: Value,
-	) -> Result<Value, Error> {
+		field: &str,
+		value: GValue,
+	) -> Result<(Vec<u8>, String, GValue), Error> {
 		let mut tx = self.get_ds().transaction(true).unwrap();
-		if !data.is_object() {
-			panic!("Data type must be object");
-		}
-		let o = data.as_object().unwrap();
 		let cf = self.get_cf();
-
-		let t = &Identifier::new(t).unwrap();
-		for k in o.keys() {
-			let val = o.get(k).unwrap();
-			let json_value =
-				build_bytes(&[Component::JsonValueType(val), Component::JsonValue(val)]).unwrap();
-			let key = self.key(in_id, t, out_id, k);
-			tx.set(cf.clone(), key, json_value).await.unwrap();
-		}
-
+		let val = build_bytes(&[Component::GValueType(&value), Component::GValue(&value)]).unwrap();
+		let t_id = &Identifier::new(t).unwrap();
+		let key = self.key(in_id, t_id, out_id, &field.to_string());
+		tx.set(cf, key.to_vec(), val).await.unwrap();
 		tx.commit().await.unwrap();
-		Ok(data)
+		Ok((key, field.to_string(), value))
 	}
 
 	pub async fn delete(&self, in_id: Uuid, t: &Identifier, out_id: Uuid) -> Result<(), Error> {

@@ -18,6 +18,7 @@ pub enum GValue {
 	Null,
 	Vertex(Vertex),
 	Edge(Edge),
+	Bytes(Vec<u8>),
 	VertexProperty(VertexProperty),
 	Property(Property),
 	Uuid(uuid::Uuid),

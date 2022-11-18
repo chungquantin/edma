@@ -1,3 +1,4 @@
+use gremlin::GValue;
 use serde_json::{json, Map, Value};
 use uuid::Uuid;
 
@@ -12,22 +13,22 @@ impl<'a> VertexPropertyRepository<'a> {
 		Ok(build_bytes(&[Component::Uuid(vertex_id), Component::Bytes(k.as_bytes())]).unwrap())
 	}
 
-	pub async fn create(&self, vertex_id: Uuid, data: Value) -> Result<Value, Error> {
+	// # Create a new vertex property
+	// (key, field, value)
+	pub async fn property(
+		&self,
+		vertex_id: Uuid,
+		field: &str,
+		value: GValue,
+	) -> Result<(Vec<u8>, String, GValue), Error> {
 		let mut tx = self.get_ds().transaction(true).unwrap();
-		if !data.is_object() {
-			panic!("Data type must be object");
-		}
-		let o = data.as_object().unwrap();
-		for k in o.keys() {
-			let cf = self.get_cf();
-			let val = o.get(k).unwrap();
-			let json_value =
-				build_bytes(&[Component::JsonValueType(val), Component::JsonValue(val)]).unwrap();
-			let key = self.key(vertex_id, k).unwrap();
-			tx.put(cf, key, json_value).await.unwrap();
-		}
+		let cf = self.get_cf();
+		let val = build_bytes(&[Component::GValueType(&value), Component::GValue(&value)]).unwrap();
+		let prop = value.get::<String>().unwrap();
+		let key = self.key(vertex_id, prop).unwrap();
+		tx.set(cf, key.to_vec(), val).await.unwrap();
 		tx.commit().await.unwrap();
-		Ok(data)
+		Ok((key, field.to_string(), value))
 	}
 
 	fn iterate(&self, iterator: Vec<Result<KeyValuePair, Error>>) -> Result<Value, Error> {

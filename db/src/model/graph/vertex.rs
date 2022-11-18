@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::{ControllerError, Error, Label};
 
-pub const MAX_LABELS: u8 = 5;
+const MAX_LABELS: u8 = 1;
 
 /// # Property Vertex
 /// Vertices are also referred to as node or points.
