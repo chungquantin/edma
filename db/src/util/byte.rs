@@ -60,7 +60,7 @@ impl<'a> Component<'a> {
 			}
 			Component::Bytes(bytes) => cursor.write_all(bytes),
 			Component::GValueType(value) => match value {
-				GValue::String(value) => cursor.write_all(&[1]),
+				GValue::String(_value) => cursor.write_all(&[1]),
 				_ => unimplemented!(),
 			},
 			Component::GValue(value) => match value {
