@@ -32,25 +32,29 @@ pub struct Datastore {
 
 impl Default for Datastore {
 	fn default() -> Self {
-		Datastore::new("default").unwrap()
+		Datastore::new("default")
 	}
 }
 
 impl Datastore {
-	pub fn new(path: &str) -> Result<Datastore, Error> {
+	pub fn new(path: &str) -> Datastore {
 		match path {
 			#[cfg(feature = "kv-rocksdb")]
 			s if s.starts_with("rocksdb:") | s.eq("default") => {
 				info!(target: LOG, "Starting kvs store at {}", path);
-				let db = RocksDBAdapter::new(s, None)?;
-				let v = Ok(Datastore {
+				let db = RocksDBAdapter::new(s, None).unwrap();
+				let v = Datastore {
 					inner: Inner::RocksDB(db),
-				});
+				};
 				info!(target: LOG, "Started kvs store at {}", path);
 				v
 			}
 			_ => unimplemented!(),
 		}
+	}
+
+	pub fn borrow(&self) -> DBRef {
+		DBRef::new(self)
 	}
 
 	pub fn transaction(&self, write: bool) -> Result<Transaction, Error> {

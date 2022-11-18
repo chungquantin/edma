@@ -3,6 +3,7 @@ use std::io::{Cursor, Error as IoError, Write};
 use byteorder::{BigEndian, ByteOrder, WriteBytesExt};
 use chrono::{DateTime, NaiveDateTime, Timelike, Utc};
 
+use gremlin::GValue;
 use lazy_static::lazy_static;
 use rand::Rng;
 use serde_json::Value;
@@ -29,8 +30,8 @@ pub enum Component<'a> {
 	Identifier(&'a Identifier),
 	DateTime(DateTime<Utc>),
 	Bytes(&'a [u8]),
-	JsonValue(&'a Value),
-	JsonValueType(&'a Value),
+	GValue(&'a GValue),
+	GValueType(&'a GValue),
 }
 
 impl<'a> Component<'a> {
@@ -41,7 +42,7 @@ impl<'a> Component<'a> {
 			Component::Identifier(t) => t.0.len() + 1,
 			Component::DateTime(_) => 8,
 			Component::Bytes(b) => b.len(),
-			Component::JsonValue(v) | Component::JsonValueType(v) => v.to_string().len(),
+			Component::GValue(v) | Component::GValueType(v) => v.get::<String>().unwrap().len(),
 		}
 	}
 
@@ -58,21 +59,12 @@ impl<'a> Component<'a> {
 				cursor.write_u64::<BigEndian>(time_to_end)
 			}
 			Component::Bytes(bytes) => cursor.write_all(bytes),
-			Component::JsonValueType(value) => match value {
-				v if v.is_string() => cursor.write_all(&[1]),
-				v if v.is_boolean() => cursor.write_all(&[2]),
-				v if v.is_i64() => cursor.write_all(&[3]),
-				v if v.is_u64() => cursor.write_all(&[4]),
-				v if v.is_f64() => cursor.write_all(&[5]),
+			Component::GValueType(value) => match value {
+				GValue::String(value) => cursor.write_all(&[1]),
 				_ => unimplemented!(),
 			},
-			Component::JsonValue(value) => match value {
-				v if v.is_string() => cursor.write_all(v.as_str().unwrap().as_bytes()),
-				v if v.is_boolean() => cursor
-					.write_all(&[unsafe { std::mem::transmute::<bool, u8>(v.as_bool().unwrap()) }]),
-				v if v.is_i64() => cursor.write_i64::<BigEndian>(v.as_i64().unwrap()),
-				v if v.is_u64() => cursor.write_u64::<BigEndian>(v.as_u64().unwrap()),
-				v if v.is_f64() => cursor.write_f64::<BigEndian>(v.as_f64().unwrap()),
+			Component::GValue(value) => match value {
+				GValue::String(value) => cursor.write_all(value.as_bytes()),
 				_ => unimplemented!(),
 			},
 		}

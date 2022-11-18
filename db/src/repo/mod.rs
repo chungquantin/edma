@@ -8,3 +8,4 @@ pub use edge::*;
 pub use edge_property::*;
 pub use label::*;
 pub use vertex::*;
+pub use vertex_property::*;

@@ -5,7 +5,7 @@ use crate::{
 	AccountDiscriminator, Error, Label, SimpleTransaction, Vertex,
 };
 
-use serde_json::Value;
+use gremlin::GValue;
 use uuid::Uuid;
 
 impl_repository!(VertexRepository("vertices:v1"));
@@ -15,28 +15,40 @@ impl<'a> VertexRepository<'a> {
 		build_bytes(&[Component::Uuid(id)]).unwrap()
 	}
 
-	/// # Create a new vertex from labels and properties
-	/// ## Description
-	/// Because Vertex has multiple dynamic sized attributes:
-	/// - labels: Vec<Label>
-	/// - props: serde_json::Value
-	/// It will be a bit more complicated.
-	///
-	/// Data will be store in Vertex as
-	/// + label_discriminator | label_meta | label data
-	pub async fn create(&self, labels: Vec<Label>, props: Value) -> Result<Vertex, Error> {
-		let mut tx = self.get_ds().transaction(true).unwrap();
+	pub async fn v(&self, ids: &Vec<GValue>) -> Result<Vec<Option<Vertex>>, Error> {
+		let tx = self.get_ds().transaction(false).unwrap();
 		let cf = self.get_cf();
+		match ids.first() {
+			Some(id) => {
+				let value = id.get::<Uuid>().unwrap();
+				let key = self.key(*value);
 
-		let labels_bytes = Label::multi_serialize(&labels).unwrap();
-		let vpc = VertexPropertyRepository::new(self.ds_ref);
-		let mut v = Vertex::new(labels.to_vec()).unwrap();
-		let props = vpc.create(v.id, props).await.unwrap();
-		v.add_props(props).unwrap();
+				let vertex = tx.get(cf, key.to_vec()).await.unwrap();
+				Ok(vec![match vertex {
+					Some(v) => Some(self.from_pair(&(key, v)).await.unwrap()),
+					_ => None,
+				}])
+			}
+			_ => self.iterate_all().await,
+		}
+	}
 
+	/// # Create a new vertex from labels and properties
+	pub async fn add_v(&self, labels: &Vec<GValue>) -> Result<Vertex, Error> {
+		let mut serialized_labels = Vec::<Label>::new();
+		for label in labels.iter() {
+			let val = label.get::<String>().unwrap();
+			let l = Label::new(val).unwrap();
+			serialized_labels.push(l);
+		}
+
+		let bytes = Label::multi_serialize(&serialized_labels).unwrap();
+		let v = Vertex::new(serialized_labels).unwrap();
+		let cf = self.get_cf();
 		let key = self.key(v.id);
+		let val = [bytes].concat();
 
-		let val = [labels_bytes].concat();
+		let mut tx = self.get_ds().transaction(true).unwrap();
 		tx.set(cf, key, val).await.unwrap();
 		tx.commit().await.unwrap();
 		Ok(v)
@@ -79,45 +91,21 @@ impl<'a> VertexRepository<'a> {
 		tx.commit().await
 	}
 
-	/// # Get single vertex from datastore
-	pub async fn get(&self, id: Vec<u8>) -> Result<Vertex, Error> {
-		let cf = self.get_cf();
-
-		let tx = self.get_ds().transaction(false).unwrap();
-		let value = tx.get(cf, id.to_vec()).await.unwrap();
-		match value {
-			Some(v) => self.from_pair(&(id, v)).await,
-			None => panic!("No vertex found"),
-		}
-	}
-
 	async fn iterate(
 		&self,
 		iterator: Vec<Result<KeyValuePair, Error>>,
-	) -> Result<Vec<Vertex>, Error> {
-		let mut result: Vec<Vertex> = vec![];
+	) -> Result<Vec<Option<Vertex>>, Error> {
+		let mut result: Vec<Option<Vertex>> = vec![];
 		for pair in iterator.iter() {
 			let p_ref = pair.as_ref().unwrap();
 			let vertex = self.from_pair(p_ref).await.unwrap();
-			result.push(vertex);
+			result.push(Some(vertex));
 		}
 
 		Ok(result)
 	}
 
-	/// # Get multiple vertices from datastore
-	pub async fn multi_get(&self, ids: Vec<Vec<u8>>) -> Result<Vec<Vertex>, Error> {
-		let mut vertices = Vec::<Vertex>::new();
-
-		for id in ids.iter() {
-			let vertex = self.get(id.to_vec()).await.unwrap();
-			vertices.push(vertex);
-		}
-
-		Ok(vertices)
-	}
-
-	pub async fn iterate_all(&self) -> Result<Vec<Vertex>, Error> {
+	pub async fn iterate_all(&self) -> Result<Vec<Option<Vertex>>, Error> {
 		let tx = self.get_ds().transaction(false).unwrap();
 		let cf = self.get_cf();
 
