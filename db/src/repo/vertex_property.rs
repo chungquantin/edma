@@ -5,7 +5,7 @@ use crate::interface::KeyValuePair;
 use crate::util::{build_bytes, build_json_value, Component};
 use crate::{Error, SimpleTransaction};
 
-impl_controller!(VertexPropertyRepository("vertex-properties:v1"));
+impl_repository!(VertexPropertyRepository("vertex-properties:v1"));
 
 impl<'a> VertexPropertyRepository<'a> {
 	pub fn key(&self, vertex_id: Uuid, k: &String) -> Result<Vec<u8>, Error> {

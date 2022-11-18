@@ -1,4 +1,4 @@
-macro_rules! impl_controller {
+macro_rules! impl_repository {
 	($c_name: ident($c_cf: expr)) => {
 		use $crate::storage::DBRef;
 		use $crate::storage::Datastore;

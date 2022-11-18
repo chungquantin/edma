@@ -1,3 +1,40 @@
+# CHANGELOG | October 2022
+
+## Commits on Oct 26, 2022
+
+### Description
+
+A soft beginning. I just spend some time to read graph database book and learning concepts, requirements needed to construct Solomon DB.
+
+### Detail explanation
+
+There are a few interesting learning outcomes acquired here:
+
+These concepts are not too complicated actually. Not talking about native graph database, non-native graph database is more like a database wrapper which has internals built on top of other databases.
+
+```md
+-   Underlying storage
+-   Processing engine
+-   Graph compute engine
+```
+
+_Learnt and noted down these concepts in **WIKI.md**._
+
+As this is the first commit, it only includes code to initialize a codebase and its basic layout for Rust project using `cargo new`.
+
+```rust
+// A simple hello world program (db/src/main.rs)
+fn main() {
+    println!("Hello, world!");
+}
+```
+
+### Contributors
+
+-   Chung Quan Tin ([@chungquantin](https://github.com/chungquantin))
+
+---
+
 ## Commits on Oct 28, 2022
 
 ### Description
@@ -59,3 +96,7 @@ impl RocksDBDriver {
  }
 }
 ```
+
+### Contributors
+
+-   Chung Quan Tin ([@chungquantin](https://github.com/chungquantin))

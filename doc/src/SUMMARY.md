@@ -4,15 +4,12 @@
 
 # Development log
 
--   [October]()
-    -   [26th October, 2022](devlog/26-10-2022.md)
-    -   [28th October, 2022](devlog/28-10-2022.md)
--   [November]()
-    -   [1st November, 2022](devlog/01-11-2022.md)
-    -   [2nd November, 2022](devlog/02-11-2022.md)
-    -   [4th November, 2022](devlog/04-11-2022.md)
-    -   [5th November, 2022](devlog/05-11-2022.md)
+-   [2022]()
+    -   [October](devlog/2022/october-2022.md)
+    -   [November](devlog/2022/november-2022.md)
 
 ---
 
+[License](misc/license.md)
+[Code of conduct](misc/code_of_conduct.md)
 [Contributors](misc/contributors.md)

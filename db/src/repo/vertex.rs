@@ -8,7 +8,7 @@ use crate::{
 use serde_json::Value;
 use uuid::Uuid;
 
-impl_controller!(VertexRepository("vertices:v1"));
+impl_repository!(VertexRepository("vertices:v1"));
 
 impl<'a> VertexRepository<'a> {
 	pub fn key(&self, id: Uuid) -> Vec<u8> {

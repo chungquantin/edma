@@ -1,7 +1,11 @@
-# Introduction
-
 <p align="center">
 <img src="https://user-images.githubusercontent.com/56880684/201497081-40976107-ef47-4a12-bf6d-ceafc8da3464.png" width="40%"/>
+</p>
+<p align="center">
+    <a href="https://github.com/nomadiz/solomon-db/graphs/contributors" alt="Contributors">
+        <img src="https://img.shields.io/github/contributors/nomadiz/solomon-db" /></a>
+    <a href="https://github.com/nomadiz/solomon-db/pulse" alt="Activity">
+        <img src="https://img.shields.io/github/commit-activity/m/nomadiz/solomon-db" /></a>
 </p>
 
 Distributed graph database built by nomadic engineers. I envisage Solomon DB as a friendly feature-rich distributed graph database that provides a set of plugins and data storage adapter. Hence, everyone who want to self host their own graph database on top of a current existing relational or non-relational database can save amount of time with just a few clicks and configurations.
@@ -19,3 +23,7 @@ Release notes for rustup may be found in the [CHANGELOG].
 [changelog]: https://github.com/nomadiz/solomon-db/blob/master/CHANGELOG.md
 [issue tracker]: https://github.com/nomadiz/solomon-db/issues
 [github]: https://github.com/nomadiz/solomon-db
+
+## Contributors
+
+-   Chung Quan Tin ([@chungquantin](https://github.com/chungquantin))

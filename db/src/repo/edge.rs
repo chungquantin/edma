@@ -5,7 +5,7 @@ use crate::interface::{Key, KeyValuePair};
 use crate::util::{build_bytes, from_i64_bytes, from_uuid_bytes, Component};
 use crate::{Edge, EdgePropertyRepository, Error, Identifier, SimpleTransaction};
 
-impl_controller!(EdgeRepository("edges:v1"));
+impl_repository!(EdgeRepository("edges:v1"));
 
 impl<'a> EdgeRepository<'a> {
 	fn key(&self, in_id: Uuid, t: &Identifier, out_id: Uuid) -> Vec<u8> {
