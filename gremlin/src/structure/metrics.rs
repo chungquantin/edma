@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct TraversalExplanation {
 	final_t: Vec<String>,
 	original: Vec<String>,
@@ -17,7 +17,7 @@ impl TraversalExplanation {
 		&self.intermediate
 	}
 }
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct IntermediateRepr {
 	traversal: Vec<String>,
 	strategy: String,

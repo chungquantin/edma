@@ -48,7 +48,7 @@ impl<S, E: FromGValue, T: Terminator<E>> GraphTraversal<S, E, T> {
 		self.bytecode()
 			.steps()
 			.iter()
-			.any(|instruction| WRITE_OPERATORS.contains(&&*instruction.operator().as_ref()))
+			.any(|instruction| WRITE_OPERATORS.contains(&instruction.operator().as_ref()))
 	}
 
 	pub fn bytecode(&self) -> &Bytecode {

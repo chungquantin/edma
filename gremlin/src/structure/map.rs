@@ -88,7 +88,7 @@ impl Map {
 		self.0
 			.get(&key.into())
 			.cloned()
-			.or_else(|| Some(GValue::Null))
+			.or(Some(GValue::Null))
 			.map(V::try_from)
 			.ok_or_else(|| GremlinError::Cast(String::from("field not found")))?
 	}
@@ -155,7 +155,7 @@ impl TryFrom<GKey> for String {
 		if let GKey::String(s) = k {
 			Ok(s)
 		} else {
-			Err(GremlinError::Cast(String::from(format!("Cannot cast from {:?} to String", k))))
+			Err(GremlinError::Cast(format!("Cannot cast from {:?} to String", k)))
 		}
 	}
 }
