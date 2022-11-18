@@ -12,9 +12,8 @@ readme = "README.md"
 
 
 [features]
-
 default = []
-
+test-suite = []
 derive = ["gremlin-derive"]
 
 [badges]

@@ -91,6 +91,7 @@ impl ToString for Identifier {
 	}
 }
 
+#[cfg(feature = "test-suite")]
 #[cfg(test)]
 mod tests {
 	use super::Identifier;

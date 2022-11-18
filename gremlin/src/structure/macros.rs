@@ -38,6 +38,7 @@ macro_rules! edge {
     }};
 }
 
+#[cfg(feature = "test-suite")]
 #[cfg(test)]
 mod test {
 	use std::collections::HashMap;

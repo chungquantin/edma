@@ -1,4 +1,4 @@
-// #[cfg(feature = "test-suite")]
+#[cfg(feature = "test-suite")]
 #[cfg(test)]
 mod repository_test {
 	use serde_json::json;

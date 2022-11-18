@@ -206,6 +206,7 @@ impl_borrow_from_gvalue!(uuid::Uuid, GValue::Uuid);
 impl_borrow_from_gvalue!(chrono::DateTime<chrono::Utc>, GValue::Date);
 impl_borrow_from_gvalue!(bool, GValue::Bool);
 
+#[cfg(feature = "test-suite")]
 #[test]
 fn to_gvalue_for_vec_gvalue() {
 	let ids_from_somewhere = vec![1, 2, 3];
