@@ -1,9 +1,7 @@
-use std::string::FromUtf8Error;
-
 use crate::{
 	interface::KeyValuePair,
 	storage::Transaction,
-	util::{build_bytes, Component},
+	util::{build_gid, build_gvalue, build_label, build_usize_from_bytes},
 	Error, SimpleTransaction,
 };
 
@@ -37,15 +35,6 @@ impl VertexResult {
 type RepositoryResult<T> = Result<T, Error>;
 
 impl<'a> VertexRepository<'a> {
-	fn key(&self, id: &GID) -> Vec<u8> {
-		build_bytes(&[Component::GremlinID(id)]).unwrap()
-	}
-
-	fn build_id(&self, id: &GValue) -> Result<String, FromUtf8Error> {
-		let byte = build_bytes(&[Component::GremlinValue(id)]).unwrap();
-		String::from_utf8(byte)
-	}
-
 	/// The V()-step is meant to read vertices from the graph and is usually
 	/// used to start a GraphTraversal, but can also be used mid-traversal.
 	/// [Documentation](https://tinkerpop.apache.org/docs/current/reference/#v-step)
@@ -57,9 +46,7 @@ impl<'a> VertexRepository<'a> {
 		let cf = self.cf();
 		match ids.first() {
 			Some(id) => {
-				let value = self.build_id(id).unwrap();
-				let key = self.key(&GID::from(value));
-
+				let key = build_gvalue(id);
 				let vertex = tx.get(cf, key.to_vec()).await.unwrap();
 				Ok(vec![match vertex {
 					Some(v) => VertexResult {
@@ -95,19 +82,15 @@ impl<'a> VertexRepository<'a> {
 		}
 		let labels = Labels::from(serialized_labels);
 
-		// build Label byte (length : usize, data: GremlinLabelType)
+		// build Label byte (length : usize, data: LabelType)
 		let mut bytes = vec![];
 		for label in labels.0.iter() {
-			let byte = build_bytes(&[
-				Component::Usize(label.bytes_len()),
-				Component::GremlinLabelType(label),
-			])
-			.unwrap();
-
+			let byte = build_label(label);
 			bytes.push(byte);
 		}
 		let cf = self.cf();
-		let key = self.key(v.id());
+		let key = build_gid(v.id());
+		println!("add v - key: {:?}", key);
 		let val = bytes.concat();
 
 		tx.set(cf, key, val).await.unwrap();
@@ -120,10 +103,13 @@ impl<'a> VertexRepository<'a> {
 
 	async fn from_pair(&self, p: &KeyValuePair) -> RepositoryResult<Vertex> {
 		let (k, v) = p;
-		let gid = GID::Bytes(k.to_vec());
+		// Handle deserializing and rebuild vertex stream
+		let key_len = build_usize_from_bytes(k[..1].to_vec()) + 1;
+		let gid = GID::Bytes(k[1..key_len].to_vec());
 		let mut vertex = Vertex::partial_new(gid);
+		// handle deserializing label data of vertex
 		let mut i = 0;
-		while i != v.len() {
+		while i < v.len() {
 			let len = *v[i..i + 1].first().unwrap();
 			let usize_len = len as usize;
 			let end = usize_len + i + 1;
@@ -139,7 +125,8 @@ impl<'a> VertexRepository<'a> {
 	pub async fn drop_v(&self, tx: &mut Transaction, id: GID) -> Result<(), Error> {
 		let cf = self.cf();
 		let value = id.get::<String>().unwrap();
-		let key = self.key(&GID::from(value.to_string()));
+		let gid = &GID::from(value.to_string());
+		let key = build_gid(gid);
 		tx.del(cf, key).await.unwrap();
 		Ok(())
 	}

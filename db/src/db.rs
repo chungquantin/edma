@@ -154,10 +154,10 @@ mod test {
 		let g = GraphTraversalSource::<MockTerminator>::empty();
 		let mut db = Database::new(datastore.borrow(), &g);
 
-		let traversal = db.traverse().v(1).add_v("person").v(());
+		let traversal = db.traverse().v(1).add_v("person").v(2).add_v("hero").v(());
 		let result = db.execute(traversal).await.unwrap();
 
 		println!("Result: {:?}", result);
-		// unimplemented!();
+		unimplemented!();
 	}
 }

@@ -10,11 +10,6 @@ use uuid::Uuid;
 
 use crate::Identifier;
 
-type ByteData = Vec<u8>;
-type ByteDataArray = Vec<ByteData>;
-// Description: (List of return bytes, length of bytes vec)
-type DeserializeResult = Result<(ByteDataArray, usize), IoError>;
-
 lazy_static! {
 	/// The maximum possible datetime.
 	pub static ref MAX_DATETIME: DateTime<Utc> =
@@ -25,15 +20,19 @@ lazy_static! {
 
 pub enum Component<'a> {
 	Uuid(Uuid),
-	GremlinID(&'a GID),
-	GremlinLabelType(&'a LabelType),
+	/// GID: Gremlin Identifier
+	GID(&'a GID),
+	/// GLabelType: Gremlin Label Type
+	Label(&'a LabelType),
 	FixedLengthString(&'a str),
 	Identifier(&'a Identifier),
 	DateTime(DateTime<Utc>),
 	Bytes(&'a [u8]),
 	Usize(usize),
-	GremlinValue(&'a GValue),
-	GremlinValueType(&'a GValue),
+	/// GValue: Gremlin Value
+	GValue(&'a GValue),
+	/// GValueType: Gremlin Value Type
+	GValueType(&'a GValue),
 }
 
 impl<'a> Component<'a> {
@@ -44,9 +43,9 @@ impl<'a> Component<'a> {
 			Component::Identifier(t) => t.0.len() + 1,
 			Component::DateTime(_) => 8,
 			Component::Bytes(b) => b.len(),
-			Component::GremlinValue(v) | Component::GremlinValueType(v) => v.bytes().len(),
-			Component::GremlinID(v) => v.bytes_len(),
-			Component::GremlinLabelType(v) => v.bytes_len(),
+			Component::GValue(v) | Component::GValueType(v) => v.bytes().len(),
+			Component::GID(v) => v.bytes_len(),
+			Component::Label(v) => v.bytes_len(),
 			Component::Usize(_) => 1,
 		}
 	}
@@ -64,13 +63,13 @@ impl<'a> Component<'a> {
 				cursor.write_u64::<BigEndian>(time_to_end)
 			}
 			Component::Bytes(bytes) => cursor.write_all(bytes),
-			Component::GremlinValueType(value) => match value {
+			Component::GValueType(value) => match value {
 				GValue::String(_value) => cursor.write_all(&[1]),
 				_ => unimplemented!(),
 			},
-			Component::GremlinValue(value) => cursor.write_all(value.bytes().as_slice()),
-			Component::GremlinID(value) => cursor.write_all(value.bytes().as_slice()),
-			Component::GremlinLabelType(value) => cursor.write_all(value.bytes().as_slice()),
+			Component::GValue(value) => cursor.write_all(value.bytes().as_slice()),
+			Component::GID(value) => cursor.write_all(value.bytes().as_slice()),
+			Component::Label(value) => cursor.write_all(value.bytes().as_slice()),
 			Component::Usize(value) => cursor.write_all(&[value.try_into().unwrap()]),
 		}
 	}
@@ -92,87 +91,7 @@ fn nanos_since_epoch(datetime: &DateTime<Utc>) -> u64 {
 	timestamp * 1_000_000_000 + nanoseconds
 }
 
-// Serializes component(s) into bytes.
-///
-/// # Arguments
-/// * `components`: The components to serialize to bytes.
-pub fn build_bytes(components: &[Component]) -> Result<Vec<u8>, IoError> {
-	let len = build_bytes_length(components).unwrap();
-	let mut cursor: Cursor<Vec<u8>> = Cursor::new(Vec::with_capacity(len));
-
-	for component in components {
-		if let Err(err) = component.write(&mut cursor) {
-			panic!("Could not write bytes: {}", err);
-		}
-	}
-
-	Ok(cursor.into_inner())
-}
-
-pub fn build_bytes_length(components: &[Component]) -> Result<usize, IoError> {
-	let len = components.iter().fold(0, |len, component| len + component.len());
-	Ok(len)
-}
-
-pub fn from_uuid_bytes(bytes: &[u8]) -> Result<Uuid, IoError> {
-	let l = Component::Uuid(Uuid::nil()).len();
-	let slice = &bytes[0..l];
-	let uuid = Component::read_uuid(slice).unwrap();
-	Ok(uuid)
-}
-
-pub fn from_i64_bytes(i64_bytes: Vec<u8>) -> Result<i64, IoError> {
-	let mut fix: [u8; 8] = Default::default();
-	fix.copy_from_slice(&i64_bytes[0..8]);
-	Ok(i64::from_be_bytes(fix))
-}
-
 pub fn generate_random_i32() -> i32 {
 	let mut rng = rand::thread_rng();
 	rng.gen::<i32>()
 }
-
-pub fn build_meta(size: u8, length: usize) -> Vec<u8> {
-	vec![size, length as u8]
-}
-
-/// # Deserialize data with metadata
-/// Metadata: [size, length]
-///
-/// Based on the information of metadata to slice the raw byte data
-pub fn deserialize_data_with_meta(data: ByteData) -> DeserializeResult {
-	let meta_length = 2;
-	let mut offset = meta_length;
-
-	let (size, length) = (&data[offset - 2], &data[offset - 1]);
-	let len = size * length;
-	let d = data[offset..len as usize + offset].to_vec();
-
-	let mut ans = Vec::new();
-
-	for i in 0..*size {
-		let ind = |x: u8| (x * length) as usize;
-		let slice = &d[ind(i)..ind(i + 1)];
-		ans.push(slice.to_vec());
-	}
-	Ok((ans, d.len() + offset))
-}
-
-// pub fn deserialize_byte_data(
-// 	data: ByteData,
-// 	has_discriminator: bool,
-// ) -> Result<Vec<(ByteDataArray, ByteData)>, IoError> {
-// 	let mut result = vec![];
-// 	let mut total_length = data.len();
-// 	let mut start = 0;
-// 	while total_length > 0 {
-// 		let slice = data[start..].to_vec();
-// 		let (data, length) = deserialize_data_with_meta(slice).unwrap();
-
-// 		result.push(data);
-// 		start += length;
-// 		total_length -= length;
-// 	}
-
-// 	Ok(result)
-// }
