@@ -5,11 +5,11 @@ pub use tx::*;
 pub use ty::*;
 
 use crate::{
-	adapter::StorageVariant,
 	constant::cf,
 	err::Error,
 	model::{DBTransaction, DatastoreAdapter, StorageAdapter, StorageAdapterName},
 	util::generate_path,
+	StorageVariant,
 };
 use rocksdb::{DBCompactionStyle, OptimisticTransactionDB, Options};
 

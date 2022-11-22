@@ -1,6 +1,6 @@
 use std::str::from_utf8;
 
-use crate::{adapter::DatastoreAdapter, tx::SimpleTransaction};
+use crate::{DatastoreAdapter, SimpleTransaction};
 
 pub async fn should_set_key(adapter: impl DatastoreAdapter) {
 	let adapter = adapter.spawn();

@@ -10,8 +10,8 @@ pub use error::GremlinError;
 pub type GremlinResult<T> = Result<T, error::GremlinError>;
 
 pub use structure::{
-	Cardinality, Edge, GKey, GValue, IntermediateRepr, List, Map, Metric, Path, Property, Token,
-	TraversalExplanation, TraversalMetrics, Vertex, VertexProperty, GID,
+	Cardinality, Edge, GKey, GValue, IntermediateRepr, LabelType, Labels, List, Map, Metric, Path,
+	Property, Token, TraversalExplanation, TraversalMetrics, Vertex, VertexProperty, GID,
 };
 
 pub mod process;

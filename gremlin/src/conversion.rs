@@ -35,6 +35,7 @@ impl ToGValue for GID {
 			GID::Int32(n) => GValue::from(*n),
 			GID::Int64(n) => GValue::from(*n),
 			GID::String(n) => GValue::from(n),
+			GID::Bytes(n) => GValue::from(n.to_vec()),
 		}
 	}
 }

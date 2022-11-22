@@ -1,37 +1,39 @@
 use std::io::{Cursor, Error as IoError, Write};
 
-use byteorder::{BigEndian, ByteOrder, WriteBytesExt};
+use byteorder::{BigEndian, WriteBytesExt};
 use chrono::{DateTime, NaiveDateTime, Timelike, Utc};
 
-use gremlin::GValue;
+use gremlin::{GValue, LabelType, GID};
 use lazy_static::lazy_static;
 use rand::Rng;
-use serde_json::Value;
 use uuid::Uuid;
 
-use crate::{AccountDiscriminator, Error, Identifier};
+use crate::Identifier;
 
 type ByteData = Vec<u8>;
 type ByteDataArray = Vec<ByteData>;
-// Description: (List of return bytes, length of bytes vec, discriminator)
-type DeserializeResult = Result<(ByteDataArray, usize, ByteData), IoError>;
+// Description: (List of return bytes, length of bytes vec)
+type DeserializeResult = Result<(ByteDataArray, usize), IoError>;
 
 lazy_static! {
 	/// The maximum possible datetime.
 	pub static ref MAX_DATETIME: DateTime<Utc> =
-		DateTime::from_utc(NaiveDateTime::from_timestamp(i64::from(i32::MAX), 0), Utc)
+		DateTime::from_utc(NaiveDateTime::from_timestamp_opt(i64::from(i32::MAX), 0).unwrap(), Utc)
 			.with_nanosecond(1_999_999_999u32)
 			.unwrap();
 }
 
 pub enum Component<'a> {
 	Uuid(Uuid),
+	GremlinID(&'a GID),
+	GremlinLabelType(&'a LabelType),
 	FixedLengthString(&'a str),
 	Identifier(&'a Identifier),
 	DateTime(DateTime<Utc>),
 	Bytes(&'a [u8]),
-	GValue(&'a GValue),
-	GValueType(&'a GValue),
+	Usize(usize),
+	GremlinValue(&'a GValue),
+	GremlinValueType(&'a GValue),
 }
 
 impl<'a> Component<'a> {
@@ -42,7 +44,10 @@ impl<'a> Component<'a> {
 			Component::Identifier(t) => t.0.len() + 1,
 			Component::DateTime(_) => 8,
 			Component::Bytes(b) => b.len(),
-			Component::GValue(v) | Component::GValueType(v) => v.get::<String>().unwrap().len(),
+			Component::GremlinValue(v) | Component::GremlinValueType(v) => v.bytes().len(),
+			Component::GremlinID(v) => v.bytes_len(),
+			Component::GremlinLabelType(v) => v.bytes_len(),
+			Component::Usize(_) => 1,
 		}
 	}
 
@@ -59,14 +64,14 @@ impl<'a> Component<'a> {
 				cursor.write_u64::<BigEndian>(time_to_end)
 			}
 			Component::Bytes(bytes) => cursor.write_all(bytes),
-			Component::GValueType(value) => match value {
+			Component::GremlinValueType(value) => match value {
 				GValue::String(_value) => cursor.write_all(&[1]),
 				_ => unimplemented!(),
 			},
-			Component::GValue(value) => match value {
-				GValue::String(value) => cursor.write_all(value.as_bytes()),
-				_ => unimplemented!(),
-			},
+			Component::GremlinValue(value) => cursor.write_all(value.bytes().as_slice()),
+			Component::GremlinID(value) => cursor.write_all(value.bytes().as_slice()),
+			Component::GremlinLabelType(value) => cursor.write_all(value.bytes().as_slice()),
+			Component::Usize(value) => cursor.write_all(&[value.try_into().unwrap()]),
 		}
 	}
 
@@ -135,18 +140,9 @@ pub fn build_meta(size: u8, length: usize) -> Vec<u8> {
 /// Metadata: [size, length]
 ///
 /// Based on the information of metadata to slice the raw byte data
-pub fn deserialize_data_with_meta(data: ByteData, has_discriminator: bool) -> DeserializeResult {
+pub fn deserialize_data_with_meta(data: ByteData) -> DeserializeResult {
 	let meta_length = 2;
 	let mut offset = meta_length;
-	let mut discriminator = AccountDiscriminator::None;
-	// If byte data includes discriminator, offset will be
-	// - meta length (2) + discriminator length (4) = offset (6)
-	if has_discriminator {
-		let discriminator_length = 4;
-		offset = meta_length + discriminator_length;
-		// Binary deserialize byte data into AccountDiscriminator
-		discriminator = bincode::deserialize(&data[..offset - 2]).unwrap();
-	}
 
 	let (size, length) = (&data[offset - 2], &data[offset - 1]);
 	let len = size * length;
@@ -159,45 +155,24 @@ pub fn deserialize_data_with_meta(data: ByteData, has_discriminator: bool) -> De
 		let slice = &d[ind(i)..ind(i + 1)];
 		ans.push(slice.to_vec());
 	}
-	Ok((ans, d.len() + offset, discriminator.serialize()))
+	Ok((ans, d.len() + offset))
 }
 
-pub fn deserialize_byte_data(
-	data: ByteData,
-	has_discriminator: bool,
-) -> Result<Vec<(ByteDataArray, ByteData)>, IoError> {
-	let mut result = vec![];
-	let mut total_length = data.len();
-	let mut start = 0;
-	while total_length > 0 {
-		let slice = data[start..].to_vec();
-		let (data, length, discriminator) =
-			deserialize_data_with_meta(slice, has_discriminator).unwrap();
+// pub fn deserialize_byte_data(
+// 	data: ByteData,
+// 	has_discriminator: bool,
+// ) -> Result<Vec<(ByteDataArray, ByteData)>, IoError> {
+// 	let mut result = vec![];
+// 	let mut total_length = data.len();
+// 	let mut start = 0;
+// 	while total_length > 0 {
+// 		let slice = data[start..].to_vec();
+// 		let (data, length) = deserialize_data_with_meta(slice).unwrap();
 
-		result.push((data, discriminator));
-		start += length;
-		total_length -= length;
-	}
+// 		result.push(data);
+// 		start += length;
+// 		total_length -= length;
+// 	}
 
-	Ok(result)
-}
-
-pub fn build_json_value(v: Vec<u8>) -> Result<Value, Error> {
-	let variant = &v[..1];
-	let v = v[1..].to_vec();
-	let value = match variant {
-		// String
-		[1] => Value::from(String::from_utf8(v).unwrap()),
-		// Boolean
-		[2] => Value::from(v[0] != 0),
-		// i64
-		[3] => Value::from(BigEndian::read_i64(&v)),
-		// u64
-		[4] => Value::from(BigEndian::read_u64(&v)),
-		// f64
-		[5] => Value::from(BigEndian::read_f64(&v)),
-		_ => unimplemented!(),
-	};
-
-	Ok(value)
-}
+// 	Ok(result)
+// }
