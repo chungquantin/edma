@@ -1,1 +1,3 @@
-pub mod cf;
+mod cf;
+
+pub use cf::*;
