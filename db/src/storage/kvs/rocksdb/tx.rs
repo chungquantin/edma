@@ -10,7 +10,7 @@ use crate::{
 		kv::{Key, Val},
 		KeyValuePair,
 	},
-	model::tx::{DBTransaction, SimpleTransaction},
+	model::{DBTransaction, SimpleTransaction},
 	CF,
 };
 

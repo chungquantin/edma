@@ -50,6 +50,16 @@ pub enum GValue {
 }
 
 impl GValue {
+	pub fn bytes(&self) -> Vec<u8> {
+		match self {
+			GValue::String(v) => v.as_bytes().to_vec(),
+			GValue::Int32(v) => v.to_be_bytes().to_vec(),
+			GValue::Int64(v) => v.to_be_bytes().to_vec(),
+			GValue::Bytes(v) => v.to_vec(),
+			_ => unimplemented!(),
+		}
+	}
+
 	pub fn take<T>(self) -> GremlinResult<T>
 	where
 		T: FromGValue,
@@ -86,6 +96,12 @@ impl From<&String> for GValue {
 impl From<i32> for GValue {
 	fn from(val: i32) -> Self {
 		GValue::Int32(val)
+	}
+}
+
+impl From<Vec<u8>> for GValue {
+	fn from(val: Vec<u8>) -> Self {
+		GValue::Bytes(val.to_vec())
 	}
 }
 

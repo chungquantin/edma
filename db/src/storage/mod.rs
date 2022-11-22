@@ -1,7 +1,7 @@
-pub mod ds;
 /// Storage
+mod ds;
 pub mod kvs;
-pub mod tx;
+mod tx;
 
 pub use ds::*;
 pub use kvs::*;

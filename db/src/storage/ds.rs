@@ -1,9 +1,9 @@
 use log::info;
 
-use crate::model::adapter::DatastoreAdapter;
-use crate::{storage::LOG, CassandraDBAdapter, Error, RocksDBAdapter};
+use crate::model::DatastoreAdapter;
+use crate::{storage::LOG, Error};
 
-use super::Transaction;
+use super::{CassandraDBAdapter, RocksDBAdapter, Transaction};
 
 #[derive(Copy, Clone)]
 pub struct DBRef<'a> {

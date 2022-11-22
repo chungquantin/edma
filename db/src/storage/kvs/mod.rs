@@ -1,7 +1,7 @@
-pub mod cassandradb;
-pub mod rocksdb;
+mod cassandradb;
+mod rocksdb;
 
 pub const LOG: &str = "solomondb::kvs";
 
-pub use self::cassandradb::*;
 pub use self::rocksdb::*;
+pub use cassandradb::*;

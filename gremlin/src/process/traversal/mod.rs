@@ -13,7 +13,7 @@ pub use internal::Terminator;
 pub use order::Order;
 
 pub use builder::TraversalBuilder;
-pub use bytecode::{Bytecode, WRITE_OPERATORS};
+pub use bytecode::{Bytecode, Instruction, WRITE_OPERATORS};
 pub use graph_traversal::GraphTraversal;
 pub use graph_traversal_source::GraphTraversalSource;
 pub use scope::Scope;

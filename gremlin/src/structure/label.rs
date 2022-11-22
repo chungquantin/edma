@@ -6,7 +6,20 @@ pub enum LabelType {
 	T(T),
 }
 
-pub struct Labels(pub(crate) Vec<LabelType>);
+impl LabelType {
+	pub fn bytes(&self) -> Vec<u8> {
+		match self {
+			LabelType::Str(v) => v.as_bytes().to_vec(),
+			_ => unimplemented!(),
+		}
+	}
+
+	pub fn bytes_len(&self) -> usize {
+		self.bytes().len()
+	}
+}
+
+pub struct Labels(pub Vec<LabelType>);
 
 impl From<&str> for Labels {
 	fn from(param: &str) -> Labels {
