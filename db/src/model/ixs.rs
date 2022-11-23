@@ -33,7 +33,7 @@ macro_rules! impl_borrow_from_ix {
 	};
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IxResult<'a> {
 	pub operator: &'a str,
 	pub source_operator: String,
