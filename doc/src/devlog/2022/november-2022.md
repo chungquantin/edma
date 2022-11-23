@@ -409,7 +409,52 @@ macro_rules! impl_global_config {
 
 ### Description
 
+Apply some techniques to serialize Rust struct data into bytes data. Derived from my experience with Solana development, I learnt the approach Solana codebase uses to for byte serialization and deserialization. This can be briefly described with a work **Discriminator**.
+
 ### Detail explanation
+
+The concept of **Account Discriminator** is common in Solana development using Anchor framework ([Link to reference](https://github.com/coral-xyz/anchor/issues/10)).
+
+We will take these lines of code below as an example. This code is to serialize `Label` struct into `Vec<u8>` and store it in our data storage.
+
+```rs
+// Handle byte concatenate for label components
+let _label_discriminator = serialize_discriminator(AccountDiscriminator::Label).unwrap();
+let _labels = build_bytes(&label_components).unwrap();
+let _label_offset = &build_offset(ll, uuid_len);
+let (l_dis, l_offset, l) =
+(_label_discriminator.as_slice(), _label_offset.as_slice(), _labels.as_slice());
+let labels_concat = [l_dis, l_offset, l].concat();
+```
+
+Understanding the code, there will be three components of the bytes vector `Label: (account discriminator / offset / object byte data)`
+
+-   `Account Discriminator`: Identifier of a struct object. Below code indicates the mapped index for each object. In `Label` case, the mapped index is `2`
+
+```rs
+#[derive(PartialEq, Serialize, Deserialize, Eq, Debug, Clone)]
+pub enum AccountDiscriminator {
+	None = 0,
+	Vertex = 1,
+	Label = 2,
+	Property = 3,
+	Relationship = 4,
+}
+```
+
+-   `Offset`: Or it can be called `meta`, it describes the number of byte indices `object data` will occupy. For example, a string `hello = [68 65 6c 6c 6f]` will have an offset as `5` as there are 5 byte elements in the vector.
+
+> (NOTE: The reason why we must store metadata of the object byte data is because there might be a chance the stored data is a vector of data)
+
+-   `Object byte data`: This is obvious, the byte data of the object data. Taking the above string example, the byte data for String object `hello` is `hello = [68 65 6c 6c 6f]`.
+
+Combining all the byte component together, we get something like
+
+```rs
+/// The return data of this example might not be exact
+/// but it is the idea
+hello = [ 2 5 68 65 6c 6c 6f ]
+```
 
 ### Contributors
 
@@ -421,7 +466,17 @@ macro_rules! impl_global_config {
 
 ### Description
 
+Add a workflow script to automatically build and deploy a doc page to Github Pages.
+
 ### Detail explanation
+
+Rust ecosystem has a very interesting crate called [mdbook](https://rust-lang.github.io/mdBook/) that helps developer to construct a documentation page in one click. Command to install a cargo crate
+
+```
+cargo install mdbook
+```
+
+Documentation book of SolomonDB is stored in `dpc/src`. The page is hosted on [SolomonDB Documentation Page](https://nomadiz.github.io/solomon-db/devlog/2022/november-2022.html)
 
 ### Contributors
 
@@ -433,7 +488,18 @@ macro_rules! impl_global_config {
 
 ### Description
 
+Add two badges to markdown. Just a visual stuff.
+
 ### Detail explanation
+
+Here is the two badges added to the `README.md` file
+
+<p align="center">
+    <a href="https://github.com/nomadiz/solomon-db/graphs/contributors" alt="Contributors">
+        <img src="https://img.shields.io/github/contributors/nomadiz/solomon-db" /></a>
+    <a href="https://github.com/nomadiz/solomon-db/pulse" alt="Activity">
+        <img src="https://img.shields.io/github/commit-activity/m/nomadiz/solomon-db" /></a>
+</p>
 
 ### Contributors
 
