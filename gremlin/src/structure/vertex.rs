@@ -20,12 +20,13 @@ impl Default for Vertex {
 	}
 }
 
+/// ## Vertex
+/// ### Description
+/// A Vertex maintains pointers to both a set of incoming and outgoing Edge objects.
+/// The outgoing edges are those edges for which the Vertex is the tail. The incoming edges
+/// are those edges for which the Vertex is the head.
 impl Vertex {
-	pub(crate) fn new<T>(
-		id: GID,
-		label: T,
-		properties: HashMap<String, Vec<VertexProperty>>,
-	) -> Vertex
+	pub fn new<T>(id: GID, label: T, properties: HashMap<String, Vec<VertexProperty>>) -> Vertex
 	where
 		T: Into<String>,
 	{

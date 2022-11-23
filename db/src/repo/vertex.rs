@@ -1,13 +1,12 @@
 use crate::{
 	interface::KeyValuePair,
 	storage::Transaction,
-	util::{build_gid, build_gvalue, build_label, build_usize_from_bytes},
+	util::{build_bytemap, build_sized, Component},
 	Error, SimpleTransaction,
 };
-
 use gremlin::{GValue, Labels, Vertex, GID};
 
-impl_repository!(VertexRepository("vertices:v1"));
+impl_repository!(VertexRepository(Vertex));
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct VertexResult {
@@ -46,7 +45,7 @@ impl<'a> VertexRepository<'a> {
 		let cf = self.cf();
 		match ids.first() {
 			Some(id) => {
-				let key = build_gvalue(id);
+				let key = build_sized(Component::GValue(id));
 				let vertex = tx.get(cf, key.to_vec()).await.unwrap();
 				Ok(vec![match vertex {
 					Some(v) => VertexResult {
@@ -85,11 +84,11 @@ impl<'a> VertexRepository<'a> {
 		// build Label byte (length : usize, data: LabelType)
 		let mut bytes = vec![];
 		for label in labels.0.iter() {
-			let byte = build_label(label);
+			let byte = build_sized(Component::Label(label));
 			bytes.push(byte);
 		}
 		let cf = self.cf();
-		let key = build_gid(v.id());
+		let key = build_sized(Component::GID(v.id()));
 		println!("add v - key: {:?}", key);
 		let val = bytes.concat();
 
@@ -104,8 +103,8 @@ impl<'a> VertexRepository<'a> {
 	async fn from_pair(&self, p: &KeyValuePair) -> RepositoryResult<Vertex> {
 		let (k, v) = p;
 		// Handle deserializing and rebuild vertex stream
-		let key_len = build_usize_from_bytes(k[..1].to_vec()) + 1;
-		let gid = GID::Bytes(k[1..key_len].to_vec());
+		let bytemap = &build_bytemap(vec!["gid"], k.to_vec());
+		let gid = GID::Bytes(bytemap.get("gid").unwrap().to_vec());
 		let mut vertex = Vertex::partial_new(gid);
 		// handle deserializing label data of vertex
 		let mut i = 0;
@@ -126,7 +125,7 @@ impl<'a> VertexRepository<'a> {
 		let cf = self.cf();
 		let value = id.get::<String>().unwrap();
 		let gid = &GID::from(value.to_string());
-		let key = build_gid(gid);
+		let key = build_sized(Component::GID(gid));
 		tx.del(cf, key).await.unwrap();
 		Ok(())
 	}

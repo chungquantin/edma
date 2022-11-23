@@ -1,5 +1,5 @@
 #[macro_use]
-pub mod repo;
+pub mod repository;
 #[macro_use]
 pub mod adapter;
 #[macro_use]
@@ -8,6 +8,6 @@ pub mod test;
 pub mod tx;
 
 pub use adapter::*;
-pub use repo::*;
+pub use repository::*;
 pub use test::*;
 pub use tx::*;

@@ -26,7 +26,8 @@ impl RocksDBAdapter {
 	pub fn new(path: &str, max_open_files: Option<i32>) -> Result<RocksDBAdapter, Error> {
 		let path = &path["rocksdb:".len()..];
 		let opts = get_options(max_open_files);
-		let db_instance = OptimisticTransactionDB::open_cf(&opts, path, CF_NAMES)?;
+		let cf_names = CF_NAMES.iter();
+		let db_instance = OptimisticTransactionDB::open_cf(&opts, path, cf_names)?;
 		Ok(RocksDBAdapter(StorageAdapter::<DBType>::new(
 			StorageAdapterName::RocksDB,
 			path.to_string(),

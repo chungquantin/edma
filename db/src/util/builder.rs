@@ -1,7 +1,8 @@
-use gremlin::{GValue, LabelType, GID};
-
 use super::Component;
-use std::io::{Cursor, Error as IoError};
+use std::{
+	collections::HashMap,
+	io::{Cursor, Error as IoError},
+};
 
 /// Serializes component(s) into bytes.
 pub fn build_bytes(components: &[Component]) -> Result<Vec<u8>, IoError> {
@@ -30,25 +31,26 @@ pub fn build_byte_array(bytes_vec: Vec<Vec<u8>>) -> Vec<u8> {
 	build_bytes(&components).unwrap()
 }
 
-// TODO generic implement
-pub fn build_gid(gid: &GID) -> Vec<u8> {
-	let byte = Component::GID(gid);
-	let len = byte.len();
-	build_bytes(&[Component::Usize(len), byte]).unwrap()
-}
-
-pub fn build_gvalue(gvalue: &GValue) -> Vec<u8> {
-	let byte = Component::GValue(gvalue);
-	let len = byte.len();
-	build_bytes(&[Component::Usize(len), byte]).unwrap()
-}
-
-pub fn build_label(label: &LabelType) -> Vec<u8> {
-	let byte = Component::Label(label);
-	let len = byte.len();
-	build_bytes(&[Component::Usize(len), byte]).unwrap()
+pub fn build_sized(component: Component) -> Vec<u8> {
+	let len = component.len();
+	build_bytes(&[Component::Usize(len), component]).unwrap()
 }
 
 pub fn build_usize_from_bytes(bytes: Vec<u8>) -> usize {
 	*bytes.first().unwrap() as usize
+}
+
+pub fn build_bytemap(key: Vec<&str>, bytes: Vec<u8>) -> HashMap<String, Vec<u8>> {
+	let mut map = HashMap::<String, Vec<u8>>::new();
+	let mut s = 0;
+	let mut key_index = 0;
+	while s < bytes.len() {
+		let len = build_usize_from_bytes(bytes[s..s + 1].to_vec()) + 1;
+		let data = bytes[s + 1..len].to_vec();
+		map.insert(String::from(key[key_index]), data);
+
+		s += len;
+		key_index += 1;
+	}
+	map
 }

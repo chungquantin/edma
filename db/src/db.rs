@@ -6,7 +6,7 @@ use gremlin::{
 };
 
 use crate::{
-	err::Error, storage::DBRef, IxResult, IxValue, SimpleTransaction, VertexRepository,
+	err::Error, storage::DatastoreRef, IxResult, IxValue, SimpleTransaction, VertexRepository,
 	VertexResult,
 };
 
@@ -42,7 +42,7 @@ fn is_source_step(step: &Instruction) -> bool {
 }
 
 impl<'a> Database<'a> {
-	pub fn new(ds_ref: DBRef<'a>, traversal: &'a TraversalSource) -> Self {
+	pub fn new(ds_ref: DatastoreRef<'a>, traversal: &'a TraversalSource) -> Self {
 		Database {
 			traversal,
 			vertex: VertexRepository::new(ds_ref),
@@ -64,14 +64,29 @@ impl<'a> Database<'a> {
 		let mut step_result = match operator {
 			"V" => self.v(args).await,
 			"addV" => self.add_v(args).await,
-			"E" => self.e(args),
-			"addE" => self.add_e(args),
+			"E" => self.e(args).await,
+			"addE" => self.add_e(args).await,
+			"property" => self.property(args).await,
 			_ => unimplemented!(),
 		};
 
 		let source = step.operator().to_string();
 		step_result.add_source(source).unwrap();
 
+		self.steps.push_back(step_result);
+	}
+
+	async fn process_step(&mut self, step: &Instruction) {
+		let args = step.args();
+		let operator = step.operator().as_str();
+		let mut step_result = match operator {
+			"property" => self.property(args).await,
+			_ => unimplemented!(),
+		};
+
+		let stream = self.steps.back().unwrap();
+		let source = &stream.source_operator;
+		step_result.add_source(source.to_string()).unwrap();
 		self.steps.push_back(step_result);
 	}
 
@@ -85,24 +100,27 @@ impl<'a> Database<'a> {
 		for step in bytecode.steps() {
 			if is_source_step(step) {
 				self.process_source_step(step).await;
+			} else {
+				self.process_step(step).await;
 			}
 		}
 
+		println!("Result {:?}", self.steps);
 		let last_result = self.steps.back().unwrap().clone();
 		Ok(last_result)
 	}
 
 	/// The V()-step is meant to read vertices from the graph and is usually
 	/// used to start a GraphTraversal, but can also be used mid-traversal.
-	async fn v(&mut self, ids: &Vec<GValue>) -> IxResult<'a> {
+	async fn v(&mut self, args: &Vec<GValue>) -> IxResult<'a> {
 		let tx = &mut self.vertex.mut_tx();
-		let result = self.vertex.v(tx, ids).await.unwrap();
+		let result = self.vertex.v(tx, args).await.unwrap();
 		tx.commit().await.unwrap();
 
 		IxResult::new("V", IxValue::VertexSeq(result))
 	}
 
-	fn e(&mut self, ids: &Vec<GValue>) -> IxResult<'a> {
+	async fn e(&mut self, ids: &Vec<GValue>) -> IxResult<'a> {
 		println!("Edge {:?}", ids);
 
 		IxResult::new("E", IxValue::None)
@@ -111,7 +129,7 @@ impl<'a> Database<'a> {
 	/// The addV()-step is used to add vertices to the graph (map/sideEffect).
 	/// For every incoming object, a vertex is created. Moreover, GraphTraversalSource maintains an addV() method.
 	/// [Documentation](https://tinkerpop.apache.org/docs/current/reference/#addvertex-step)
-	async fn add_v(&mut self, labels: &Vec<GValue>) -> IxResult<'a> {
+	async fn add_v(&mut self, args: &Vec<GValue>) -> IxResult<'a> {
 		let tx = &mut self.vertex.mut_tx();
 		let source = self.steps.back().unwrap();
 		let mut result = vec![];
@@ -120,13 +138,13 @@ impl<'a> Database<'a> {
 		if vertices.is_empty() {
 			// If there is no vertices defined, initialized with default option
 			let new_v = &mut Vertex::default();
-			let vertex = self.vertex.add_v(tx, new_v, labels, false).await.unwrap();
+			let vertex = self.vertex.add_v(tx, new_v, args, false).await.unwrap();
 			result.push(vertex);
 		} else {
 			// If there are vertices found, filter out the initialized vertex
 			for cur in vertices {
 				let v = &mut cur.v();
-				let scoped_result = self.vertex.add_v(tx, v, labels, true).await.unwrap();
+				let scoped_result = self.vertex.add_v(tx, v, args, true).await.unwrap();
 				result.push(scoped_result.clone());
 			}
 		}
@@ -135,10 +153,30 @@ impl<'a> Database<'a> {
 		IxResult::new("addV", IxValue::VertexSeq(result))
 	}
 
-	fn add_e(&mut self, labels: &Vec<GValue>) -> IxResult<'a> {
+	async fn add_e(&mut self, labels: &Vec<GValue>) -> IxResult<'a> {
 		println!("Add edge {:?}", labels);
 
 		IxResult::new("addE", IxValue::None)
+	}
+
+	async fn property_with_cardinality(&mut self, _args: &Vec<GValue>) {
+		unimplemented!()
+	}
+
+	/// The property()-step is used to add properties to the elements of the graph (sideEffect).
+	/// Unlike addV() and addE(), property() is a full sideEffect step in that it does not return
+	/// the property it created, but the element that streamed into it. Moreover, if property()
+	/// follows an addV() or addE(), then it is "folded" into the previous step to enable vertex
+	/// and edge creation with all its properties in one creation operation.
+	/// [Documentation](https://tinkerpop.apache.org/docs/current/reference/#property-step)
+	async fn property(&mut self, args: &Vec<GValue>) -> IxResult<'a> {
+		println!("Property {:?}", args);
+
+		if args.first().unwrap().is_cardinality() {
+			self.property_with_cardinality(args).await;
+		}
+
+		IxResult::new("property", IxValue::None)
 	}
 }
 
@@ -154,7 +192,16 @@ mod test {
 		let g = GraphTraversalSource::<MockTerminator>::empty();
 		let mut db = Database::new(datastore.borrow(), &g);
 
-		let traversal = db.traverse().v(1).add_v("person").v(2).add_v("hero").v(());
+		let traversal = db
+			.traverse()
+			.v(1)
+			.add_v("person")
+			.property("name", "Tin")
+			.property("age", 21)
+			.property_many(vec![
+				("birthday".to_string(), "1/11/2001"),
+				("github".to_string(), "chungquantin"),
+			]);
 		let result = db.execute(traversal).await.unwrap();
 
 		println!("Result: {:?}", result);
