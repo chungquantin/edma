@@ -30,10 +30,10 @@ impl<'a> PropertyRepository<'a> {
 		value: &GValue,
 	) -> Result<Property, Error> {
 		let cf = self.cf();
-		let val = build_property_value(&value);
+		let val = build_property_value(value);
 		let key = build_byte_array(vec![
 			build_sized(Component::GID(vertex_id)),
-			build_sized(Component::GValue(&value)),
+			build_sized(Component::GValue(value)),
 		]);
 		tx.set(cf, key.to_vec(), val).await.unwrap();
 		let label = label.get::<String>().unwrap();
