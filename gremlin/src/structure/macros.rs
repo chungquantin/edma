@@ -1,19 +1,17 @@
 #[doc(hidden)]
 #[macro_export]
 macro_rules! vertex {
-    ({ id => $id:expr,label => $label:expr, properties => {$($key:expr => [$({ id => $p_id:expr, value => $p_value:expr}),*]),*}}) => {{
+    ({ id => $id:expr,label => $label:expr, properties => {$($key:expr => $({ value => $p_value:expr}),*),*}}) => {{
 
         #[allow(unused_mut)]
-        let mut properties  = ::std::collections::HashMap::<String,Vec<$crate::VertexProperty>>::new();
+        let mut properties  = ::std::collections::HashMap::<String,$crate::Property>::new();
             $(
-                let mut sub_props = vec![];
                 $(
-                    let p = $crate::VertexProperty::new($p_id,$key,$p_value);
-                    sub_props.push(p);
+                    let p = $crate::Property::new($key,$p_value);
+                    properties.insert($key.into(), p);
                 )*
-                properties.insert($key.into(),sub_props);
             )*
-        let v = $crate::Vertex::new($id.into(), $label,properties);
+        let v = $crate::Vertex::new($id.into(), $label, properties);
         v
     }};
 }
@@ -38,11 +36,13 @@ macro_rules! edge {
     }};
 }
 
-#[cfg(feature = "test-suite")]
+// #[cfg(feature = "test-suite")]
 #[cfg(test)]
 mod test {
 	use std::collections::HashMap;
-	use {crate::Vertex, crate::VertexProperty};
+
+	use crate::Property;
+	use crate::Vertex;
 
 	#[test]
 	fn vertex_macro() {
@@ -63,12 +63,12 @@ mod test {
 			id => 1,
 			label => "Person",
 			properties => {
-				"name" => [ { id => 1, value => "Enrico"}]
+				"name" => { value => "Enrico"}
 			}
 		});
 
 		let mut properties = HashMap::new();
-		properties.insert(String::from("name"), vec![VertexProperty::new(1, "name", "Enrico")]);
+		properties.insert(String::from("name"), Property::new("name", "Enrico"));
 
 		assert_eq!(v1, Vertex::new(1.into(), "Person", properties));
 	}
