@@ -1,3 +1,5 @@
+use uuid::Uuid;
+
 use crate::structure::{GValue, Property, GID};
 use crate::{GremlinError, GremlinResult};
 
@@ -54,6 +56,11 @@ impl FromGValue for GProperty {
 		}
 	}
 }
+/// ## VertexProperty
+/// ### Description
+/// A VertexProperty is similar to a Property in that it denotes a key/value pair associated with an Vertex,
+/// however it is different in the sense that it also represents an entity that it is an Element that
+/// can have properties of its own.
 #[derive(Debug, PartialEq, Clone)]
 pub struct VertexProperty {
 	label: String,

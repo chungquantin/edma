@@ -1,10 +1,14 @@
 use std::str::from_utf8;
 
-use crate::{DatastoreAdapter, SimpleTransaction};
+use crate::{
+	constant::{ColumnFamily, COLUMN_FAMILIES},
+	DatastoreAdapter, SimpleTransaction,
+};
 
 pub async fn should_set_key(adapter: impl DatastoreAdapter) {
 	let adapter = adapter.spawn();
-	let cf = Some("test_suite:v1".into());
+	let cf_name = COLUMN_FAMILIES.get(&ColumnFamily::TestSuite).unwrap();
+	let cf = Some(cf_name.to_string().into());
 	let mut tx = adapter.transaction(true).unwrap();
 
 	let key = "mock key";

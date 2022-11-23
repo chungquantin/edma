@@ -4,7 +4,7 @@ use crate::{
 		kv::{Key, Val},
 		KeyValuePair,
 	},
-	util::get_now,
+	util::now,
 };
 use async_trait::async_trait;
 use futures::lock::Mutex;
@@ -111,7 +111,7 @@ where
 			ok: false,
 			writable: rw,
 			readable: true,
-			timestamp: get_now(),
+			timestamp: now(),
 			_db: db,
 		})
 	}

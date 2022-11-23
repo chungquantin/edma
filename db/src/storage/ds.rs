@@ -6,13 +6,13 @@ use crate::{storage::LOG, Error};
 use super::{CassandraDBAdapter, RocksDBAdapter, Transaction};
 
 #[derive(Copy, Clone)]
-pub struct DBRef<'a> {
+pub struct DatastoreRef<'a> {
 	pub db: &'a Datastore,
 }
 
-impl<'a> DBRef<'a> {
+impl<'a> DatastoreRef<'a> {
 	pub fn new(db: &'a Datastore) -> Self {
-		DBRef {
+		DatastoreRef {
 			db,
 		}
 	}
@@ -53,8 +53,8 @@ impl Datastore {
 		}
 	}
 
-	pub fn borrow(&self) -> DBRef {
-		DBRef::new(self)
+	pub fn borrow(&self) -> DatastoreRef {
+		DatastoreRef::new(self)
 	}
 
 	pub fn transaction(&self, write: bool) -> Result<Transaction, Error> {

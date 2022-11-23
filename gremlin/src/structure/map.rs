@@ -12,7 +12,7 @@ use std::convert::{TryFrom, TryInto};
 pub struct Map(HashMap<GKey, GValue>);
 
 impl Map {
-	pub(crate) fn empty() -> Map {
+	pub fn empty() -> Map {
 		Map(HashMap::default())
 	}
 }
@@ -60,7 +60,7 @@ impl TryFrom<Map> for BTreeMap<String, GValue> {
 }
 
 impl Map {
-	pub(crate) fn remove<T>(&mut self, key: T) -> Option<GValue>
+	pub fn remove<T>(&mut self, key: T) -> Option<GValue>
 	where
 		T: Into<GKey>,
 	{

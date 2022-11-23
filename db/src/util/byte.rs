@@ -63,10 +63,7 @@ impl<'a> Component<'a> {
 				cursor.write_u64::<BigEndian>(time_to_end)
 			}
 			Component::Bytes(bytes) => cursor.write_all(bytes),
-			Component::GValueType(value) => match value {
-				GValue::String(_value) => cursor.write_all(&[1]),
-				_ => unimplemented!(),
-			},
+			Component::GValueType(v) => cursor.write_all(&[v.to_variant()]),
 			Component::GValue(value) => cursor.write_all(value.bytes().as_slice()),
 			Component::GID(value) => cursor.write_all(value.bytes().as_slice()),
 			Component::Label(value) => cursor.write_all(value.bytes().as_slice()),
@@ -82,9 +79,6 @@ impl<'a> Component<'a> {
 }
 
 /// Gets the number of nanoseconds since unix epoch for a given datetime.
-///
-/// # Arguments
-/// * `datetime`: The datetime to convert.
 fn nanos_since_epoch(datetime: &DateTime<Utc>) -> u64 {
 	let timestamp = datetime.timestamp() as u64;
 	let nanoseconds = u64::from(datetime.timestamp_subsec_nanos());

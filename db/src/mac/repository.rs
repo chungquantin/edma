@@ -1,18 +1,20 @@
-macro_rules! impl_controller {
-	($c_name: ident($c_cf: expr)) => {
-		use $crate::storage::DBRef;
+macro_rules! impl_repository {
+	($c_name: ident($c_cf: ident)) => {
+		use $crate::constant::ColumnFamily;
+		use $crate::constant::COLUMN_FAMILIES;
 		use $crate::storage::Datastore;
+		use $crate::storage::DatastoreRef;
 
 		pub struct $c_name<'a> {
-			pub ds_ref: DBRef<'a>,
+			pub ds_ref: DatastoreRef<'a>,
 			pub cf: &'static str,
 		}
 
 		impl<'a> $c_name<'a> {
-			pub fn new(ds_ref: DBRef<'a>) -> Self {
+			pub fn new(ds_ref: DatastoreRef<'a>) -> Self {
 				$c_name {
 					ds_ref,
-					cf: $c_cf,
+					cf: COLUMN_FAMILIES.get(&ColumnFamily::$c_cf).unwrap(),
 				}
 			}
 
