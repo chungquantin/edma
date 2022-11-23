@@ -33,7 +33,7 @@ pub use self::vertex::Vertex;
 pub use self::vertex_property::{GProperty, VertexProperty};
 pub use cardinality::Cardinality;
 pub use either::*;
-pub use label::Labels;
+pub use label::{LabelType, Labels};
 pub use map::{GKey, Map};
 pub use p::{IntoPredicate, P};
 pub use pop::Pop;

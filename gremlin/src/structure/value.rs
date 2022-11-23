@@ -18,6 +18,7 @@ pub enum GValue {
 	Null,
 	Vertex(Vertex),
 	Edge(Edge),
+	Bytes(Vec<u8>),
 	VertexProperty(VertexProperty),
 	Property(Property),
 	Uuid(uuid::Uuid),
@@ -49,6 +50,58 @@ pub enum GValue {
 }
 
 impl GValue {
+	pub fn from_bytes(variant: usize, bytes: Vec<u8>) -> GValue {
+		match variant {
+			1 => GValue::String(String::from_utf8(bytes).unwrap()),
+			2 => {
+				let mut slice = [Default::default(); 4];
+				slice.copy_from_slice(&bytes);
+				GValue::Int32(i32::from_be_bytes(slice))
+			}
+			3 => {
+				let mut slice = [Default::default(); 8];
+				slice.copy_from_slice(&bytes);
+				GValue::Int64(i64::from_be_bytes(slice))
+			}
+			4 => GValue::Bool(*bytes.last().unwrap() == 0),
+			5 => {
+				let mut slice = [Default::default(); 4];
+				slice.copy_from_slice(&bytes);
+				GValue::Float(f32::from_be_bytes(slice))
+			}
+			8 => GValue::Bytes(bytes),
+			_ => unimplemented!(),
+		}
+	}
+
+	pub fn to_variant(&self) -> u8 {
+		match self {
+			GValue::String(_) => 1,
+			GValue::Int32(_) => 2,
+			GValue::Int64(_) => 3,
+			GValue::Bool(_) => 4,
+			GValue::Float(_) => 5,
+			GValue::Vertex(_) => 6,
+			GValue::VertexProperty(_) => 7,
+			GValue::Bytes(_) => 8,
+			GValue::Edge(_) => 9,
+			GValue::Double(_) => 10,
+			GValue::Cardinality(_) => 11,
+			GValue::Set(_) => 12,
+			_ => unimplemented!(),
+		}
+	}
+
+	pub fn bytes(&self) -> Vec<u8> {
+		match self {
+			GValue::String(v) => v.as_bytes().to_vec(),
+			GValue::Int32(v) => v.to_be_bytes().to_vec(),
+			GValue::Int64(v) => v.to_be_bytes().to_vec(),
+			GValue::Bytes(v) => v.to_vec(),
+			_ => unimplemented!(),
+		}
+	}
+
 	pub fn take<T>(self) -> GremlinResult<T>
 	where
 		T: FromGValue,
@@ -61,6 +114,13 @@ impl GValue {
 		T: BorrowFromGValue,
 	{
 		T::from_gvalue(self)
+	}
+
+	pub fn is_cardinality(&self) -> bool {
+		match self {
+			GValue::Cardinality(_) => true,
+			_ => false,
+		}
 	}
 }
 
@@ -85,6 +145,12 @@ impl From<&String> for GValue {
 impl From<i32> for GValue {
 	fn from(val: i32) -> Self {
 		GValue::Int32(val)
+	}
+}
+
+impl From<Vec<u8>> for GValue {
+	fn from(val: Vec<u8>) -> Self {
+		GValue::Bytes(val.to_vec())
 	}
 }
 

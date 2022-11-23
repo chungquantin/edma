@@ -1,4 +1,5 @@
 use crate::{GremlinError, GremlinResult};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -22,14 +23,28 @@ impl From<()> for GIDs {
 	}
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Deserialize, Serialize)]
 pub enum GID {
 	String(String),
 	Int32(i32),
 	Int64(i64),
+	Bytes(Vec<u8>),
 }
 
 impl GID {
+	pub fn bytes(&self) -> Vec<u8> {
+		match self {
+			GID::String(v) => v.as_bytes().to_vec(),
+			GID::Int32(v) => i32::to_be_bytes(*v).to_vec(),
+			GID::Int64(v) => i64::to_be_bytes(*v).to_vec(),
+			GID::Bytes(v) => v.to_vec(),
+		}
+	}
+
+	pub fn bytes_len(&self) -> usize {
+		self.bytes().len()
+	}
+
 	pub fn get<'a, T>(&'a self) -> GremlinResult<&'a T>
 	where
 		T: BorrowFromGID,
@@ -99,5 +114,6 @@ macro_rules! impl_borrow_from_gid {
 }
 
 impl_borrow_from_gid!(String, GID::String);
+impl_borrow_from_gid!(Vec<u8>, GID::Bytes);
 impl_borrow_from_gid!(i32, GID::Int32);
 impl_borrow_from_gid!(i64, GID::Int64);

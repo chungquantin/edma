@@ -1,125 +1,155 @@
 use crate::{
 	interface::KeyValuePair,
-	util::{build_bytes, deserialize_byte_data, from_uuid_bytes, Component},
-	vertex_property::VertexPropertyRepository,
-	AccountDiscriminator, Error, Label, SimpleTransaction, Vertex,
+	storage::Transaction,
+	util::{build_bytemap, build_sized, Component},
+	Error, SimpleTransaction,
 };
+use gremlin::{GValue, Labels, Vertex, GID};
 
-use serde_json::Value;
-use uuid::Uuid;
+impl_repository!(VertexRepository(Vertex));
 
-impl_repository!(VertexRepository("vertices:v1"));
+#[derive(Debug, PartialEq, Clone)]
+pub struct VertexResult {
+	v: Vertex,
+	initialized: bool,
+}
+
+impl VertexResult {
+	pub fn new(v: Vertex, initialized: bool) -> Self {
+		VertexResult {
+			v,
+			initialized,
+		}
+	}
+
+	pub fn v(&self) -> Vertex {
+		self.v.clone()
+	}
+
+	pub fn initialized(&self) -> bool {
+		self.initialized
+	}
+}
+
+type RepositoryResult<T> = Result<T, Error>;
 
 impl<'a> VertexRepository<'a> {
-	pub fn key(&self, id: Uuid) -> Vec<u8> {
-		build_bytes(&[Component::Uuid(id)]).unwrap()
-	}
-
-	/// # Create a new vertex from labels and properties
-	/// ## Description
-	/// Because Vertex has multiple dynamic sized attributes:
-	/// - labels: Vec<Label>
-	/// - props: serde_json::Value
-	/// It will be a bit more complicated.
-	///
-	/// Data will be store in Vertex as
-	/// + label_discriminator | label_meta | label data
-	pub async fn create(&self, labels: Vec<Label>, props: Value) -> Result<Vertex, Error> {
-		let mut tx = self.get_ds().transaction(true).unwrap();
-		let cf = self.get_cf();
-
-		let labels_bytes = Label::multi_serialize(&labels).unwrap();
-		let vpc = VertexPropertyRepository::new(self.ds_ref);
-		let mut v = Vertex::new(labels.to_vec()).unwrap();
-		let props = vpc.create(v.id, props).await.unwrap();
-		v.add_props(props).unwrap();
-
-		let key = self.key(v.id);
-
-		let val = [labels_bytes].concat();
-		tx.set(cf, key, val).await.unwrap();
-		tx.commit().await.unwrap();
-		Ok(v)
-	}
-
-	async fn from_pair(&self, p: &KeyValuePair) -> Result<Vertex, Error> {
-		let (k, v) = p;
-		let uuid = from_uuid_bytes(k).unwrap();
-		let deserialized = deserialize_byte_data(v.to_vec(), true).unwrap();
-		let mut label_ids = Vec::<Uuid>::new();
-
-		for (data, raw_discriminator) in deserialized.iter() {
-			match bincode::deserialize::<AccountDiscriminator>(raw_discriminator) {
-				Ok(discriminator) => match discriminator {
-					AccountDiscriminator::Label => {
-						for label in data {
-							label_ids.push(from_uuid_bytes(label).unwrap());
-						}
-					}
-					_ => unreachable!(),
-				},
-				_ => panic!("No match discriminator found"),
+	/// The V()-step is meant to read vertices from the graph and is usually
+	/// used to start a GraphTraversal, but can also be used mid-traversal.
+	/// [Documentation](https://tinkerpop.apache.org/docs/current/reference/#v-step)
+	pub async fn v(
+		&self,
+		tx: &Transaction,
+		ids: &Vec<GValue>,
+	) -> RepositoryResult<Vec<VertexResult>> {
+		let cf = self.cf();
+		match ids.first() {
+			Some(id) => {
+				let key = build_sized(Component::GValue(id));
+				let vertex = tx.get(cf, key.to_vec()).await.unwrap();
+				Ok(vec![match vertex {
+					Some(v) => VertexResult {
+						v: self.from_pair(&(key, v)).await.unwrap(),
+						initialized: true,
+					},
+					_ => VertexResult {
+						v: self.from_pair(&(key, vec![])).await.unwrap(),
+						initialized: false,
+					},
+				}])
 			}
+			_ => self.iterate_all().await,
 		}
+	}
 
-		let vpc = VertexPropertyRepository::new(self.ds_ref);
-		let props = vpc.iterate_from_vertex(k.to_vec()).await.unwrap();
-		Ok(Vertex {
-			id: uuid,
-			labels: label_ids,
-			props,
+	/// The addV()-step is used to add vertices to the graph (map/sideEffect).
+	/// For every incoming object, a vertex is created. Moreover, GraphTraversalSource maintains an addV() method.
+	/// [Documentation](https://tinkerpop.apache.org/docs/current/reference/#addvertex-step)
+	pub async fn add_v(
+		&self,
+		tx: &mut Transaction,
+		v: &mut Vertex,
+		labels: &Vec<GValue>,
+		initialized: bool,
+	) -> RepositoryResult<VertexResult> {
+		let mut serialized_labels = Vec::<String>::new();
+		for label in labels.iter() {
+			let val = label.get::<String>().unwrap();
+			serialized_labels.push(val.to_string());
+
+			v.add_label(val);
+		}
+		let labels = Labels::from(serialized_labels);
+
+		// build Label byte (length : usize, data: LabelType)
+		let mut bytes = vec![];
+		for label in labels.0.iter() {
+			let byte = build_sized(Component::Label(label));
+			bytes.push(byte);
+		}
+		let cf = self.cf();
+		let key = build_sized(Component::GID(v.id()));
+		println!("add v - key: {:?}", key);
+		let val = bytes.concat();
+
+		tx.set(cf, key, val).await.unwrap();
+
+		Ok(VertexResult {
+			v: v.clone(),
+			initialized,
 		})
 	}
 
-	pub async fn delete(&self, id: Vec<u8>) -> Result<(), Error> {
-		let mut tx = self.get_ds().transaction(true).unwrap();
-		let cf = self.get_cf();
-		let key = id;
-		tx.del(cf, key).await.unwrap();
-		tx.commit().await
+	async fn from_pair(&self, p: &KeyValuePair) -> RepositoryResult<Vertex> {
+		let (k, v) = p;
+		// Handle deserializing and rebuild vertex stream
+		let bytemap = &build_bytemap(vec!["gid"], k.to_vec());
+		let gid = GID::Bytes(bytemap.get("gid").unwrap().to_vec());
+		let mut vertex = Vertex::partial_new(gid);
+		// handle deserializing label data of vertex
+		let mut i = 0;
+		while i < v.len() {
+			let len = *v[i..i + 1].first().unwrap();
+			let usize_len = len as usize;
+			let end = usize_len + i + 1;
+			let data = &v[i + 1..end];
+			let label = String::from_utf8(data.to_vec()).unwrap();
+			vertex.add_label(label);
+			i += usize_len + 1;
+		}
+
+		Ok(vertex)
 	}
 
-	/// # Get single vertex from datastore
-	pub async fn get(&self, id: Vec<u8>) -> Result<Vertex, Error> {
-		let cf = self.get_cf();
-
-		let tx = self.get_ds().transaction(false).unwrap();
-		let value = tx.get(cf, id.to_vec()).await.unwrap();
-		match value {
-			Some(v) => self.from_pair(&(id, v)).await,
-			None => panic!("No vertex found"),
-		}
+	pub async fn drop_v(&self, tx: &mut Transaction, id: GID) -> Result<(), Error> {
+		let cf = self.cf();
+		let value = id.get::<String>().unwrap();
+		let gid = &GID::from(value.to_string());
+		let key = build_sized(Component::GID(gid));
+		tx.del(cf, key).await.unwrap();
+		Ok(())
 	}
 
 	async fn iterate(
 		&self,
 		iterator: Vec<Result<KeyValuePair, Error>>,
-	) -> Result<Vec<Vertex>, Error> {
-		let mut result: Vec<Vertex> = vec![];
+	) -> RepositoryResult<Vec<VertexResult>> {
+		let mut result: Vec<VertexResult> = vec![];
 		for pair in iterator.iter() {
 			let p_ref = pair.as_ref().unwrap();
 			let vertex = self.from_pair(p_ref).await.unwrap();
-			result.push(vertex);
+			result.push(VertexResult {
+				v: vertex,
+				initialized: true,
+			});
 		}
 
 		Ok(result)
 	}
 
-	/// # Get multiple vertices from datastore
-	pub async fn multi_get(&self, ids: Vec<Vec<u8>>) -> Result<Vec<Vertex>, Error> {
-		let mut vertices = Vec::<Vertex>::new();
-
-		for id in ids.iter() {
-			let vertex = self.get(id.to_vec()).await.unwrap();
-			vertices.push(vertex);
-		}
-
-		Ok(vertices)
-	}
-
-	pub async fn iterate_all(&self) -> Result<Vec<Vertex>, Error> {
-		let tx = self.get_ds().transaction(false).unwrap();
-		let cf = self.get_cf();
+	pub async fn iterate_all(&self) -> RepositoryResult<Vec<VertexResult>> {
+		let tx = self.ds().transaction(false).unwrap();
+		let cf = self.cf();
 
 		let iterator = tx.iterate(cf).await.unwrap();
 		self.iterate(iterator).await

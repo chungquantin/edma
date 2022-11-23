@@ -1,18 +1,18 @@
 use log::info;
 
-use crate::model::adapter::DatastoreAdapter;
-use crate::{storage::LOG, CassandraDBAdapter, Error, RocksDBAdapter};
+use crate::model::DatastoreAdapter;
+use crate::{storage::LOG, Error};
 
-use super::Transaction;
+use super::{CassandraDBAdapter, RocksDBAdapter, Transaction};
 
 #[derive(Copy, Clone)]
-pub struct DBRef<'a> {
+pub struct DatastoreRef<'a> {
 	pub db: &'a Datastore,
 }
 
-impl<'a> DBRef<'a> {
+impl<'a> DatastoreRef<'a> {
 	pub fn new(db: &'a Datastore) -> Self {
-		DBRef {
+		DatastoreRef {
 			db,
 		}
 	}
@@ -32,25 +32,29 @@ pub struct Datastore {
 
 impl Default for Datastore {
 	fn default() -> Self {
-		Datastore::new("default").unwrap()
+		Datastore::new("default")
 	}
 }
 
 impl Datastore {
-	pub fn new(path: &str) -> Result<Datastore, Error> {
+	pub fn new(path: &str) -> Datastore {
 		match path {
 			#[cfg(feature = "kv-rocksdb")]
 			s if s.starts_with("rocksdb:") | s.eq("default") => {
 				info!(target: LOG, "Starting kvs store at {}", path);
-				let db = RocksDBAdapter::new(s, None)?;
-				let v = Ok(Datastore {
+				let db = RocksDBAdapter::new(s, None).unwrap();
+				let v = Datastore {
 					inner: Inner::RocksDB(db),
-				});
+				};
 				info!(target: LOG, "Started kvs store at {}", path);
 				v
 			}
 			_ => unimplemented!(),
 		}
+	}
+
+	pub fn borrow(&self) -> DatastoreRef {
+		DatastoreRef::new(self)
 	}
 
 	pub fn transaction(&self, write: bool) -> Result<Transaction, Error> {
