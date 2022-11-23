@@ -11,7 +11,7 @@ use gremlin::{GValue, Property, GID};
 impl_repository!(PropertyRepository(Property));
 
 fn build_property_value(value: &GValue) -> Vec<u8> {
-	build_bytes(&[Component::GValueType(&value), Component::GValue(&value)]).unwrap()
+	build_bytes(&[Component::GValueType(value), Component::GValue(value)]).unwrap()
 }
 
 type PropertyMap = HashMap<String, Property>;

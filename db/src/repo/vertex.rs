@@ -8,7 +8,7 @@ use gremlin::{GValue, Labels, Vertex, GID};
 
 impl_repository!(VertexRepository(Vertex));
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct VertexResult {
 	v: Vertex,
 	initialized: bool,

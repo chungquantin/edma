@@ -1,6 +1,6 @@
 use crate::{err::Error, VertexResult};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum IxValue {
 	VertexSeq(Vec<VertexResult>),
 	None,

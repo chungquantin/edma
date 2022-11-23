@@ -1,5 +1,3 @@
-use uuid::Uuid;
-
 use crate::structure::{GValue, Property, GID};
 use crate::{GremlinError, GremlinResult};
 

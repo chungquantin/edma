@@ -11,7 +11,7 @@ use gremlin::{GValue, VertexProperty, GID};
 impl_repository!(VertexPropertyRepository(VertexProperty));
 
 fn build_property_value(value: &GValue) -> Vec<u8> {
-	build_bytes(&[Component::GValueType(&value), Component::GValue(&value)]).unwrap()
+	build_bytes(&[Component::GValueType(value), Component::GValue(value)]).unwrap()
 }
 
 type VertexPropertyMap = HashMap<String, Vec<VertexProperty>>;
@@ -35,7 +35,7 @@ impl<'a> VertexPropertyRepository<'a> {
 		let key = build_byte_array(vec![
 			build_sized(Component::GID(vertex_id)),
 			build_sized(Component::GID(id)),
-			build_sized(Component::FixedLengthString(&label)),
+			build_sized(Component::FixedLengthString(label)),
 		]);
 		tx.set(cf, key.to_vec(), val).await.unwrap();
 		Ok(VertexProperty::new(vertex_id, label, value))
