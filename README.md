@@ -7,6 +7,11 @@
     <a href="https://github.com/nomadiz/solomon-db/pulse" alt="Activity">
         <img src="https://img.shields.io/github/commit-activity/m/nomadiz/solomon-db" /></a>
 </p>
+<p align="center">
+<a href="https://users.rust-lang.org/t/solomondb-in-development-gremlin-compatible-graph-database-update/84750" alt="Activity">
+		SolomonDB on Rust Language Forum
+	</a>
+</p>
 
 # Solomon Database
 
