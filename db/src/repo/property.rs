@@ -26,8 +26,8 @@ impl<'a> PropertyRepository<'a> {
 		&self,
 		tx: &mut Transaction,
 		vertex_id: &GID,
-		label: &str,
-		value: GValue,
+		label: &GValue,
+		value: &GValue,
 	) -> Result<Property, Error> {
 		let cf = self.cf();
 		let val = build_property_value(&value);
@@ -36,7 +36,8 @@ impl<'a> PropertyRepository<'a> {
 			build_sized(Component::GValue(&value)),
 		]);
 		tx.set(cf, key.to_vec(), val).await.unwrap();
-		Ok(Property::new(label, value))
+		let label = label.get::<String>().unwrap();
+		Ok(Property::new(label, value.clone()))
 	}
 
 	/// Method to iterate the pairs of byte data

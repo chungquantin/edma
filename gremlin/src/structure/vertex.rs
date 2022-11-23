@@ -1,16 +1,18 @@
 use uuid::Uuid;
 
-use crate::structure::VertexProperty;
 use crate::structure::GID;
+use crate::Property;
 use std::collections::hash_map::{IntoIter, Iter};
 use std::collections::HashMap;
 use std::hash::Hasher;
+
+pub type VertexPropertyMap = HashMap<String, Property>;
 
 #[derive(Debug, Clone)]
 pub struct Vertex {
 	id: GID,
 	label: String,
-	properties: HashMap<String, Vec<VertexProperty>>,
+	properties: VertexPropertyMap,
 }
 
 impl Default for Vertex {
@@ -26,7 +28,7 @@ impl Default for Vertex {
 /// The outgoing edges are those edges for which the Vertex is the tail. The incoming edges
 /// are those edges for which the Vertex is the head.
 impl Vertex {
-	pub fn new<T>(id: GID, label: T, properties: HashMap<String, Vec<VertexProperty>>) -> Vertex
+	pub fn new<T>(id: GID, label: T, properties: VertexPropertyMap) -> Vertex
 	where
 		T: Into<String>,
 	{
@@ -52,7 +54,11 @@ impl Vertex {
 		self.label = label.into();
 	}
 
-	pub fn add_properties(&mut self, properties: HashMap<String, Vec<VertexProperty>>) {
+	pub fn add_property(&mut self, property: Property) {
+		self.properties.insert(property.label().to_string(), property);
+	}
+
+	pub fn add_properties(&mut self, properties: VertexPropertyMap) {
 		self.properties = properties;
 	}
 
@@ -64,18 +70,18 @@ impl Vertex {
 		&self.label
 	}
 
-	pub fn iter(&self) -> Iter<String, Vec<VertexProperty>> {
+	pub fn iter(&self) -> Iter<String, Property> {
 		self.properties.iter()
 	}
 
-	pub fn property(&self, key: &str) -> Option<&VertexProperty> {
-		self.properties.get(key).and_then(|v| v.get(0))
+	pub fn property(&self, key: &str) -> Option<&Property> {
+		self.properties.get(key)
 	}
 }
 
 impl IntoIterator for Vertex {
-	type Item = (String, Vec<VertexProperty>);
-	type IntoIter = IntoIter<String, Vec<VertexProperty>>;
+	type Item = (String, Property);
+	type IntoIter = IntoIter<String, Property>;
 	fn into_iter(self) -> Self::IntoIter {
 		self.properties.into_iter()
 	}

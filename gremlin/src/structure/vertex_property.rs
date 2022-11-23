@@ -1,7 +1,11 @@
+use std::collections::HashMap;
+
 use crate::structure::{GValue, Property, GID};
 use crate::{GremlinError, GremlinResult};
 
 use crate::conversion::{BorrowFromGValue, FromGValue};
+
+pub type VertexPropertyMap = HashMap<String, Vec<VertexProperty>>;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum GProperty {

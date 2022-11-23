@@ -2,7 +2,7 @@ use crate::{
 	interface::KeyValuePair,
 	storage::Transaction,
 	util::{build_bytemap, build_sized, Component},
-	Error, SimpleTransaction,
+	Error, PropertyRepository, SimpleTransaction,
 };
 use gremlin::{GValue, Labels, Vertex, GID};
 
@@ -49,17 +49,26 @@ impl<'a> VertexRepository<'a> {
 				let vertex = tx.get(cf, key.to_vec()).await.unwrap();
 				Ok(vec![match vertex {
 					Some(v) => VertexResult {
-						v: self.from_pair(&(key, v)).await.unwrap(),
+						v: self.from_pair(&(key, v)).unwrap(),
 						initialized: true,
 					},
 					_ => VertexResult {
-						v: self.from_pair(&(key, vec![])).await.unwrap(),
+						v: self.from_pair(&(key, vec![])).unwrap(),
 						initialized: false,
 					},
 				}])
 			}
 			_ => self.iterate_all().await,
 		}
+	}
+
+	pub async fn new_v(
+		&self,
+		tx: &mut Transaction,
+		labels: &Vec<GValue>,
+	) -> RepositoryResult<VertexResult> {
+		let new_v = &mut Vertex::default();
+		self.add_v(tx, new_v, labels, false).await
 	}
 
 	/// The addV()-step is used to add vertices to the graph (map/sideEffect).
@@ -100,7 +109,34 @@ impl<'a> VertexRepository<'a> {
 		})
 	}
 
-	async fn from_pair(&self, p: &KeyValuePair) -> RepositoryResult<Vertex> {
+	// If there is no vertices defined, initialized with default option
+	pub async fn new_property(
+		&self,
+		tx: &mut Transaction,
+		args: &Vec<GValue>,
+	) -> RepositoryResult<VertexResult> {
+		let vertex = &mut Vertex::default();
+		self.property(vertex, tx, args, false).await
+	}
+
+	pub async fn property(
+		&self,
+		v: &mut Vertex,
+		tx: &mut Transaction,
+		args: &Vec<GValue>,
+		initialized: bool,
+	) -> RepositoryResult<VertexResult> {
+		let property_repo = PropertyRepository::new(self.ds_ref);
+		let (label, value) = (&args[0], &args[1]);
+		let property = property_repo.property(tx, v.id(), label, value).await.unwrap();
+		v.add_property(property);
+		Ok(VertexResult {
+			initialized,
+			v: v.clone(),
+		})
+	}
+
+	fn from_pair(&self, p: &KeyValuePair) -> RepositoryResult<Vertex> {
 		let (k, v) = p;
 		// Handle deserializing and rebuild vertex stream
 		let bytemap = &build_bytemap(vec!["gid"], k.to_vec());
@@ -137,7 +173,7 @@ impl<'a> VertexRepository<'a> {
 		let mut result: Vec<VertexResult> = vec![];
 		for pair in iterator.iter() {
 			let p_ref = pair.as_ref().unwrap();
-			let vertex = self.from_pair(p_ref).await.unwrap();
+			let vertex = self.from_pair(p_ref).unwrap();
 			result.push(VertexResult {
 				v: vertex,
 				initialized: true,

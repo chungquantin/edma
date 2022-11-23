@@ -30,7 +30,7 @@ pub use self::set::Set;
 pub use self::token::Token;
 pub use self::value::GValue;
 pub use self::vertex::Vertex;
-pub use self::vertex_property::{GProperty, VertexProperty};
+pub use self::vertex_property::{GProperty, VertexProperty, VertexPropertyMap};
 pub use cardinality::Cardinality;
 pub use either::*;
 pub use label::{LabelType, Labels};

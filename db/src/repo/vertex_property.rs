@@ -6,6 +6,7 @@ use crate::util::{
 	build_byte_array, build_bytemap, build_bytes, build_sized, build_usize_from_bytes, Component,
 };
 use crate::{Error, SimpleTransaction};
+use gremlin::structure::VertexPropertyMap;
 use gremlin::{GValue, VertexProperty, GID};
 
 impl_repository!(VertexPropertyRepository(VertexProperty));
@@ -14,8 +15,8 @@ fn build_property_value(value: &GValue) -> Vec<u8> {
 	build_bytes(&[Component::GValueType(value), Component::GValue(value)]).unwrap()
 }
 
-type VertexPropertyMap = HashMap<String, Vec<VertexProperty>>;
-
+#[warn(deprecated)]
+/// Vertex Property Repository is not used at the moment
 impl<'a> VertexPropertyRepository<'a> {
 	/// The property()-step is used to add properties to the elements of the graph (sideEffect).
 	/// Unlike addV() and addE(), property() is a full sideEffect step in that it does not return
@@ -46,7 +47,7 @@ impl<'a> VertexPropertyRepository<'a> {
 		&self,
 		iterator: Vec<Result<KeyValuePair, Error>>,
 	) -> Result<VertexPropertyMap, Error> {
-		let mut map = HashMap::<String, Vec<VertexProperty>>::new();
+		let mut map = HashMap::new();
 		iterator.iter().for_each(|p| {
 			let (k, v) = p.as_ref().unwrap();
 			// Handle deserializing and rebuild vertex stream
