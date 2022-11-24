@@ -97,7 +97,7 @@ impl<'a> VertexRepository<'a> {
 		Ok(v.clone())
 	}
 
-	pub async fn properties(&self, v: &mut Vertex, tx: &mut Transaction, args: &Vec<GValue>) {}
+	pub async fn properties(&self, _v: &mut Vertex, _tx: &mut Transaction, _args: &Vec<GValue>) {}
 
 	fn from_pair(&self, p: &KeyValuePair) -> RepositoryResult<Vertex> {
 		let (k, v) = p;

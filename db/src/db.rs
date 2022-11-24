@@ -198,7 +198,7 @@ impl<'a> Database<'a> {
 
 	async fn add_vertex_property(&mut self, args: &Vec<GValue>) -> IxResult<'a> {
 		let tx = &mut self.v.mut_tx();
-		let vertex = &*self.top_step().value.get::<Vertex>().unwrap();
+		let vertex = self.top_step().value.get::<Vertex>().unwrap();
 		let result = self.v.property(&mut vertex.clone(), tx, args).await.unwrap();
 
 		IxResult::new("vertex_property", IxValue::Vertex(result))

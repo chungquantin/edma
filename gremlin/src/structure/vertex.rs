@@ -55,10 +55,7 @@ impl Vertex {
 	}
 
 	pub fn add_property(&mut self, property: VertexProperty) {
-		self.properties
-			.entry(property.label().to_string())
-			.or_insert(Vec::default())
-			.push(property);
+		self.properties.entry(property.label().to_string()).or_default().push(property);
 	}
 
 	pub fn add_properties(&mut self, properties: VertexPropertyMap) {
@@ -74,7 +71,7 @@ impl Vertex {
 	}
 
 	pub fn has_label(&self) -> bool {
-		&self.label != ""
+		!&self.label.is_empty()
 	}
 
 	pub fn iter(&self) -> Iter<String, Vec<VertexProperty>> {

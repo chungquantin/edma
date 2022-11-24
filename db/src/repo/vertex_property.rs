@@ -55,13 +55,13 @@ impl<'a> VertexPropertyRepository<'a> {
 		value: &GValue,
 	) -> Result<Vec<u8>, Error> {
 		let cf = self.cf();
-		let val = build_vertex_property_value(&value);
+		let val = build_vertex_property_value(value);
 		let key = build_vertex_property_key(vertex_id, id, label);
 
 		let get_current_val = tx.get(cf, key.to_vec()).await;
 		match get_current_val {
 			Ok(v) => {
-				let existing_val = v.unwrap_or(Vec::default());
+				let existing_val = v.unwrap_or_default();
 				Ok([existing_val, val].concat())
 			}
 			Err(_) => Ok(vec![]),
