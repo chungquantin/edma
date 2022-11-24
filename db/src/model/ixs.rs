@@ -1,9 +1,11 @@
-use crate::{err::Error, VertexResult};
+use crate::err::Error;
+use gremlin::Vertex;
 use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum IxValue {
-	VertexSeq(Vec<VertexResult>),
+	Vertex(Vertex),
+	VertexSeq(Vec<Vertex>),
 	Null,
 }
 
@@ -48,7 +50,8 @@ pub struct IxResult<'a> {
 	pub value: IxValue,
 }
 
-impl_borrow_from_ix!(Vec<VertexResult>, IxValue::VertexSeq);
+impl_borrow_from_ix!(Vec<Vertex>, IxValue::VertexSeq);
+impl_borrow_from_ix!(Vertex, IxValue::Vertex);
 
 impl<'a> IxResult<'a> {
 	pub fn empty() -> Self {

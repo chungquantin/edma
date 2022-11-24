@@ -1,12 +1,12 @@
 use uuid::Uuid;
 
 use crate::structure::GID;
-use crate::Property;
+use crate::VertexProperty;
 use std::collections::hash_map::{IntoIter, Iter};
 use std::collections::HashMap;
 use std::hash::Hasher;
 
-pub type VertexPropertyMap = HashMap<String, Property>;
+pub type VertexPropertyMap = HashMap<String, Vec<VertexProperty>>;
 
 #[derive(Debug, Clone)]
 pub struct Vertex {
@@ -54,8 +54,11 @@ impl Vertex {
 		self.label = label.into();
 	}
 
-	pub fn add_property(&mut self, property: Property) {
-		self.properties.insert(property.label().to_string(), property);
+	pub fn add_property(&mut self, property: VertexProperty) {
+		self.properties
+			.entry(property.label().to_string())
+			.or_insert(Vec::default())
+			.push(property);
 	}
 
 	pub fn add_properties(&mut self, properties: VertexPropertyMap) {
@@ -70,18 +73,22 @@ impl Vertex {
 		&self.label
 	}
 
-	pub fn iter(&self) -> Iter<String, Property> {
+	pub fn has_label(&self) -> bool {
+		&self.label != ""
+	}
+
+	pub fn iter(&self) -> Iter<String, Vec<VertexProperty>> {
 		self.properties.iter()
 	}
 
-	pub fn property(&self, key: &str) -> Option<&Property> {
+	pub fn property(&self, key: &str) -> Option<&Vec<VertexProperty>> {
 		self.properties.get(key)
 	}
 }
 
 impl IntoIterator for Vertex {
-	type Item = (String, Property);
-	type IntoIter = IntoIter<String, Property>;
+	type Item = (String, Vec<VertexProperty>);
+	type IntoIter = IntoIter<String, Vec<VertexProperty>>;
 	fn into_iter(self) -> Self::IntoIter {
 		self.properties.into_iter()
 	}

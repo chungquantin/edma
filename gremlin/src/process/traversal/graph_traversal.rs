@@ -94,7 +94,7 @@ impl<S, E: FromGValue, T: Terminator<E>> GraphTraversal<S, E, T> {
 		self
 	}
 
-	pub fn property_many<A>(mut self, values: Vec<(String, A)>) -> Self
+	pub fn property_many<A>(mut self, values: Vec<(&str, A)>) -> Self
 	where
 		A: Into<GValue>,
 	{

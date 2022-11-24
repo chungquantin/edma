@@ -63,6 +63,13 @@ impl FromGValue for GProperty {
 /// A VertexProperty is similar to a Property in that it denotes a key/value pair associated with an Vertex,
 /// however it is different in the sense that it also represents an entity that it is an Element that
 /// can have properties of its own.
+///
+/// ### TinkerPop Documentation
+/// TinkerPop introduces the concept of a VertexProperty<V>. All the properties of a Vertex are a VertexProperty.
+/// A VertexProperty implements Property and as such, it has a key/value pair. However, VertexProperty also implements
+/// Element and thus, can have a collection of key/value pairs. Moreover, while an Edge can only have one property of
+/// key "name" (for example), a Vertex can have multiple "name" properties. With the inclusion of vertex properties,
+/// two features are introduced which ultimately advance the graph modelers toolkit:
 #[derive(Debug, PartialEq, Clone)]
 pub struct VertexProperty {
 	label: String,

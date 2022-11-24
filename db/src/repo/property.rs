@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::interface::KeyValuePair;
 use crate::storage::Transaction;
 use crate::util::{
-	build_byte_array, build_bytemap, build_bytes, build_sized, build_usize_from_bytes, Component,
+	build_byte_map, build_bytes, build_sized, build_usize_from_bytes, concat_bytes, Component,
 };
 use crate::{Error, SimpleTransaction};
 use gremlin::{GValue, Property, GID};
@@ -31,9 +31,9 @@ impl<'a> PropertyRepository<'a> {
 	) -> Result<Property, Error> {
 		let cf = self.cf();
 		let val = build_property_value(value);
-		let key = build_byte_array(vec![
+		let key = concat_bytes(vec![
 			build_sized(Component::GID(vertex_id)),
-			build_sized(Component::GValue(value)),
+			build_sized(Component::GValue(label)),
 		]);
 		tx.set(cf, key.to_vec(), val).await.unwrap();
 		let label = label.get::<String>().unwrap();
@@ -46,7 +46,7 @@ impl<'a> PropertyRepository<'a> {
 		iterator.iter().for_each(|p| {
 			let (k, v) = p.as_ref().unwrap();
 			// Handle deserializing and rebuild vertex stream
-			let bytemap = &build_bytemap(vec!["vertex_id", "label"], k.to_vec());
+			let bytemap = &build_byte_map(vec!["vertex_id", "label"], k.to_vec());
 			let label_bytes = bytemap.get("label").unwrap().to_vec();
 			let label = String::from_utf8(label_bytes).unwrap();
 			// Handle deserializing GValue

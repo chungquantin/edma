@@ -1,35 +1,13 @@
 use crate::{
 	interface::KeyValuePair,
 	storage::Transaction,
-	util::{build_bytemap, build_sized, Component},
-	Error, PropertyRepository, SimpleTransaction,
+	util::{build_byte_map, build_sized, Component},
+	Error, SimpleTransaction, VertexPropertyRepository,
 };
 use gremlin::{GValue, Labels, Vertex, GID};
+use uuid::Uuid;
 
 impl_repository!(VertexRepository(Vertex));
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct VertexResult {
-	v: Vertex,
-	initialized: bool,
-}
-
-impl VertexResult {
-	pub fn new(v: Vertex, initialized: bool) -> Self {
-		VertexResult {
-			v,
-			initialized,
-		}
-	}
-
-	pub fn v(&self) -> Vertex {
-		self.v.clone()
-	}
-
-	pub fn initialized(&self) -> bool {
-		self.initialized
-	}
-}
 
 type RepositoryResult<T> = Result<T, Error>;
 
@@ -37,26 +15,14 @@ impl<'a> VertexRepository<'a> {
 	/// The V()-step is meant to read vertices from the graph and is usually
 	/// used to start a GraphTraversal, but can also be used mid-traversal.
 	/// [Documentation](https://tinkerpop.apache.org/docs/current/reference/#v-step)
-	pub async fn v(
-		&self,
-		tx: &Transaction,
-		ids: &Vec<GValue>,
-	) -> RepositoryResult<Vec<VertexResult>> {
+	pub async fn v(&self, tx: &Transaction, ids: &Vec<GValue>) -> RepositoryResult<Vec<Vertex>> {
 		let cf = self.cf();
 		match ids.first() {
 			Some(id) => {
 				let key = build_sized(Component::GValue(id));
-				let vertex = tx.get(cf, key.to_vec()).await.unwrap();
-				Ok(vec![match vertex {
-					Some(v) => VertexResult {
-						v: self.from_pair(&(key, v)).unwrap(),
-						initialized: true,
-					},
-					_ => VertexResult {
-						v: self.from_pair(&(key, vec![])).unwrap(),
-						initialized: false,
-					},
-				}])
+				let get_vertex = tx.get(cf, key.to_vec()).await.unwrap();
+				let vertex = get_vertex.unwrap_or_default();
+				Ok(vec![self.from_pair(&(key, vertex)).unwrap()])
 			}
 			_ => self.iterate_all().await,
 		}
@@ -66,9 +32,9 @@ impl<'a> VertexRepository<'a> {
 		&self,
 		tx: &mut Transaction,
 		labels: &Vec<GValue>,
-	) -> RepositoryResult<VertexResult> {
+	) -> RepositoryResult<Vertex> {
 		let new_v = &mut Vertex::default();
-		self.add_v(tx, new_v, labels, false).await
+		self.add_v(tx, new_v, labels).await
 	}
 
 	/// The addV()-step is used to add vertices to the graph (map/sideEffect).
@@ -79,13 +45,11 @@ impl<'a> VertexRepository<'a> {
 		tx: &mut Transaction,
 		v: &mut Vertex,
 		labels: &Vec<GValue>,
-		initialized: bool,
-	) -> RepositoryResult<VertexResult> {
+	) -> RepositoryResult<Vertex> {
 		let mut serialized_labels = Vec::<String>::new();
 		for label in labels.iter() {
 			let val = label.get::<String>().unwrap();
 			serialized_labels.push(val.to_string());
-
 			v.add_label(val);
 		}
 		let labels = Labels::from(serialized_labels);
@@ -98,15 +62,11 @@ impl<'a> VertexRepository<'a> {
 		}
 		let cf = self.cf();
 		let key = build_sized(Component::GID(v.id()));
-		println!("add v - key: {:?}", key);
 		let val = bytes.concat();
 
 		tx.set(cf, key, val).await.unwrap();
 
-		Ok(VertexResult {
-			v: v.clone(),
-			initialized,
-		})
+		Ok(v.clone())
 	}
 
 	// If there is no vertices defined, initialized with default option
@@ -114,9 +74,13 @@ impl<'a> VertexRepository<'a> {
 		&self,
 		tx: &mut Transaction,
 		args: &Vec<GValue>,
-	) -> RepositoryResult<VertexResult> {
+	) -> RepositoryResult<Vertex> {
 		let vertex = &mut Vertex::default();
-		self.property(vertex, tx, args, false).await
+		self.property(vertex, tx, args).await
+	}
+
+	fn property_repo(&self) -> VertexPropertyRepository {
+		VertexPropertyRepository::new(self.ds_ref)
 	}
 
 	pub async fn property(
@@ -124,22 +88,21 @@ impl<'a> VertexRepository<'a> {
 		v: &mut Vertex,
 		tx: &mut Transaction,
 		args: &Vec<GValue>,
-		initialized: bool,
-	) -> RepositoryResult<VertexResult> {
-		let property_repo = PropertyRepository::new(self.ds_ref);
+	) -> RepositoryResult<Vertex> {
+		let property_repo = self.property_repo();
 		let (label, value) = (&args[0], &args[1]);
-		let property = property_repo.property(tx, v.id(), label, value).await.unwrap();
+		let property_id = &GID::String(Uuid::new_v4().to_string());
+		let property = property_repo.property(tx, v.id(), property_id, label, value).await.unwrap();
 		v.add_property(property);
-		Ok(VertexResult {
-			initialized,
-			v: v.clone(),
-		})
+		Ok(v.clone())
 	}
+
+	pub async fn properties(&self, v: &mut Vertex, tx: &mut Transaction, args: &Vec<GValue>) {}
 
 	fn from_pair(&self, p: &KeyValuePair) -> RepositoryResult<Vertex> {
 		let (k, v) = p;
 		// Handle deserializing and rebuild vertex stream
-		let bytemap = &build_bytemap(vec!["gid"], k.to_vec());
+		let bytemap = &build_byte_map(vec!["gid"], k.to_vec());
 		let gid = GID::Bytes(bytemap.get("gid").unwrap().to_vec());
 		let mut vertex = Vertex::partial_new(gid);
 		// handle deserializing label data of vertex
@@ -169,21 +132,18 @@ impl<'a> VertexRepository<'a> {
 	async fn iterate(
 		&self,
 		iterator: Vec<Result<KeyValuePair, Error>>,
-	) -> RepositoryResult<Vec<VertexResult>> {
-		let mut result: Vec<VertexResult> = vec![];
+	) -> RepositoryResult<Vec<Vertex>> {
+		let mut result: Vec<Vertex> = vec![];
 		for pair in iterator.iter() {
 			let p_ref = pair.as_ref().unwrap();
 			let vertex = self.from_pair(p_ref).unwrap();
-			result.push(VertexResult {
-				v: vertex,
-				initialized: true,
-			});
+			result.push(vertex);
 		}
 
 		Ok(result)
 	}
 
-	pub async fn iterate_all(&self) -> RepositoryResult<Vec<VertexResult>> {
+	pub async fn iterate_all(&self) -> RepositoryResult<Vec<Vertex>> {
 		let tx = self.ds().transaction(false).unwrap();
 		let cf = self.cf();
 

@@ -23,7 +23,7 @@ pub fn build_bytes_length(components: &[Component]) -> Result<usize, IoError> {
 	Ok(len)
 }
 
-pub fn build_byte_array(bytes_vec: Vec<Vec<u8>>) -> Vec<u8> {
+pub fn concat_bytes(bytes_vec: Vec<Vec<u8>>) -> Vec<u8> {
 	let mut components = vec![];
 	for b in bytes_vec.iter() {
 		components.push(Component::Bytes(b));
@@ -40,7 +40,7 @@ pub fn build_usize_from_bytes(bytes: Vec<u8>) -> usize {
 	*bytes.first().unwrap() as usize
 }
 
-pub fn build_bytemap(key: Vec<&str>, bytes: Vec<u8>) -> HashMap<String, Vec<u8>> {
+pub fn build_byte_map(key: Vec<&str>, bytes: Vec<u8>) -> HashMap<String, Vec<u8>> {
 	let mut map = HashMap::<String, Vec<u8>>::new();
 	let mut s = 0;
 	let mut key_index = 0;

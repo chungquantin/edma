@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::interface::KeyValuePair;
 use crate::storage::Transaction;
 use crate::util::{
-	build_byte_array, build_bytemap, build_bytes, build_sized, build_usize_from_bytes, Component,
+	build_byte_map, build_bytes, build_sized, build_usize_from_bytes, concat_bytes, Component,
 };
 use crate::{Error, SimpleTransaction};
 use gremlin::structure::VertexPropertyMap;
@@ -11,12 +11,19 @@ use gremlin::{GValue, VertexProperty, GID};
 
 impl_repository!(VertexPropertyRepository(VertexProperty));
 
-fn build_property_value(value: &GValue) -> Vec<u8> {
+fn build_vertex_property_value(value: &GValue) -> Vec<u8> {
+	// let len = Component::GValue(value).len() + Component::GValueType(value).len();
 	build_bytes(&[Component::GValueType(value), Component::GValue(value)]).unwrap()
 }
 
-#[warn(deprecated)]
-/// Vertex Property Repository is not used at the moment
+fn build_vertex_property_key(vertex_id: &GID, id: &GID, label: &GValue) -> Vec<u8> {
+	concat_bytes(vec![
+		build_sized(Component::GID(vertex_id)),
+		build_sized(Component::GValue(label)),
+		build_sized(Component::GID(id)),
+	])
+}
+
 impl<'a> VertexPropertyRepository<'a> {
 	/// The property()-step is used to add properties to the elements of the graph (sideEffect).
 	/// Unlike addV() and addE(), property() is a full sideEffect step in that it does not return
@@ -28,18 +35,37 @@ impl<'a> VertexPropertyRepository<'a> {
 		tx: &mut Transaction,
 		vertex_id: &GID,
 		id: &GID,
-		label: &str,
-		value: GValue,
+		label: &GValue,
+		value: &GValue,
 	) -> Result<VertexProperty, Error> {
 		let cf = self.cf();
-		let val = build_property_value(&value);
-		let key = build_byte_array(vec![
-			build_sized(Component::GID(vertex_id)),
-			build_sized(Component::GID(id)),
-			build_sized(Component::FixedLengthString(label)),
-		]);
+		let key = build_vertex_property_key(vertex_id, id, label);
+		let val = self.append_value(tx, vertex_id, id, label, value).await.unwrap();
 		tx.set(cf, key.to_vec(), val).await.unwrap();
-		Ok(VertexProperty::new(vertex_id, label, value))
+		let label = label.get::<String>().unwrap();
+		Ok(VertexProperty::new(vertex_id, label, value.clone()))
+	}
+
+	async fn append_value(
+		&self,
+		tx: &mut Transaction,
+		vertex_id: &GID,
+		id: &GID,
+		label: &GValue,
+		value: &GValue,
+	) -> Result<Vec<u8>, Error> {
+		let cf = self.cf();
+		let val = build_vertex_property_value(&value);
+		let key = build_vertex_property_key(vertex_id, id, label);
+
+		let get_current_val = tx.get(cf, key.to_vec()).await;
+		match get_current_val {
+			Ok(v) => {
+				let existing_val = v.unwrap_or(Vec::default());
+				Ok([existing_val, val].concat())
+			}
+			Err(_) => Ok(vec![]),
+		}
 	}
 
 	/// Method to iterate the pairs of byte data
@@ -51,7 +77,7 @@ impl<'a> VertexPropertyRepository<'a> {
 		iterator.iter().for_each(|p| {
 			let (k, v) = p.as_ref().unwrap();
 			// Handle deserializing and rebuild vertex stream
-			let bytemap = &build_bytemap(vec!["vertex_id", "id", "label"], k.to_vec());
+			let bytemap = &build_byte_map(vec!["vertex_id", "id", "label"], k.to_vec());
 			let label = String::from_utf8(bytemap.get("label").unwrap().to_vec()).unwrap();
 			let gid = GID::Bytes(bytemap.get("id").unwrap().to_vec());
 			// Handle deserializing GValue

@@ -1,4 +1,4 @@
-use std::collections::LinkedList;
+use std::collections::{HashMap, LinkedList, VecDeque};
 
 use gremlin::{
 	process::traversal::{GraphTraversal, GraphTraversalSource, Instruction, MockTerminator},
@@ -7,10 +7,11 @@ use gremlin::{
 
 use crate::{
 	err::Error, storage::DatastoreRef, IxResult, IxValue, PropertyRepository, SimpleTransaction,
-	VertexRepository, VertexResult,
+	VertexRepository,
 };
 
 type TraversalSource = GraphTraversalSource<MockTerminator>;
+
 pub struct Database<'a> {
 	traversal: &'a TraversalSource,
 	steps: LinkedList<IxResult<'a>>,
@@ -23,6 +24,23 @@ pub struct Database<'a> {
 fn contain_source(step: &Instruction) -> bool {
 	let s = step.operator().as_str();
 	s == "V" || s == "E" || s == "addV" || s == "addE"
+}
+
+trait Dedup<T: PartialEq + Clone> {
+	fn clear_duplicates(&mut self);
+}
+
+impl<T: PartialEq + Clone> Dedup<T> for Vec<T> {
+	fn clear_duplicates(&mut self) {
+		let mut already_seen = Vec::new();
+		self.retain(|item| match already_seen.contains(item) {
+			true => false,
+			_ => {
+				already_seen.push(item.clone());
+				true
+			}
+		})
+	}
 }
 
 impl<'a> Database<'a> {
@@ -75,19 +93,53 @@ impl<'a> Database<'a> {
 		self.steps.push_back(step_result);
 	}
 
+	pub fn collect(&mut self) -> Result<IxValue, Error> {
+		let mut visited = HashMap::<Vec<u8>, bool>::new();
+		let mut result: VecDeque<Vertex> = VecDeque::new();
+		let mut mutate_vertex = |v: &Vertex| {
+			let key = v.id().bytes();
+			if !visited.contains_key(&key) && v.has_label() {
+				visited.insert(key.to_vec(), true);
+				result.push_front(v.clone());
+			}
+		};
+		while !self.steps.is_empty() {
+			let ix: IxResult = self.steps.pop_back().unwrap();
+			match ix.source.as_str() {
+				"V" => {
+					let vertices = ix.value.get::<Vec<Vertex>>().unwrap();
+					for vertex in vertices {
+						mutate_vertex(vertex);
+					}
+				}
+				"addV" => {
+					let vertex = ix.value.get::<Vertex>().unwrap();
+					mutate_vertex(vertex);
+				}
+				_ => {}
+			}
+		}
+
+		println!("Result: {:?}", result);
+		println!("-----------------");
+		Ok(IxValue::VertexSeq(result.into_iter().collect()))
+	}
+
 	pub async fn execute(
 		&mut self,
 		traversal: GraphTraversal<Vertex, Vertex, MockTerminator>,
-	) -> Result<IxResult, Error> {
+	) -> Result<IxValue, Error> {
 		let bytecode = traversal.bytecode();
 		println!("Bytecode: {:?}", bytecode);
+		println!("-----------------");
 		for step in bytecode.steps() {
 			match contain_source(step) {
 				true => self.process_streaming_step(step).await,
 				false => self.process_step(step).await,
 			}
 		}
-		Ok(self.top_step().clone())
+
+		self.collect()
 	}
 
 	/// The V()-step is meant to read vertices from the graph and is usually
@@ -95,7 +147,6 @@ impl<'a> Database<'a> {
 	async fn v(&mut self, args: &Vec<GValue>) -> IxResult<'a> {
 		let tx = &mut self.v.mut_tx();
 		let result = self.v.v(tx, args).await.unwrap();
-		tx.commit().await.unwrap();
 
 		IxResult::new("V", IxValue::VertexSeq(result))
 	}
@@ -110,22 +161,11 @@ impl<'a> Database<'a> {
 	/// For every incoming object, a vertex is created. Moreover, GraphTraversalSource maintains an addV() method.
 	/// [Documentation](https://tinkerpop.apache.org/docs/current/reference/#addvertex-step)
 	async fn add_v(&mut self, args: &Vec<GValue>) -> IxResult<'a> {
-		let mut result = vec![];
 		let tx = &mut self.v.mut_tx();
-		let vertices = self.get_streamed_vertices();
-		match vertices {
-			v if v.is_empty() => result.push(self.v.new_v(tx, args).await.unwrap()),
-			v => {
-				for cur in v.iter() {
-					let v = &mut cur.v();
-					let vertex_result = self.v.add_v(tx, v, args, true).await.unwrap();
-					result.push(vertex_result);
-				}
-			}
-		}
-
+		let vertex = self.v.new_v(tx, args).await.unwrap();
 		tx.commit().await.unwrap();
-		IxResult::new("addV", IxValue::VertexSeq(result))
+
+		IxResult::new("addV", IxValue::Vertex(vertex))
 	}
 
 	async fn add_e(&mut self, labels: &Vec<GValue>) -> IxResult<'a> {
@@ -144,16 +184,24 @@ impl<'a> Database<'a> {
 		let vertices = self.get_streamed_vertices();
 		match vertices {
 			v if v.is_empty() => result.push(self.v.new_property(tx, args).await.unwrap()),
-			v => {
-				for cur in v.iter() {
-					let v = &mut cur.v();
-					let vertex_result = self.v.property(v, tx, args, true).await.unwrap();
+			mut v => {
+				for cur in v.iter_mut() {
+					let vertex_result = self.v.property(cur, tx, args).await.unwrap();
 					result.push(vertex_result);
 				}
 			}
 		}
 		tx.commit().await.unwrap();
+
 		IxResult::new("vertex_property", IxValue::VertexSeq(result))
+	}
+
+	async fn add_vertex_property(&mut self, args: &Vec<GValue>) -> IxResult<'a> {
+		let tx = &mut self.v.mut_tx();
+		let vertex = &*self.top_step().value.get::<Vertex>().unwrap();
+		let result = self.v.property(&mut vertex.clone(), tx, args).await.unwrap();
+
+		IxResult::new("vertex_property", IxValue::Vertex(result))
 	}
 
 	/// The property()-step is used to add properties to the elements of the graph (sideEffect).
@@ -163,26 +211,24 @@ impl<'a> Database<'a> {
 	/// and edge creation with all its properties in one creation operation.
 	/// [Documentation](https://tinkerpop.apache.org/docs/current/reference/#property-step)
 	async fn property(&mut self, args: &Vec<GValue>) -> IxResult<'a> {
-		println!("Property {:?}", args);
-
 		match args.first().unwrap().is_cardinality() {
 			true => self.property_with_cardinality(args).await,
 			false => {
 				let stream = self.top_step();
-				println!("Steps: {:?}", self.steps);
 				match stream.source.as_str() {
-					"V" | "addV" => self.vertex_property(args).await,
+					"V" => self.vertex_property(args).await,
+					"addV" => self.add_vertex_property(args).await,
 					_ => unimplemented!(),
 				}
 			}
 		}
 	}
 
-	fn get_streamed_vertices(&mut self) -> Vec<VertexResult> {
+	fn get_streamed_vertices(&mut self) -> Vec<Vertex> {
 		let stream = self.top_step();
 		let default = Vec::default();
 
-		let vertices = stream.value.get::<Vec<VertexResult>>().unwrap_or(&default);
+		let vertices = stream.value.get::<Vec<Vertex>>().unwrap_or(&default);
 		vertices.to_vec()
 	}
 
@@ -194,25 +240,108 @@ impl<'a> Database<'a> {
 #[cfg(test)]
 mod test {
 	use crate::{storage::Datastore, util::generate_path, Database};
-	use gremlin::process::traversal::{GraphTraversalSource, MockTerminator};
+	use gremlin::{
+		process::traversal::{GraphTraversalSource, MockTerminator},
+		GValue, Vertex,
+	};
 
 	#[tokio::test]
-	async fn database_test() {
+	async fn vertex_with_property() {
+		let path = &generate_path(None);
+		let datastore = Datastore::new(path);
+		let g = GraphTraversalSource::<MockTerminator>::empty();
+		let mut db = Database::new(datastore.borrow(), &g);
+
+		let command = db.traverse().v(1).add_v("person").property("github", "chungquantin");
+		let result = db.execute(command).await.unwrap();
+
+		let vertices = result.get::<Vec<Vertex>>().unwrap();
+		assert_eq!(vertices.len(), 1);
+
+		let vertex = vertices.first().unwrap();
+		let vertex_property = vertex.property("github").unwrap();
+		assert_eq!(vertex.label(), "person");
+		assert_eq!(
+			vertex_property.first().unwrap().value(),
+			&GValue::String("chungquantin".to_string())
+		);
+	}
+
+	#[tokio::test]
+	async fn vertex_with_many_property() {
 		let path = &generate_path(None);
 		let datastore = Datastore::new(path);
 		let g = GraphTraversalSource::<MockTerminator>::empty();
 		let mut db = Database::new(datastore.borrow(), &g);
 
 		let command = db.traverse().add_v("person").property_many(vec![
-			("birthday".to_string(), "1/11/2001"),
-			("github".to_string(), "chungquantin"),
-			("name".to_string(), "Tin Chung"),
+			("birthday", "1/11/2001"),
+			("github", "chungquantin"),
+			("name", "Tin Chung"),
 		]);
-		// db.traverse().add_v("person");
 
 		let result = db.execute(command).await.unwrap();
+		let vertices = result.get::<Vec<Vertex>>().unwrap();
+		assert_eq!(vertices.len(), 1);
 
-		println!("Result: {:?}", result);
-		// unimplemented!();
+		let vertex = vertices.first().unwrap();
+		assert_eq!(vertex.label(), "person");
+		let name = vertex.property("name").unwrap();
+		assert_eq!(name[0].value(), &GValue::String("Tin Chung".to_string()));
+		let birthday = vertex.property("birthday").unwrap();
+		assert_eq!(birthday[0].value(), &GValue::String("1/11/2001".to_string()));
+		let github = vertex.property("github").unwrap();
+		assert_eq!(github[0].value(), &GValue::String("chungquantin".to_string()));
+	}
+
+	#[tokio::test]
+	async fn vertex_property() {
+		let path = &generate_path(None);
+		let datastore = Datastore::new(path);
+		let g = GraphTraversalSource::<MockTerminator>::empty();
+		let mut db = Database::new(datastore.borrow(), &g);
+
+		let command = db.traverse().add_v("person").property_many(vec![
+			("github", "chungquantin"),
+			("github", "tin-snowflake"),
+			("name", "Tin Chung"),
+		]);
+
+		let result = db.execute(command).await.unwrap();
+		let vertices = result.get::<Vec<Vertex>>().unwrap();
+		assert_eq!(vertices.len(), 1);
+
+		let vertex = vertices.first().unwrap();
+		println!("Vertex: {:?}", vertex);
+		assert_eq!(vertex.label(), "person");
+		let name = vertex.property("name").unwrap();
+		assert_eq!(name[0].value(), &GValue::String("Tin Chung".to_string()));
+		let github = vertex.property("github").unwrap();
+		assert_eq!(github[0].value(), &GValue::String("chungquantin".to_string()));
+		assert_eq!(github[1].value(), &GValue::String("tin-snowflake".to_string()));
+	}
+
+	#[tokio::test]
+	async fn multiple_new_vertex() {
+		let path = &generate_path(None);
+		let datastore = Datastore::new(path);
+		let g = GraphTraversalSource::<MockTerminator>::empty();
+		let mut db = Database::new(datastore.borrow(), &g);
+
+		let command =
+			db.traverse().v(1).add_v("person").add_v("coder").property("github", "chungquantin");
+		let t1 = db.execute(command).await.unwrap();
+		let vertices = t1.get::<Vec<Vertex>>().unwrap();
+		assert_eq!(vertices.len(), 2);
+
+		let t2 = db.execute(db.traverse().v(())).await.unwrap();
+		assert_eq!(t2.get::<Vec<Vertex>>().unwrap().len(), 2);
+
+		let mut iter = vertices.iter();
+		let person_vertex = iter.next().unwrap();
+		assert_eq!(person_vertex.label(), "person");
+		let coder_vertex = iter.next().unwrap();
+		let github = coder_vertex.property("github").unwrap();
+		assert_eq!(github[0].value(), &GValue::String("chungquantin".to_string()));
 	}
 }
