@@ -46,7 +46,7 @@ pub fn build_byte_map(key: Vec<&str>, bytes: Vec<u8>) -> HashMap<String, Vec<u8>
 	let mut key_index = 0;
 	while s < bytes.len() {
 		let len = build_usize_from_bytes(bytes[s..s + 1].to_vec()) + 1;
-		let data = bytes[s + 1..len].to_vec();
+		let data = bytes[s + 1..s + len].to_vec();
 		map.insert(String::from(key[key_index]), data);
 
 		s += len;

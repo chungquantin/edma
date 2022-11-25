@@ -17,7 +17,8 @@ pub struct Vertex {
 
 impl Default for Vertex {
 	fn default() -> Self {
-		let gid = GID::String(Uuid::new_v4().to_string());
+		let uuid = Uuid::new_v4().as_bytes().to_vec();
+		let gid = GID::Bytes(uuid);
 		Vertex::partial_new(gid)
 	}
 }
@@ -80,6 +81,10 @@ impl Vertex {
 
 	pub fn property(&self, key: &str) -> Option<&Vec<VertexProperty>> {
 		self.properties.get(key)
+	}
+
+	pub fn properties(&self) -> HashMap<String, Vec<VertexProperty>> {
+		self.properties.clone()
 	}
 }
 

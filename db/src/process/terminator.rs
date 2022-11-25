@@ -4,7 +4,9 @@ use gremlin::{
 };
 use std::marker::Send;
 
-use crate::{storage::DatastoreRef, StepExecutor};
+use crate::storage::DatastoreRef;
+
+use super::StepExecutor;
 
 #[derive(Clone)]
 pub struct GraphTerminator<'a> {

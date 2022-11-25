@@ -80,7 +80,7 @@ impl<A: Terminator<GValue>> GraphTraversalSource<A> {
 }
 
 // TESTS
-// #[cfg(feature = "test-suite")]
+#[cfg(feature = "test-suite")]
 #[cfg(test)]
 mod tests {
 

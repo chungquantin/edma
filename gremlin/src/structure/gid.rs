@@ -1,5 +1,4 @@
 use crate::{GremlinError, GremlinResult};
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -23,7 +22,7 @@ impl From<()> for GIDs {
 	}
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum GID {
 	String(String),
 	Int32(i32),

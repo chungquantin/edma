@@ -14,10 +14,11 @@ pub use crate::storage::kvs::CassandraDBAdapter;
 #[cfg(feature = "kv-rocksdb")]
 pub use crate::storage::kvs::RocksDBAdapter;
 #[macro_use]
+#[cfg(test)]
 pub mod tests;
 
 use crate::err::*;
 
 pub use crate::model::*;
-pub use crate::process::*;
+pub use crate::process::Database;
 pub use crate::repo::*;

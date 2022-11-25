@@ -77,7 +77,7 @@ impl<'a> VertexPropertyRepository<'a> {
 		iterator.iter().for_each(|p| {
 			let (k, v) = p.as_ref().unwrap();
 			// Handle deserializing and rebuild vertex stream
-			let bytemap = &build_byte_map(vec!["vertex_id", "id", "label"], k.to_vec());
+			let bytemap = &build_byte_map(vec!["vertex_id", "label", "id"], k.to_vec());
 			let label = String::from_utf8(bytemap.get("label").unwrap().to_vec()).unwrap();
 			let gid = GID::Bytes(bytemap.get("id").unwrap().to_vec());
 			// Handle deserializing GValue
