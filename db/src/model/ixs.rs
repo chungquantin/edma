@@ -23,7 +23,7 @@ pub struct IxResult {
 
 impl IxResult {
 	pub fn empty() -> Self {
-		IxResult::new(&String::from(""), GValue::Null)
+		IxResult::new("", GValue::Null)
 	}
 
 	pub fn new(operator: &str, value: GValue) -> Self {
