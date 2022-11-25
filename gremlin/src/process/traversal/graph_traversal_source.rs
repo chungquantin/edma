@@ -1,6 +1,6 @@
 use crate::conversion::{FromGValue, ToGValue};
 
-use crate::process::traversal::internal::{MockTerminator, Terminator};
+use crate::process::traversal::internal::Terminator;
 use crate::process::traversal::Bytecode;
 use crate::process::traversal::{GraphTraversal, TraversalBuilder};
 use crate::structure::GIDs;
@@ -17,10 +17,6 @@ impl<A: Terminator<GValue>> GraphTraversalSource<A> {
 		GraphTraversalSource {
 			term: terminator,
 		}
-	}
-
-	pub fn empty() -> GraphTraversalSource<MockTerminator> {
-		GraphTraversalSource::new(MockTerminator {})
 	}
 
 	pub fn v<T>(&self, ids: T) -> GraphTraversal<Vertex, Vertex, A>
@@ -84,7 +80,7 @@ impl<A: Terminator<GValue>> GraphTraversalSource<A> {
 }
 
 // TESTS
-#[cfg(feature = "test-suite")]
+// #[cfg(feature = "test-suite")]
 #[cfg(test)]
 mod tests {
 

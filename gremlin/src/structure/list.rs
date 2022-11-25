@@ -3,6 +3,12 @@ use crate::GValue;
 #[derive(Debug, PartialEq, Clone)]
 pub struct List(Vec<GValue>);
 
+impl Default for List {
+	fn default() -> Self {
+		Self(Default::default())
+	}
+}
+
 impl List {
 	pub fn new(elements: Vec<GValue>) -> Self {
 		List(elements)

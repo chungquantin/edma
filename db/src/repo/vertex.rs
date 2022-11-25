@@ -4,7 +4,7 @@ use crate::{
 	util::{build_byte_map, build_sized, Component},
 	Error, SimpleTransaction, VertexPropertyRepository,
 };
-use gremlin::{GValue, Labels, Vertex, GID};
+use gremlin::{GValue, Labels, List, Vertex, GID};
 use uuid::Uuid;
 
 impl_repository!(VertexRepository(Vertex));
@@ -15,14 +15,15 @@ impl<'a> VertexRepository<'a> {
 	/// The V()-step is meant to read vertices from the graph and is usually
 	/// used to start a GraphTraversal, but can also be used mid-traversal.
 	/// [Documentation](https://tinkerpop.apache.org/docs/current/reference/#v-step)
-	pub async fn v(&self, tx: &Transaction, ids: &Vec<GValue>) -> RepositoryResult<Vec<Vertex>> {
+	pub async fn v(&self, tx: &Transaction, ids: &Vec<GValue>) -> RepositoryResult<List> {
 		let cf = self.cf();
 		match ids.first() {
 			Some(id) => {
 				let key = build_sized(Component::GValue(id));
 				let get_vertex = tx.get(cf, key.to_vec()).await.unwrap();
 				let vertex = get_vertex.unwrap_or_default();
-				Ok(vec![self.from_pair(&(key, vertex)).unwrap()])
+				let value = GValue::Vertex(self.from_pair(&(key, vertex)).unwrap());
+				Ok(List::new(vec![value]))
 			}
 			_ => self.iterate_all().await,
 		}
@@ -129,21 +130,18 @@ impl<'a> VertexRepository<'a> {
 		Ok(())
 	}
 
-	async fn iterate(
-		&self,
-		iterator: Vec<Result<KeyValuePair, Error>>,
-	) -> RepositoryResult<Vec<Vertex>> {
-		let mut result: Vec<Vertex> = vec![];
+	async fn iterate(&self, iterator: Vec<Result<KeyValuePair, Error>>) -> RepositoryResult<List> {
+		let mut result: Vec<GValue> = vec![];
 		for pair in iterator.iter() {
 			let p_ref = pair.as_ref().unwrap();
 			let vertex = self.from_pair(p_ref).unwrap();
-			result.push(vertex);
+			result.push(GValue::Vertex(vertex));
 		}
 
-		Ok(result)
+		Ok(List::new(result))
 	}
 
-	pub async fn iterate_all(&self) -> RepositoryResult<Vec<Vertex>> {
+	pub async fn iterate_all(&self) -> RepositoryResult<List> {
 		let tx = self.ds().transaction(false).unwrap();
 		let cf = self.cf();
 

@@ -5,6 +5,7 @@ macro_rules! impl_repository {
 		use $crate::storage::Datastore;
 		use $crate::storage::DatastoreRef;
 
+		#[derive(Clone)]
 		pub struct $c_name<'a> {
 			pub ds_ref: DatastoreRef<'a>,
 			pub cf: &'static str,

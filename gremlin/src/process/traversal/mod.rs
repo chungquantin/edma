@@ -8,7 +8,6 @@ mod order;
 mod scope;
 mod step;
 
-pub use internal::MockTerminator;
 pub use internal::Terminator;
 pub use order::Order;
 

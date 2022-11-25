@@ -277,15 +277,8 @@ impl<S, E: FromGValue, T: Terminator<E>> GraphTraversal<S, E, T> {
 		GraphTraversal::new(self.terminator, self.builder)
 	}
 
-	pub fn to_list(&self) -> T::List {
-		self.terminator.to_list(self)
-	}
-
-	pub fn next(&self) -> T::Next {
-		self.terminator.next(self)
-	}
-	pub fn has_next(&self) -> T::HasNext {
-		self.terminator.has_next(self)
+	pub fn exec(&self) -> T::Executor {
+		self.terminator.exec(self)
 	}
 
 	pub fn from<A>(mut self, target: A) -> Self

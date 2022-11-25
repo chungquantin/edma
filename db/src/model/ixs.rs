@@ -1,39 +1,10 @@
 use crate::err::Error;
-use gremlin::Vertex;
+use gremlin::GValue;
 use thiserror::Error;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum IxValue {
-	Vertex(Vertex),
-	VertexSeq(Vec<Vertex>),
-	Null,
-}
-
-impl IxValue {
-	pub fn get<'a, T>(&'a self) -> Result<&'a T, InstructionError>
-	where
-		T: BorrowFromIx,
-	{
-		T::from_ix(self)
-	}
-}
 
 #[doc(hidden)]
 pub trait BorrowFromIx: Sized {
-	fn from_ix<'a>(v: &'a IxValue) -> Result<&'a Self, InstructionError>;
-}
-
-macro_rules! impl_borrow_from_ix {
-	($t:ty, $v:path) => {
-		impl BorrowFromIx for $t {
-			fn from_ix<'a>(v: &'a IxValue) -> Result<&'a $t, InstructionError> {
-				match v {
-					$v(e) => Ok(e),
-					_ => Err(InstructionError::Cast("Unable to borrow ix".to_string())),
-				}
-			}
-		}
-	};
+	fn from_ix<'a>(v: &'a GValue) -> Result<&'a Self, InstructionError>;
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -43,24 +14,21 @@ pub enum InstructionError {
 	Cast(String),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct IxResult<'a> {
-	pub operator: &'a str,
+#[derive(Debug, Clone, PartialEq)]
+pub struct IxResult {
+	pub operator: String,
 	pub source: String,
-	pub value: IxValue,
+	pub value: GValue,
 }
 
-impl_borrow_from_ix!(Vec<Vertex>, IxValue::VertexSeq);
-impl_borrow_from_ix!(Vertex, IxValue::Vertex);
-
-impl<'a> IxResult<'a> {
+impl IxResult {
 	pub fn empty() -> Self {
-		IxResult::new("", IxValue::Null)
+		IxResult::new(&String::from(""), GValue::Null)
 	}
 
-	pub fn new(operator: &'a str, value: IxValue) -> Self {
+	pub fn new(operator: &str, value: GValue) -> Self {
 		IxResult {
-			operator,
+			operator: String::from(operator),
 			value,
 			source: "".to_string(),
 		}

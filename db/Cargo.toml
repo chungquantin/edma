@@ -45,6 +45,7 @@ byteorder = "1.4.3"
 serde = { version = "1.0.147", features = ["derive"] }
 log = "0.4.17"
 gremlin = { path = "../gremlin", version = "0.8.2", optional = true }
+pin-project-lite = "0.2.9"
 
 [dev-dependencies]
 tokio = { version = "1.21.2", features = ["macros", "rt"] }
