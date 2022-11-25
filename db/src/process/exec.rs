@@ -206,7 +206,7 @@ impl<'a, T> StepExecutor<'a, T> {
 		IxResult::new("V", GValue::List(result))
 	}
 
-	async fn e(&mut self, ids: &Vec<GValue>) -> IxResult {
+	async fn e(&mut self, _ids: &Vec<GValue>) -> IxResult {
 		IxResult::new("E", GValue::Null)
 	}
 
@@ -222,7 +222,7 @@ impl<'a, T> StepExecutor<'a, T> {
 		IxResult::new("addV", GValue::Vertex(vertex))
 	}
 
-	async fn add_e(&mut self, labels: &Vec<GValue>) -> IxResult {
+	async fn add_e(&mut self, _labels: &Vec<GValue>) -> IxResult {
 		self.set_terminator("Edge");
 		IxResult::new("addE", GValue::Null)
 	}
