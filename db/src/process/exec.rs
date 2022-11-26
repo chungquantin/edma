@@ -262,7 +262,7 @@ impl<'a, T> StepExecutor<'a, T> {
 		IxResult::new("vertex_property", GValue::Vertex(result))
 	}
 
-	async fn properties(&mut self, _args: &Vec<GValue>) -> IxResult {
+	async fn properties(&mut self, args: &Vec<GValue>) -> IxResult {
 		let mut result = vec![];
 		let stream = self.top_step();
 		match stream.source.as_str() {
@@ -270,7 +270,7 @@ impl<'a, T> StepExecutor<'a, T> {
 				let mut vertices = self.get_streamed_vertices();
 				if !vertices.is_empty() {
 					for cur in vertices.iter_mut() {
-						let vertex = self.v.properties(cur).await.unwrap();
+						let vertex = self.v.properties(cur, args).await.unwrap();
 						result.push(GValue::Vertex(vertex));
 					}
 				}

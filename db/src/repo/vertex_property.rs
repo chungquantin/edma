@@ -94,7 +94,22 @@ impl<'a> VertexPropertyRepository<'a> {
 	pub async fn iterate_from_vertex(&self, vertex_id: &GID) -> Result<VertexPropertyMap, Error> {
 		let tx = &self.tx();
 		let cf = self.cf();
-		let prefix = build_sized(Component::GID(vertex_id));
+		let prefix = concat_bytes(vec![build_sized(Component::GID(vertex_id))]);
+		let iterator = tx.prefix_iterate(cf, prefix).await.unwrap();
+		self.iterate(iterator)
+	}
+
+	pub async fn iterate_from_label(
+		&self,
+		vertex_id: &GID,
+		label: &GValue,
+	) -> Result<VertexPropertyMap, Error> {
+		let tx = &self.tx();
+		let cf = self.cf();
+		let prefix = concat_bytes(vec![
+			build_sized(Component::GID(vertex_id)),
+			build_sized(Component::GValue(label)),
+		]);
 		let iterator = tx.prefix_iterate(cf, prefix).await.unwrap();
 		self.iterate(iterator)
 	}

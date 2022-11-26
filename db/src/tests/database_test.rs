@@ -31,6 +31,16 @@ mod test {
 
 		let result = db.traverse().v(vertex.id()).properties(()).exec().to_list().await.unwrap();
 		assert_eq!(result.len(), 3);
+
+		// non existing property
+		let result =
+			db.traverse().v(vertex.id()).properties("name").exec().to_list().await.unwrap();
+		assert_eq!(result.len(), 0);
+
+		// get example specific property
+		let result =
+			db.traverse().v(vertex.id()).properties("github").exec().to_list().await.unwrap();
+		assert_eq!(result.len(), 1);
 	}
 
 	#[tokio::test]
