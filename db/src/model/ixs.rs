@@ -27,7 +27,7 @@ impl Default for IxResult {
 
 impl IxResult {
 	pub fn is_empty(&self) -> bool {
-		self.operator == ""
+		self.operator.is_empty()
 			&& match &self.value {
 				GValue::Null => true,
 				_ => false,
