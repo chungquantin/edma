@@ -29,6 +29,18 @@ impl List {
 	pub fn is_empty(&self) -> bool {
 		self.0.is_empty()
 	}
+
+	pub fn push(&mut self, value: GValue) {
+		self.0.push(value)
+	}
+
+	pub fn append(&mut self, other: &mut Vec<GValue>) {
+		self.0.append(other)
+	}
+
+	pub fn core(self) -> Vec<GValue> {
+		self.0
+	}
 }
 
 impl std::iter::IntoIterator for List {

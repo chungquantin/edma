@@ -1,4 +1,3 @@
-use crate::err::Error;
 use gremlin::GValue;
 use thiserror::Error;
 
@@ -17,25 +16,28 @@ pub enum InstructionError {
 #[derive(Debug, Clone, PartialEq)]
 pub struct IxResult {
 	pub operator: String,
-	pub source: String,
 	pub value: GValue,
 }
 
-impl IxResult {
-	pub fn empty() -> Self {
+impl Default for IxResult {
+	fn default() -> Self {
 		IxResult::new("", GValue::Null)
+	}
+}
+
+impl IxResult {
+	pub fn is_empty(&self) -> bool {
+		self.operator == ""
+			&& match &self.value {
+				GValue::Null => true,
+				_ => false,
+			}
 	}
 
 	pub fn new(operator: &str, value: GValue) -> Self {
 		IxResult {
 			operator: String::from(operator),
 			value,
-			source: "".to_string(),
 		}
-	}
-
-	pub fn set_source(&mut self, element: String) -> Result<(), Error> {
-		self.source = element;
-		Ok(())
 	}
 }

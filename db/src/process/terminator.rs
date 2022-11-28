@@ -21,7 +21,7 @@ impl<'a> GraphTerminator<'a> {
 	}
 }
 
-impl<'a, T: FromGValue + Send + 'static> Terminator<T> for GraphTerminator<'a> {
+impl<'a, T: FromGValue + Send + Clone + 'static> Terminator<T> for GraphTerminator<'a> {
 	type Executor = StepExecutor<'a, T>;
 
 	fn exec<S, E>(&self, traversal: &GraphTraversal<S, T, E>) -> Self::Executor

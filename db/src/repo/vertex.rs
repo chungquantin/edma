@@ -21,9 +21,13 @@ impl<'a> VertexRepository<'a> {
 			Some(id) => {
 				let key = build_sized(Component::GValue(id));
 				let get_vertex = tx.get(cf, key.to_vec()).await.unwrap();
-				let vertex = get_vertex.unwrap_or_default();
-				let value = GValue::Vertex(self.from_pair(&(key, vertex)).unwrap());
-				Ok(List::new(vec![value]))
+				Ok(List::new(match get_vertex {
+					Some(v) => {
+						let value = GValue::Vertex(self.from_pair(&(key, v)).unwrap());
+						vec![value]
+					}
+					None => vec![],
+				}))
 			}
 			_ => self.iterate_all().await,
 		}

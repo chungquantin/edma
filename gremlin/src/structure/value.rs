@@ -92,6 +92,13 @@ impl GValue {
 		}
 	}
 
+	pub fn is_null(&self) -> bool {
+		match self {
+			GValue::Null => true,
+			_ => false,
+		}
+	}
+
 	pub fn bytes(&self) -> Vec<u8> {
 		match self {
 			GValue::String(v) => v.as_bytes().to_vec(),

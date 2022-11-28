@@ -1,4 +1,3 @@
-use std::collections::{HashMap, LinkedList, VecDeque};
 use std::marker::PhantomData;
 
 use crate::{err::Error, storage::DatastoreRef, IxResult, SimpleTransaction, VertexRepository};
@@ -9,29 +8,90 @@ use gremlin::{
 	FromGValue, GValue, List, Vertex,
 };
 
+#[derive(Clone, Debug)]
+pub struct ExecutionResult {
+	edges: IxResult,
+	vertices: IxResult,
+	new_vertex: IxResult,
+	new_edge: IxResult,
+}
+
+impl Default for ExecutionResult {
+	fn default() -> Self {
+		let default_list = IxResult::new("", GValue::List(List::default()));
+		println!("Default: {:?}", default_list);
+		Self {
+			edges: default_list.clone(),
+			vertices: default_list,
+			new_vertex: Default::default(),
+			new_edge: Default::default(),
+		}
+	}
+}
+
+impl ExecutionResult {
+	fn get_from_source(&self, source: &str) -> IxResult {
+		match source {
+			"E" => self.edges.clone(),
+			"V" => self.vertices.clone(),
+			"addV" => self.new_vertex.clone(),
+			"addE" => self.new_edge.clone(),
+			_ => unimplemented!(),
+		}
+	}
+}
+
 #[derive(Clone)]
-pub struct StepExecutor<'a, T> {
+pub struct StepExecutor<'a, T: FromGValue + Clone> {
 	bytecode: Bytecode,
-	steps: LinkedList<IxResult>,
+	result: ExecutionResult,
 	terminator: String,
+	source: String,
 	v: VertexRepository<'a>,
 	phantom: PhantomData<T>,
 	iter_index: usize,
 }
 
-fn contain_source(step: &Instruction) -> bool {
-	let s = step.operator().as_str();
-	s == "V" || s == "E" || s == "addV" || s == "addE"
+fn is_streaming_vertex_step(s: &str) -> bool {
+	s == "V" || s == "addV"
 }
 
-impl<'a, T> StepExecutor<'a, T> {
-	fn collect_vertex_property(&mut self) -> Result<GValue, Error>
-	where
-		T: FromGValue,
-	{
-		let mut result = vec![];
-		let vertices = self.collect_vertex().unwrap();
-		let list = vertices.get::<List>().unwrap();
+fn is_streaming_edge_step(s: &str) -> bool {
+	s == "E" || s == "addE"
+}
+
+fn is_streaming_source_step(s: &str) -> bool {
+	is_streaming_edge_step(s) || is_streaming_vertex_step(s)
+}
+
+/// # ReducingBarrierStep()
+/// All of the traversers prior to the step are processed by a reduce function and once
+/// all the previous traversers are processed, a single "reduced value" traverser is emitted
+/// to the next step. Note that the path history leading up to a reducing barrier step is
+/// destroyed given its many-to-one nature.
+fn is_reducing_barrier_step(s: &str) -> bool {
+	s == "fold" || s == "count" || s == "sum" || s == "max" || s == "min"
+}
+
+impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
+	fn collect_vertex_list(&mut self) -> List {
+		let mut list = self.get_from_source::<List>("V").unwrap();
+		let new_vertex = self.result.get_from_source("addV").value;
+		if !new_vertex.is_null() {
+			list.push(new_vertex);
+		}
+
+		list
+	}
+
+	fn collect_vertex(&mut self) -> GValue {
+		GValue::List(self.collect_vertex_list())
+	}
+
+	fn collect_vertex_properties(&mut self) -> GValue {
+		let list = self.collect_vertex_list();
+		let mut result: Vec<GValue> = vec![];
+
 		for item in list.iter() {
 			let vertex = item.get::<Vertex>().unwrap();
 			let properties = vertex.properties();
@@ -42,45 +102,7 @@ impl<'a, T> StepExecutor<'a, T> {
 			}
 		}
 
-		let list = List::new(result);
-		Ok(GValue::List(list))
-	}
-
-	fn collect_vertex(&mut self) -> Result<GValue, Error>
-	where
-		T: FromGValue,
-	{
-		let mut iter: VecDeque<GValue> = VecDeque::new();
-		let mut visited = HashMap::<Vec<u8>, bool>::new();
-		let mut mutate_vertex = |v: &Vertex| {
-			let key = v.id().bytes();
-			if !visited.contains_key(&key) && v.has_label() {
-				visited.insert(key.to_vec(), true);
-				iter.push_front(GValue::Vertex(v.clone()));
-			}
-		};
-		while !self.steps.is_empty() {
-			let ix: IxResult = self.steps.pop_back().unwrap();
-			match ix.source.as_str() {
-				"V" => {
-					let list = ix.value.get::<List>().unwrap();
-					for item in list.iter() {
-						let vertex = item.get::<Vertex>().unwrap();
-						mutate_vertex(vertex);
-					}
-				}
-				"addV" => {
-					let vertex = ix.value.get::<Vertex>().unwrap();
-					mutate_vertex(vertex);
-				}
-				_ => unimplemented!(),
-			}
-		}
-
-		self.collect_debug(iter.clone());
-		let vec: Vec<GValue> = iter.into_iter().collect();
-		let list = List::new(vec);
-		Ok(GValue::List(list))
+		GValue::List(List::new(result))
 	}
 
 	fn collect(&mut self) -> Result<GValue, Error>
@@ -88,14 +110,12 @@ impl<'a, T> StepExecutor<'a, T> {
 		T: FromGValue,
 	{
 		match self.terminator.as_str() {
-			"Vertex" => self.collect_vertex(),
-			"VertexProperty" => self.collect_vertex_property(),
+			"Vertex" => Ok(self.collect_vertex()),
+			"VertexProperty" => Ok(self.collect_vertex_properties()),
 			_ => unimplemented!(),
 		}
 	}
-}
 
-impl<'a, T> StepExecutor<'a, T> {
 	pub fn new<S, E>(traversal: &GraphTraversal<S, T, E>, ds_ref: DatastoreRef<'a>) -> Self
 	where
 		T: FromGValue,
@@ -103,8 +123,9 @@ impl<'a, T> StepExecutor<'a, T> {
 	{
 		StepExecutor {
 			bytecode: traversal.bytecode().clone(),
-			steps: LinkedList::<IxResult>::default(),
+			result: ExecutionResult::default(),
 			terminator: String::default(),
+			source: String::default(),
 			v: VertexRepository::new(ds_ref),
 			phantom: PhantomData,
 			iter_index: 0,
@@ -114,33 +135,50 @@ impl<'a, T> StepExecutor<'a, T> {
 	async fn process_streaming_step(&mut self, step: &Instruction) {
 		let args = step.args();
 		let operator = step.operator().as_str();
-		let mut step_result = match operator {
-			"V" => self.v(args).await,
-			"E" => self.e(args).await,
-			"addV" => self.add_v(args).await,
-			"addE" => self.add_e(args).await,
+		let source = operator.to_string();
+		match operator {
+			"V" => {
+				let result = self.v(args).await;
+				self.result.vertices = result;
+			}
+			"E" => {
+				let result = self.e(args).await;
+				self.result.edges = result;
+			}
+			"addV" => {
+				let result = self.add_v(args).await;
+				self.result.new_vertex = result;
+			}
+			"addE" => {
+				let result = self.add_e(args).await;
+				self.result.new_edge = result;
+			}
 			_ => unimplemented!(),
 		};
 
-		let source = step.operator().to_string();
-		step_result.set_source(source).unwrap();
+		self.source = source;
+	}
 
-		self.steps.push_back(step_result);
+	async fn process_reducing_barrier_step(&mut self, step: &Instruction) {
+		let args = step.args();
+		let operator = step.operator().as_str();
+		match operator {
+			"count" => self.count(args).await,
+			_ => unimplemented!(),
+		};
 	}
 
 	async fn process_step(&mut self, step: &Instruction) {
 		let args = step.args();
 		let operator = step.operator().as_str();
-		let mut step_result = match operator {
+		match operator {
 			"property" => self.property(args).await,
 			"properties" => self.properties(args).await,
+			"count" => self.count(args).await,
+			"hasLabels" => self.has_labels(args).await,
+			"hasIds" => self.has_ids(args).await,
 			_ => unimplemented!(),
 		};
-
-		let stream = self.steps.back().unwrap();
-		let source = &stream.source;
-		step_result.set_source(source.to_string()).unwrap();
-		self.steps.push_back(step_result);
 	}
 
 	async fn execute(&mut self) -> Result<GValue, GremlinError>
@@ -150,12 +188,16 @@ impl<'a, T> StepExecutor<'a, T> {
 		self.bytecode_debug();
 
 		for step in self.bytecode.clone().steps() {
-			match contain_source(step) {
-				true => self.process_streaming_step(step).await,
-				false => self.process_step(step).await,
+			println!("==> result: {:?}", self.result);
+			match step.operator().as_str() {
+				s if is_streaming_source_step(s) => self.process_streaming_step(step).await,
+				s if is_reducing_barrier_step(s) => self.process_reducing_barrier_step(step).await,
+				_ => self.process_step(step).await,
 			}
 		}
-		Ok(self.collect().unwrap())
+		let result = self.collect().unwrap();
+		self.collect_debug(result.clone());
+		Ok(result)
 	}
 
 	pub async fn to_list(&mut self) -> Result<Vec<T>, Error>
@@ -216,8 +258,17 @@ impl<'a, T> StepExecutor<'a, T> {
 	async fn add_v(&mut self, args: &Vec<GValue>) -> IxResult {
 		let tx = &mut self.v.mut_tx();
 		let vertex = self.v.new_v(tx, args).await.unwrap();
-		tx.commit().await.unwrap();
 
+		if !self.result.new_vertex.is_empty() {
+			// Push new vertex to the end of vertices
+			let committed_vertex = self.result.new_vertex.clone();
+			println!("Commited vertex: {:?}", committed_vertex);
+			let mut vertices = self.get_from_source::<List>("V").unwrap();
+			vertices.push(committed_vertex.value);
+			self.result.vertices.value = GValue::List(vertices);
+		}
+
+		tx.commit().await.unwrap();
 		self.set_terminator("Vertex");
 		IxResult::new("addV", GValue::Vertex(vertex))
 	}
@@ -234,7 +285,8 @@ impl<'a, T> StepExecutor<'a, T> {
 	async fn vertex_property(&mut self, args: &Vec<GValue>) -> IxResult {
 		let tx = &mut self.v.mut_tx();
 		let mut result: Vec<GValue> = vec![];
-		let vertices = self.get_streamed_vertices();
+		let source = &self.source.clone();
+		let vertices = self.get_list_from_source::<Vertex>(source).unwrap();
 		match vertices {
 			v if v.is_empty() => {
 				let vertex = self.v.new_property(tx, args).await.unwrap();
@@ -255,32 +307,52 @@ impl<'a, T> StepExecutor<'a, T> {
 
 	async fn add_vertex_property(&mut self, args: &Vec<GValue>) -> IxResult {
 		let tx = &mut self.v.mut_tx();
-		let vertex = self.top_step().value.get::<Vertex>().unwrap();
+		let stream = self.result.get_from_source(&self.source);
+		let default = Vertex::default();
+		let vertex = stream.value.get::<Vertex>().unwrap_or(&default);
+
 		let result = self.v.property(&mut vertex.clone(), tx, args).await.unwrap();
+		let value = GValue::Vertex(result);
+		self.result.new_vertex.value = value.clone();
 		tx.commit().await.unwrap();
 
-		IxResult::new("vertex_property", GValue::Vertex(result))
+		IxResult::new("vertex_property", value)
 	}
 
-	async fn properties(&mut self, args: &Vec<GValue>) -> IxResult {
+	async fn vertices_properties(&mut self, args: &Vec<GValue>) -> IxResult {
 		let mut result = vec![];
-		let stream = self.top_step();
-		match stream.source.as_str() {
-			"V" | "addV" => {
-				let mut vertices = self.get_streamed_vertices();
-				if !vertices.is_empty() {
-					for cur in vertices.iter_mut() {
-						let vertex = self.v.properties(cur, args).await.unwrap();
-						result.push(GValue::Vertex(vertex));
-					}
-				}
+		let source = &self.source.clone();
+		let mut vertices = self.get_list_from_source::<Vertex>(source).unwrap();
+		if !vertices.is_empty() {
+			for cur in vertices.iter_mut() {
+				let vertex = self.v.properties(cur, args).await.unwrap();
+				result.push(GValue::Vertex(vertex));
 			}
-			_ => unimplemented!(),
+			self.result.vertices.value = GValue::List(List::new(result.clone()));
 		}
-
 		self.set_terminator("VertexProperty");
 		let list = GValue::List(List::new(result));
 		IxResult::new("properties", list)
+	}
+
+	async fn new_vertex_properties(&mut self, args: &Vec<GValue>) -> IxResult {
+		let source = &self.source.clone();
+		let mut vertex = self.get_from_source::<Vertex>(source).unwrap();
+		let vertex = self.v.properties(&mut vertex, args).await.unwrap();
+		let result = GValue::Vertex(vertex);
+		self.result.vertices.value = result.clone();
+
+		self.set_terminator("VertexProperty");
+		IxResult::new("properties", result)
+	}
+
+	async fn properties(&mut self, args: &Vec<GValue>) -> IxResult {
+		println!("Source: {:?}", self.result);
+		match self.source.as_str() {
+			"V" => self.vertices_properties(args).await,
+			"addV" => self.new_vertex_properties(args).await,
+			_ => unimplemented!(),
+		}
 	}
 
 	/// The property()-step is used to add properties to the elements of the graph (sideEffect).
@@ -292,45 +364,56 @@ impl<'a, T> StepExecutor<'a, T> {
 	async fn property(&mut self, args: &Vec<GValue>) -> IxResult {
 		match args.first().unwrap().is_cardinality() {
 			true => self.property_with_cardinality(args).await,
-			false => {
-				let stream = self.top_step();
-				match stream.source.as_str() {
-					"V" => self.vertex_property(args).await,
-					"addV" => self.add_vertex_property(args).await,
-					_ => unimplemented!(),
-				}
-			}
+			false => match self.source.as_str() {
+				"V" => self.vertex_property(args).await,
+				"addV" => self.add_vertex_property(args).await,
+				_ => unimplemented!(),
+			},
 		}
 	}
 
-	fn get_streamed_vertices(&mut self) -> Vec<Vertex> {
-		let stream = self.top_step();
+	async fn count(&mut self, _args: &Vec<GValue>) -> IxResult
+	where
+		T: FromGValue + Clone,
+	{
+		self.set_terminator("Int32");
+		IxResult::new("count", GValue::Null)
+	}
 
+	async fn has_labels(&mut self, _args: &Vec<GValue>) -> IxResult {
+		unimplemented!()
+	}
+
+	async fn has_ids(&mut self, _args: &Vec<GValue>) -> IxResult {
+		unimplemented!()
+	}
+
+	fn get_from_source<E>(&mut self, source: &str) -> Result<E, Error>
+	where
+		E: FromGValue,
+	{
+		let stream = self.result.get_from_source(source);
+		let item = E::from_gvalue(stream.value).unwrap();
+		Ok(item)
+	}
+
+	fn get_list_from_source<E>(&mut self, source: &str) -> Result<Vec<E>, Error>
+	where
+		E: FromGValue,
+	{
+		let stream = self.result.get_from_source(source);
+		let list = stream.value.get::<List>().unwrap();
 		let mut result = vec![];
-		match &stream.value {
-			GValue::Vertex(v) => result.push(v.clone()),
-			GValue::List(v) => {
-				let iter = v;
-				for v in iter.iter() {
-					let vertex = v.get::<Vertex>().unwrap().clone();
-					result.push(vertex);
-				}
-			}
-			_ => unimplemented!(),
+		for item in list.iter() {
+			let value = E::from_gvalue(item.clone()).unwrap();
+			result.push(value);
 		}
-
-		result
+		Ok(result)
 	}
 
-	fn top_step(&self) -> &IxResult {
-		self.steps.back().unwrap()
-	}
-
-	fn collect_debug(&self, result: VecDeque<GValue>) {
+	fn collect_debug(&self, result: GValue) {
 		println!("==> Result");
-		for (index, ix) in result.iter().enumerate() {
-			println!("{:?} --- {:?}", index, ix);
-		}
+		println!("{:?}", result);
 		println!("-----------------");
 	}
 

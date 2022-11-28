@@ -138,6 +138,7 @@ mod test {
 		assert_eq!(vertices.len(), 2);
 
 		let mut iter = vertices.iter();
+		println!("Iter: {:?}", iter);
 		let person_vertex = iter.next().unwrap();
 		assert_eq!(person_vertex.label(), "person");
 		let coder_vertex = iter.next().unwrap();
