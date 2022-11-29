@@ -14,6 +14,7 @@ pub struct ExecutionResult {
 	vertices: IxResult,
 	new_vertex: IxResult,
 	new_edge: IxResult,
+	other: IxResult,
 }
 
 impl Default for ExecutionResult {
@@ -22,9 +23,10 @@ impl Default for ExecutionResult {
 		println!("Default: {:?}", default_list);
 		Self {
 			edges: default_list.clone(),
-			vertices: default_list,
+			vertices: default_list.clone(),
 			new_vertex: Default::default(),
 			new_edge: Default::default(),
+			other: default_list,
 		}
 	}
 }
@@ -74,7 +76,7 @@ fn is_reducing_barrier_step(s: &str) -> bool {
 }
 
 impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
-	fn collect_vertex_list(&mut self) -> List {
+	fn collect_vertex_list(&self) -> List {
 		let mut list = self.get_from_source::<List>("V").unwrap();
 		let new_vertex = self.result.get_from_source("addV").value;
 		if !new_vertex.is_null() {
@@ -84,11 +86,11 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		list
 	}
 
-	fn collect_vertex(&mut self) -> GValue {
+	fn collect_vertex(&self) -> GValue {
 		GValue::List(self.collect_vertex_list())
 	}
 
-	fn collect_vertex_properties(&mut self) -> GValue {
+	fn collect_vertex_properties(&self) -> GValue {
 		let list = self.collect_vertex_list();
 		let mut result: Vec<GValue> = vec![];
 
@@ -105,6 +107,21 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		GValue::List(List::new(result))
 	}
 
+	fn collect_count(&self) -> GValue {
+		let value = &self.result.other.value;
+		let terminator = value.get::<String>().unwrap();
+		match terminator.as_str() {
+			"Vertex" => {
+				let vertices = self.collect_vertex_list();
+				GValue::Int64(vertices.len() as i64)
+			}
+			s if is_streaming_edge_step(s) => {
+				unimplemented!()
+			}
+			_ => unimplemented!(),
+		}
+	}
+
 	fn collect(&mut self) -> Result<GValue, Error>
 	where
 		T: FromGValue,
@@ -112,6 +129,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		match self.terminator.as_str() {
 			"Vertex" => Ok(self.collect_vertex()),
 			"VertexProperty" => Ok(self.collect_vertex_properties()),
+			"Int64" => Ok(self.collect_count()),
 			_ => unimplemented!(),
 		}
 	}
@@ -162,16 +180,18 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 	async fn process_reducing_barrier_step(&mut self, step: &Instruction) {
 		let args = step.args();
 		let operator = step.operator().as_str();
-		match operator {
+		let result = match operator {
 			"count" => self.count(args).await,
 			_ => unimplemented!(),
 		};
+
+		self.result.other = result;
 	}
 
 	async fn process_step(&mut self, step: &Instruction) {
 		let args = step.args();
 		let operator = step.operator().as_str();
-		match operator {
+		let result = match operator {
 			"property" => self.property(args).await,
 			"properties" => self.properties(args).await,
 			"count" => self.count(args).await,
@@ -179,6 +199,8 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 			"hasIds" => self.has_ids(args).await,
 			_ => unimplemented!(),
 		};
+
+		self.result.other = result;
 	}
 
 	async fn execute(&mut self) -> Result<GValue, GremlinError>
@@ -198,6 +220,15 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		let result = self.collect().unwrap();
 		self.collect_debug(result.clone());
 		Ok(result)
+	}
+
+	pub async fn done(&mut self) -> Result<T, Error>
+	where
+		T: FromGValue + Clone,
+	{
+		let exec = self.execute().await.unwrap();
+		let value = T::from_gvalue(exec.clone()).unwrap();
+		Ok(value)
 	}
 
 	pub async fn to_list(&mut self) -> Result<Vec<T>, Error>
@@ -347,7 +378,6 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 	}
 
 	async fn properties(&mut self, args: &Vec<GValue>) -> IxResult {
-		println!("Source: {:?}", self.result);
 		match self.source.as_str() {
 			"V" => self.vertices_properties(args).await,
 			"addV" => self.new_vertex_properties(args).await,
@@ -376,8 +406,9 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 	where
 		T: FromGValue + Clone,
 	{
-		self.set_terminator("Int32");
-		IxResult::new("count", GValue::Null)
+		let streamed_terminator = GValue::String(self.terminator.clone());
+		self.set_terminator("Int64");
+		IxResult::new("count", streamed_terminator)
 	}
 
 	async fn has_labels(&mut self, _args: &Vec<GValue>) -> IxResult {
@@ -388,7 +419,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		unimplemented!()
 	}
 
-	fn get_from_source<E>(&mut self, source: &str) -> Result<E, Error>
+	fn get_from_source<E>(&self, source: &str) -> Result<E, Error>
 	where
 		E: FromGValue,
 	{

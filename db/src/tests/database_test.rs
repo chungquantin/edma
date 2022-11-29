@@ -147,5 +147,8 @@ mod test {
 
 		let vertices = db.traverse().v(()).exec().to_list().await.unwrap();
 		assert_eq!(vertices.len(), 2);
+
+		let count = db.traverse().v(()).count().exec().done().await.unwrap();
+		assert_eq!(count, vertices.len() as i64);
 	}
 }
