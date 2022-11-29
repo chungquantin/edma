@@ -227,7 +227,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		T: FromGValue + Clone,
 	{
 		let exec = self.execute().await.unwrap();
-		let value = T::from_gvalue(exec.clone()).unwrap();
+		let value = T::from_gvalue(exec).unwrap();
 		Ok(value)
 	}
 
