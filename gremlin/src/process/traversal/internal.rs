@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use crate::conversion::FromGValue;
 use crate::process::traversal::GraphTraversal;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum TerminatorToken {
 	Null,
 	Vertex,
