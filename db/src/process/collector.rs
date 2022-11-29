@@ -15,12 +15,9 @@ impl<'a, T: FromGValue + Clone> StepCollector<'a, T> {
 	}
 
 	fn collect_vertex_list(&self) -> List {
-		let mut list = self.executor.get_from_source::<List>("V").unwrap();
-		let new_vertex = self.executor.result.get_from_source("addV").value;
-		if !new_vertex.is_null() {
-			list.push(new_vertex);
-		}
-
+		let mut list = self.executor.source_value::<List>("V").unwrap();
+		let new_vertices = self.executor.source_value::<List>("addV").unwrap();
+		list.append(&mut new_vertices.core());
 		list
 	}
 

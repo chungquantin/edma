@@ -21,7 +21,7 @@ license = "Apache-2.0"
 
 
 [features]
-default = ["kv-rocksdb", "kv-cassandradb", "ql-gremlin", "debug-suite"]
+default = ["kv-rocksdb", "kv-cassandradb", "ql-gremlin"]
 kv-rocksdb = ["dep:rocksdb"]
 kv-cassandradb = []
 ql-gremlin = ["dep:gremlin"]

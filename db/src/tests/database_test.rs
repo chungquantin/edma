@@ -142,7 +142,6 @@ mod test {
 		assert_eq!(vertices.len(), 2);
 
 		let mut iter = vertices.iter();
-		println!("Iter: {:?}", iter);
 		let person_vertex = iter.next().unwrap();
 		assert_eq!(person_vertex.label(), "person");
 		let coder_vertex = iter.next().unwrap();
@@ -158,5 +157,31 @@ mod test {
 		let properties_count =
 			db.traverse().v(()).properties("github").count().exec().done().await.unwrap();
 		assert_eq!(properties_count, 1);
+	}
+
+	#[tokio::test]
+	async fn vertex_has_step() {
+		let path = &generate_path(None);
+		let datastore = Datastore::new(path);
+		let db = Database::new(datastore.borrow());
+
+		let vertices = db
+			.traverse()
+			.v(1)
+			.add_v("person")
+			.add_v("person")
+			.add_v("coder")
+			.property("github", "chungquantin")
+			.has_label("person")
+			.exec()
+			.to_list()
+			.await
+			.unwrap();
+
+		assert_eq!(vertices.len(), 2);
+
+		let mut iter = vertices.iter();
+		let person_vertex = iter.next().unwrap();
+		assert_eq!(person_vertex.label(), "person");
 	}
 }

@@ -41,6 +41,14 @@ impl List {
 	pub fn core(self) -> Vec<GValue> {
 		self.0
 	}
+
+	pub fn last(self) -> Option<GValue> {
+		self.0.last().cloned()
+	}
+
+	pub fn last_mut(&mut self) -> Option<&mut GValue> {
+		self.0.last_mut()
+	}
 }
 
 impl std::iter::IntoIterator for List {

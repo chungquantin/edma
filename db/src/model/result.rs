@@ -6,8 +6,8 @@ use crate::IxResult;
 pub struct ExecutionResult {
 	pub edges: IxResult,
 	pub vertices: IxResult,
-	pub new_vertex: IxResult,
-	pub new_edge: IxResult,
+	pub new_vertices: IxResult,
+	pub new_edges: IxResult,
 	pub other: IxResult,
 }
 
@@ -17,8 +17,8 @@ impl Default for ExecutionResult {
 		Self {
 			edges: default_list.clone(),
 			vertices: default_list.clone(),
-			new_vertex: Default::default(),
-			new_edge: Default::default(),
+			new_vertices: default_list.clone(),
+			new_edges: default_list.clone(),
 			other: default_list,
 		}
 	}
@@ -29,8 +29,8 @@ impl ExecutionResult {
 		match source {
 			"E" => self.edges.clone(),
 			"V" => self.vertices.clone(),
-			"addV" => self.new_vertex.clone(),
-			"addE" => self.new_edge.clone(),
+			"addV" => self.new_vertices.clone(),
+			"addE" => self.new_edges.clone(),
 			_ => unimplemented!(),
 		}
 	}
