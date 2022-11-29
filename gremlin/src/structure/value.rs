@@ -1,5 +1,5 @@
 use crate::conversion::{BorrowFromGValue, FromGValue};
-use crate::process::traversal::{Bytecode, Order, Scope};
+use crate::process::traversal::{Bytecode, Order, Scope, TerminatorToken};
 use crate::structure::traverser::Traverser;
 use crate::structure::{
 	label::LabelType, Cardinality, Edge, GKey, IntermediateRepr, List, Map, Metric, Path, Property,
@@ -46,6 +46,7 @@ pub enum GValue {
 	Bool(bool),
 	TextP(TextP),
 	Pop(Pop),
+	Terminator(TerminatorToken),
 	Cardinality(Cardinality),
 }
 

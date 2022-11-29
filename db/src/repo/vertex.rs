@@ -104,11 +104,11 @@ impl<'a> VertexRepository<'a> {
 
 	pub async fn properties(&self, v: &mut Vertex, args: &Vec<GValue>) -> RepositoryResult<Vertex> {
 		let property_repo = self.property_repo();
-		println!("Args: {:?}", args);
 		let properties = match args.first() {
 			Some(label) => property_repo.iterate_from_label(v.id(), label).await.unwrap(),
 			None => property_repo.iterate_from_vertex(v.id()).await.unwrap(),
 		};
+		println!("properties: {:?}", properties);
 		v.add_properties(properties);
 		Ok(v.clone())
 	}

@@ -1,139 +1,29 @@
 use std::marker::PhantomData;
 
+use crate::util::{is_reducing_barrier_step, is_streaming_source_step};
+use crate::ExecutionResult;
 use crate::{err::Error, storage::DatastoreRef, IxResult, SimpleTransaction, VertexRepository};
-use gremlin::process::traversal::{GraphTraversal, Terminator};
+use gremlin::process::traversal::{GraphTraversal, Terminator, TerminatorToken};
 use gremlin::GremlinError;
 use gremlin::{
 	process::traversal::{Bytecode, Instruction},
 	FromGValue, GValue, List, Vertex,
 };
 
-#[derive(Clone, Debug)]
-pub struct ExecutionResult {
-	edges: IxResult,
-	vertices: IxResult,
-	new_vertex: IxResult,
-	new_edge: IxResult,
-	other: IxResult,
-}
-
-impl Default for ExecutionResult {
-	fn default() -> Self {
-		let default_list = IxResult::new("", GValue::List(List::default()));
-		println!("Default: {:?}", default_list);
-		Self {
-			edges: default_list.clone(),
-			vertices: default_list.clone(),
-			new_vertex: Default::default(),
-			new_edge: Default::default(),
-			other: default_list,
-		}
-	}
-}
-
-impl ExecutionResult {
-	fn get_from_source(&self, source: &str) -> IxResult {
-		match source {
-			"E" => self.edges.clone(),
-			"V" => self.vertices.clone(),
-			"addV" => self.new_vertex.clone(),
-			"addE" => self.new_edge.clone(),
-			_ => unimplemented!(),
-		}
-	}
-}
+use super::StepCollector;
 
 #[derive(Clone)]
 pub struct StepExecutor<'a, T: FromGValue + Clone> {
 	bytecode: Bytecode,
-	result: ExecutionResult,
-	terminator: String,
+	pub result: ExecutionResult,
+	terminator: TerminatorToken,
 	source: String,
 	v: VertexRepository<'a>,
 	phantom: PhantomData<T>,
 	iter_index: usize,
 }
 
-fn is_streaming_vertex_step(s: &str) -> bool {
-	s == "V" || s == "addV"
-}
-
-fn is_streaming_edge_step(s: &str) -> bool {
-	s == "E" || s == "addE"
-}
-
-fn is_streaming_source_step(s: &str) -> bool {
-	is_streaming_edge_step(s) || is_streaming_vertex_step(s)
-}
-
-/// # ReducingBarrierStep()
-/// All of the traversers prior to the step are processed by a reduce function and once
-/// all the previous traversers are processed, a single "reduced value" traverser is emitted
-/// to the next step. Note that the path history leading up to a reducing barrier step is
-/// destroyed given its many-to-one nature.
-fn is_reducing_barrier_step(s: &str) -> bool {
-	s == "fold" || s == "count" || s == "sum" || s == "max" || s == "min"
-}
-
 impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
-	fn collect_vertex_list(&self) -> List {
-		let mut list = self.get_from_source::<List>("V").unwrap();
-		let new_vertex = self.result.get_from_source("addV").value;
-		if !new_vertex.is_null() {
-			list.push(new_vertex);
-		}
-
-		list
-	}
-
-	fn collect_vertex(&self) -> GValue {
-		GValue::List(self.collect_vertex_list())
-	}
-
-	fn collect_vertex_properties(&self) -> GValue {
-		let list = self.collect_vertex_list();
-		let mut result: Vec<GValue> = vec![];
-
-		for item in list.iter() {
-			let vertex = item.get::<Vertex>().unwrap();
-			let properties = vertex.properties();
-			for (_, property) in properties.iter() {
-				for item in property {
-					result.push(GValue::VertexProperty(item.clone()));
-				}
-			}
-		}
-
-		GValue::List(List::new(result))
-	}
-
-	fn collect_count(&self) -> GValue {
-		let value = &self.result.other.value;
-		let terminator = value.get::<String>().unwrap();
-		match terminator.as_str() {
-			"Vertex" => {
-				let vertices = self.collect_vertex_list();
-				GValue::Int64(vertices.len() as i64)
-			}
-			s if is_streaming_edge_step(s) => {
-				unimplemented!()
-			}
-			_ => unimplemented!(),
-		}
-	}
-
-	fn collect(&mut self) -> Result<GValue, Error>
-	where
-		T: FromGValue,
-	{
-		match self.terminator.as_str() {
-			"Vertex" => Ok(self.collect_vertex()),
-			"VertexProperty" => Ok(self.collect_vertex_properties()),
-			"Int64" => Ok(self.collect_count()),
-			_ => unimplemented!(),
-		}
-	}
-
 	pub fn new<S, E>(traversal: &GraphTraversal<S, T, E>, ds_ref: DatastoreRef<'a>) -> Self
 	where
 		T: FromGValue,
@@ -142,7 +32,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		StepExecutor {
 			bytecode: traversal.bytecode().clone(),
 			result: ExecutionResult::default(),
-			terminator: String::default(),
+			terminator: TerminatorToken::Null,
 			source: String::default(),
 			v: VertexRepository::new(ds_ref),
 			phantom: PhantomData,
@@ -210,14 +100,14 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		self.bytecode_debug();
 
 		for step in self.bytecode.clone().steps() {
-			println!("==> result: {:?}", self.result);
 			match step.operator().as_str() {
 				s if is_streaming_source_step(s) => self.process_streaming_step(step).await,
 				s if is_reducing_barrier_step(s) => self.process_reducing_barrier_step(step).await,
 				_ => self.process_step(step).await,
 			}
 		}
-		let result = self.collect().unwrap();
+		let collector = StepCollector::new(self.clone());
+		let result = collector.collect(&self.terminator.clone()).unwrap();
 		self.collect_debug(result.clone());
 		Ok(result)
 	}
@@ -275,11 +165,12 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		let tx = &mut self.v.mut_tx();
 		let result = self.v.v(tx, args).await.unwrap();
 
-		self.set_terminator("Vertex");
+		self.set_terminator(TerminatorToken::Vertex);
 		IxResult::new("V", GValue::List(result))
 	}
 
 	async fn e(&mut self, _ids: &Vec<GValue>) -> IxResult {
+		self.set_terminator(TerminatorToken::Edge);
 		IxResult::new("E", GValue::Null)
 	}
 
@@ -300,12 +191,12 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		}
 
 		tx.commit().await.unwrap();
-		self.set_terminator("Vertex");
+		self.set_terminator(TerminatorToken::Vertex);
 		IxResult::new("addV", GValue::Vertex(vertex))
 	}
 
 	async fn add_e(&mut self, _labels: &Vec<GValue>) -> IxResult {
-		self.set_terminator("Edge");
+		self.set_terminator(TerminatorToken::Edge);
 		IxResult::new("addE", GValue::Null)
 	}
 
@@ -361,7 +252,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 			}
 			self.result.vertices.value = GValue::List(List::new(result.clone()));
 		}
-		self.set_terminator("VertexProperty");
+		self.set_terminator(TerminatorToken::VertexProperty);
 		let list = GValue::List(List::new(result));
 		IxResult::new("properties", list)
 	}
@@ -373,7 +264,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		let result = GValue::Vertex(vertex);
 		self.result.vertices.value = result.clone();
 
-		self.set_terminator("VertexProperty");
+		self.set_terminator(TerminatorToken::VertexProperty);
 		IxResult::new("properties", result)
 	}
 
@@ -406,8 +297,8 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 	where
 		T: FromGValue + Clone,
 	{
-		let streamed_terminator = GValue::String(self.terminator.clone());
-		self.set_terminator("Int64");
+		let streamed_terminator = GValue::Terminator(self.terminator.clone());
+		self.set_terminator(TerminatorToken::Int64);
 		IxResult::new("count", streamed_terminator)
 	}
 
@@ -419,7 +310,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		unimplemented!()
 	}
 
-	fn get_from_source<E>(&self, source: &str) -> Result<E, Error>
+	pub fn get_from_source<E>(&self, source: &str) -> Result<E, Error>
 	where
 		E: FromGValue,
 	{
@@ -456,7 +347,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		println!("-----------------");
 	}
 
-	fn set_terminator(&mut self, token: &str) {
-		self.terminator = token.to_string();
+	fn set_terminator(&mut self, token: TerminatorToken) {
+		self.terminator = token;
 	}
 }

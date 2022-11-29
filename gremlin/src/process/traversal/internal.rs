@@ -3,6 +3,14 @@ use async_trait::async_trait;
 use crate::conversion::FromGValue;
 use crate::process::traversal::GraphTraversal;
 
+#[derive(Debug, PartialEq, Clone)]
+pub enum TerminatorToken {
+	Null,
+	Vertex,
+	VertexProperty,
+	Int64,
+	Edge,
+}
 #[async_trait]
 pub trait Terminator<T: FromGValue>: Clone {
 	type Executor;

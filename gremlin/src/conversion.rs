@@ -1,5 +1,5 @@
 use crate::{
-	process::traversal::Bytecode,
+	process::traversal::{Bytecode, TerminatorToken},
 	structure::{TextP, P as Predicate},
 	Edge, GKey, GValue, GremlinError, GremlinResult, IntermediateRepr, List, Map, Metric, Path,
 	Property, Token, TraversalExplanation, TraversalMetrics, Vertex, VertexProperty, GID,
@@ -189,6 +189,7 @@ macro_rules! impl_borrow_from_gvalue {
 	};
 }
 
+impl_borrow_from_gvalue!(TerminatorToken, GValue::Terminator);
 impl_borrow_from_gvalue!(VertexProperty, GValue::VertexProperty);
 impl_borrow_from_gvalue!(Property, GValue::Property);
 impl_borrow_from_gvalue!(Map, GValue::Map);

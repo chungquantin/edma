@@ -73,7 +73,7 @@ impl<'a> VertexPropertyRepository<'a> {
 		&self,
 		iterator: Vec<Result<KeyValuePair, Error>>,
 	) -> Result<VertexPropertyMap, Error> {
-		let mut map = HashMap::new();
+		let mut map = HashMap::<String, Vec<VertexProperty>>::new();
 		iterator.iter().for_each(|p| {
 			let (k, v) = p.as_ref().unwrap();
 			// Handle deserializing and rebuild vertex stream
@@ -84,7 +84,7 @@ impl<'a> VertexPropertyRepository<'a> {
 			let variant = build_usize_from_bytes(v[..1].to_vec());
 			let value = GValue::from_bytes(variant, v[1..].to_vec());
 			let property = VertexProperty::new(gid, label.clone(), value);
-			map.insert(label, vec![property]);
+			map.entry(label).or_default().push(property);
 		});
 
 		Ok(map)

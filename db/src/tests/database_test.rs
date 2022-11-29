@@ -116,6 +116,10 @@ mod test {
 		let github = vertex.property("github").unwrap();
 		assert_eq!(github[0].value(), &GValue::String("chungquantin".to_string()));
 		assert_eq!(github[1].value(), &GValue::String("tin-snowflake".to_string()));
+
+		let properties_count =
+			db.traverse().v(()).properties("github").count().exec().done().await.unwrap();
+		assert_eq!(properties_count, 2);
 	}
 
 	#[tokio::test]
@@ -150,5 +154,9 @@ mod test {
 
 		let count = db.traverse().v(()).count().exec().done().await.unwrap();
 		assert_eq!(count, vertices.len() as i64);
+
+		let properties_count =
+			db.traverse().v(()).properties("github").count().exec().done().await.unwrap();
+		assert_eq!(properties_count, 1);
 	}
 }

@@ -8,7 +8,7 @@ mod order;
 mod scope;
 mod step;
 
-pub use internal::Terminator;
+pub use internal::{Terminator, TerminatorToken};
 pub use order::Order;
 
 pub use builder::TraversalBuilder;
