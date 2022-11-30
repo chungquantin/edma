@@ -9,7 +9,7 @@
 <p align="center">
  <a href="https://github.com/nomadiz/solomon-db"><img src="https://img.shields.io/badge/built_with-Rust-dca282.svg?style=flat-square"></a>
 &nbsp;
-<a href="https://github.com/surrealdb/surrealdb"><img src=" https://img.shields.io/badge/build%20with-gremlin-green"></a>
+<a href="https://github.com/surrealdb/surrealdb"><img src="https://img.shields.io/badge/build%20with-gremlin-green"></a>
 &nbsp;
 <a href="https://github.com/nomadiz/solomon-db"><img src="https://img.shields.io/github/v/release/nomadiz/solomon-db?color=%23ff00a0&include_prereleases&label=version&sort=semver&style=flat-square"></a>
 &nbsp;
