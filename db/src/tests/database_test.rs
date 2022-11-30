@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod test {
 	use crate::{storage::Datastore, util::generate_path, Database};
-	use gremlin::{GValue};
+	use gremlin::GValue;
 
 	#[tokio::test]
 	async fn vertex_with_property() {

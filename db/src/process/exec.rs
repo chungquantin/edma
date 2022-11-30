@@ -388,7 +388,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		E: FromGValue,
 	{
 		let stream = self.result.get_from_source(source);
-		
+
 		E::from_gvalue(stream.value)
 	}
 
