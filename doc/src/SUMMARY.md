@@ -4,9 +4,13 @@
 
 # Development log
 
--   [2022]()
-    -   [October](devlog/2022/october-2022.md)
-    -   [November](devlog/2022/november-2022.md)
+-   [October - 2022 ]()
+    -   [Week 1: Baal](devlog/2022/october/w1.md)
+-   [November - 2022]()
+    -   [Week 2: Palmon](devlog/2022/november/w2.md)
+    -   [Week 3: Beleth](devlog/2022/november/w3.md)
+    -   [Week 4: Purson](devlog/2022/november/w4.md)
+    -   [Week 5: Asmodeus](devlog/2022/november/w5.md)
 
 ---
 
