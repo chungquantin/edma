@@ -53,17 +53,6 @@ impl TraversalBuilder {
 		self
 	}
 
-	pub fn has_label<L>(mut self, labels: L) -> Self
-	where
-		L: Into<Labels>,
-	{
-		self.bytecode.add_step(
-			String::from("hasLabel"),
-			labels.into().0.into_iter().map(GValue::from).collect(),
-		);
-		self
-	}
-
 	pub fn add_v<A>(mut self, label: A) -> Self
 	where
 		A: Into<Labels>,
@@ -128,6 +117,17 @@ impl TraversalBuilder {
 		self
 	}
 
+	pub fn has_label<L>(mut self, labels: L) -> Self
+	where
+		L: Into<Labels>,
+	{
+		self.bytecode.add_step(
+			String::from("hasLabel"),
+			labels.into().0.into_iter().map(GValue::from).collect(),
+		);
+		self
+	}
+
 	pub fn has_many<A>(mut self, steps: Vec<A>) -> Self
 	where
 		A: Into<HasStep>,
@@ -145,6 +145,23 @@ impl TraversalBuilder {
 		self.bytecode.add_step(String::from("hasNot"), vec![key.into().into()]);
 		self
 	}
+
+	pub fn has_id<A>(mut self, key: A) -> Self
+	where
+		A: Into<String>,
+	{
+		self.bytecode.add_step(String::from("hasId"), vec![key.into().into()]);
+		self
+	}
+
+	pub fn has_key<A>(mut self, key: A) -> Self
+	where
+		A: Into<String>,
+	{
+		self.bytecode.add_step(String::from("hasKey"), vec![key.into().into()]);
+		self
+	}
+
 	pub fn as_<A>(mut self, alias: A) -> Self
 	where
 		A: Into<String>,

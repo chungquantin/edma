@@ -1,13 +1,13 @@
-pub fn is_streaming_vertex_step(s: &str) -> bool {
+pub fn is_vertex_step(s: &str) -> bool {
 	s == "V" || s == "addV"
 }
 
-pub fn is_streaming_edge_step(s: &str) -> bool {
+pub fn is_edge_step(s: &str) -> bool {
 	s == "E" || s == "addE"
 }
 
-pub fn is_streaming_source_step(s: &str) -> bool {
-	is_streaming_edge_step(s) || is_streaming_vertex_step(s)
+pub fn is_source_step(s: &str) -> bool {
+	is_edge_step(s) || is_vertex_step(s)
 }
 
 /// # ReducingBarrierStep()

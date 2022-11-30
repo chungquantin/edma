@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod test {
 	use crate::{storage::Datastore, util::generate_path, Database};
-	use gremlin::GValue;
+	use gremlin::{GValue};
 
 	#[tokio::test]
 	async fn vertex_with_property() {
@@ -165,23 +165,38 @@ mod test {
 		let datastore = Datastore::new(path);
 		let db = Database::new(datastore.borrow());
 
-		let vertices = db
+		let t1 = db
 			.traverse()
 			.v(1)
 			.add_v("person")
-			.add_v("person")
+			.property("github", "tin-snowflake")
+			.property("name", "Tin Chung")
+			.property("age", 21)
 			.add_v("coder")
 			.property("github", "chungquantin")
-			.has_label("person")
-			.exec()
-			.to_list()
-			.await
-			.unwrap();
+			.property("age", 30);
 
-		assert_eq!(vertices.len(), 2);
+		let t2 = t1.clone().has_key("github").has_label("person").exec().to_list().await.unwrap();
+		let t3 = t1.clone().has_key("github").exec().to_list().await.unwrap();
+		let t4 = t1.clone().has_not("name").exec().next().await.unwrap();
+		// let t5 = t1
+		// 	.clone()
+		// 	.has(("age", P::within((18, 24))))
+		// 	.properties(())
+		// 	.exec()
+		// 	.next()
+		// 	.await
+		// 	.unwrap();
 
-		let mut iter = vertices.iter();
+		assert_eq!(t2.len(), 1);
+		assert_eq!(t3.len(), 2);
+		assert_eq!(t4.unwrap().label(), "coder");
+		// assert_eq!(t5.unwrap().label(), "github");
+
+		let mut iter = t3.iter();
 		let person_vertex = iter.next().unwrap();
 		assert_eq!(person_vertex.label(), "person");
+		let coder_vertex = iter.next().unwrap();
+		assert_eq!(coder_vertex.label(), "coder");
 	}
 }

@@ -145,6 +145,15 @@ impl<S, E: FromGValue, T: Terminator<E>> GraphTraversal<S, E, T> {
 		self.builder = self.builder.has_not(key);
 		self
 	}
+
+	pub fn has_key<A>(mut self, key: A) -> Self
+	where
+		A: Into<String>,
+	{
+		self.builder = self.builder.has_key(key);
+		self
+	}
+
 	pub fn as_<A>(mut self, alias: A) -> Self
 	where
 		A: Into<String>,

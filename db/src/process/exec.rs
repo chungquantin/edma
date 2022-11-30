@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::util::{is_reducing_barrier_step, is_streaming_source_step};
+use crate::util::{is_reducing_barrier_step, is_source_step, is_vertex_step};
 use crate::ExecutionResult;
 use crate::{err::Error, storage::DatastoreRef, IxResult, SimpleTransaction, VertexRepository};
 use gremlin::process::traversal::{GraphTraversal, Terminator, TerminatorToken};
@@ -71,7 +71,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		let args = step.args();
 		let operator = step.operator().as_str();
 		let result = match operator {
-			"count" => self.count(args).await,
+			"count" => self.count(args),
 			_ => unimplemented!(),
 		};
 
@@ -84,9 +84,11 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		let result = match operator {
 			"property" => self.property(args).await,
 			"properties" => self.properties(args).await,
-			"count" => self.count(args).await,
-			"hasLabel" => self.has_label(args).await,
-			"hasIds" => self.has_id(args).await,
+			"hasLabel" => self.has_label(args),
+			"hasId" => self.has_id(args),
+			"hasKey" => self.has_key(args),
+			"hasNot" => self.has_not(args),
+			"has" => self.has(args),
 			_ => unimplemented!(),
 		};
 
@@ -102,7 +104,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 
 		for step in self.bytecode.clone().steps() {
 			match step.operator().as_str() {
-				s if is_streaming_source_step(s) => self.process_streaming_step(step).await,
+				s if is_source_step(s) => self.process_streaming_step(step).await,
 				s if is_reducing_barrier_step(s) => self.process_reducing_barrier_step(step).await,
 				_ => self.process_step(step).await,
 			}
@@ -301,7 +303,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		}
 	}
 
-	async fn count(&mut self, _args: &Vec<GValue>) -> IxResult
+	fn count(&mut self, _args: &Vec<GValue>) -> IxResult
 	where
 		T: FromGValue + Clone,
 	{
@@ -310,25 +312,75 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		IxResult::new("count", streamed_terminator)
 	}
 
-	async fn has_label(&mut self, args: &Vec<GValue>) -> IxResult {
-		let arg = args.first();
-		if arg.is_some() {
-			let label = arg.unwrap().get::<String>().unwrap();
-			let vertices =
-				self.raw_list_from_source::<Vertex>("V", Some(&|v| v.label() == label)).unwrap();
+	fn filter_vertices_result(
+		&mut self,
+		args: &Vec<GValue>,
+		f: &(dyn Fn(&Vertex, &String) -> bool),
+	) {
+		for arg in args.iter() {
+			let cmp = arg.get::<String>().unwrap();
+			let vertices = self.raw_list_from_source::<Vertex>("V", Some(&|v| f(v, cmp))).unwrap();
 			let list = GValue::List(List::new(vertices));
 			self.result.vertices.value = list;
 
 			let new_vertices =
-				self.raw_list_from_source::<Vertex>("addV", Some(&|v| v.label() == label)).unwrap();
+				self.raw_list_from_source::<Vertex>("addV", Some(&|v| f(v, cmp))).unwrap();
 			let list = GValue::List(List::new(new_vertices));
 			self.result.new_vertices.value = list;
 		}
-		IxResult::new("has_label", GValue::Null)
 	}
 
-	async fn has_id(&mut self, _args: &Vec<GValue>) -> IxResult {
-		unimplemented!()
+	fn has_id(&mut self, args: &Vec<GValue>) -> IxResult {
+		match self.source.as_str() {
+			s if is_vertex_step(s) => {
+				self.filter_vertices_result(
+					args,
+					&(|v, cmp| String::from_utf8(v.id().bytes()).unwrap() == *cmp),
+				);
+				IxResult::new("has_label", GValue::Null)
+			}
+			_ => unimplemented!(),
+		}
+	}
+
+	fn has_not(&mut self, args: &Vec<GValue>) -> IxResult {
+		match self.source.as_str() {
+			s if is_vertex_step(s) => {
+				self.filter_vertices_result(args, &(|v, cmp| !v.properties().contains_key(cmp)));
+				IxResult::new("has_label", GValue::Null)
+			}
+			_ => unimplemented!(),
+		}
+	}
+
+	fn has_label(&mut self, args: &Vec<GValue>) -> IxResult {
+		match self.source.as_str() {
+			s if is_vertex_step(s) => {
+				self.filter_vertices_result(args, &(|v, cmp| v.label() == cmp));
+				IxResult::new("has_label", GValue::Null)
+			}
+			_ => unimplemented!(),
+		}
+	}
+
+	fn has_key(&mut self, args: &Vec<GValue>) -> IxResult {
+		match self.source.as_str() {
+			s if is_vertex_step(s) => {
+				self.filter_vertices_result(args, &(|v, cmp| v.properties().contains_key(cmp)));
+				IxResult::new("has_label", GValue::Null)
+			}
+			_ => unimplemented!(),
+		}
+	}
+
+	fn has(&mut self, args: &Vec<GValue>) -> IxResult {
+		println!("args: {:?}", args);
+		match self.source.as_str() {
+			s if is_vertex_step(s) => {
+				unimplemented!()
+			}
+			_ => unimplemented!(),
+		}
 	}
 
 	pub fn source_value<E>(&self, source: &str) -> Result<E, GremlinError>
@@ -336,8 +388,8 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		E: FromGValue,
 	{
 		let stream = self.result.get_from_source(source);
-		let item = E::from_gvalue(stream.value);
-		item
+		
+		E::from_gvalue(stream.value)
 	}
 
 	fn raw_list_from_source<E>(
