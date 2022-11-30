@@ -19,3 +19,6 @@ Distributed graph database built by nomadic engineers. I envisage Solomon DB as 
 
 ## Why is it named "Solomon"?
 Solomon is the name of a the wisest person who ever lived, King Solomon. If you have ever read Bible, you might know some stories of King Solomon. One of those stories is when King Solomon asks for wishdom. Based on that idea, Solomon DB is built as my personal side project to gain more knowledge about database internals and graph database architecture. 
+
+# Articles
+- [How did I promote my first open source project to get a first star?](https://chasechung.hashnode.dev/how-did-i-promote-my-first-open-source-project-to-get-a-first-star)
