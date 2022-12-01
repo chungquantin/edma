@@ -1,5 +1,4 @@
 use crate::{err::Error, SimpleTransaction};
-use async_trait::async_trait;
 use std::{pin::Pin, sync::Arc};
 
 #[derive(Debug, Clone)]
@@ -38,7 +37,6 @@ impl<T> StorageAdapter<T> {
 	}
 }
 
-#[async_trait]
 pub trait DatastoreAdapter {
 	type Transaction: SimpleTransaction;
 	// # Create new database transaction

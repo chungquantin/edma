@@ -21,7 +21,7 @@ lazy_static! {
 pub enum Component<'a> {
 	Uuid(Uuid),
 	/// GID: Gremlin Identifier
-	GID(&'a GID),
+	Gid(&'a GID),
 	/// GLabelType: Gremlin Label Type
 	Label(&'a LabelType),
 	FixedLengthString(&'a str),
@@ -44,7 +44,7 @@ impl<'a> Component<'a> {
 			Component::DateTime(_) => 8,
 			Component::Bytes(b) => b.len(),
 			Component::GValue(v) | Component::GValueType(v) => v.bytes().len(),
-			Component::GID(v) => v.bytes_len(),
+			Component::Gid(v) => v.bytes_len(),
 			Component::Label(v) => v.bytes_len(),
 			Component::Usize(_) => 1,
 		}
@@ -65,13 +65,13 @@ impl<'a> Component<'a> {
 			Component::Bytes(bytes) => cursor.write_all(bytes),
 			Component::GValueType(v) => cursor.write_all(&[v.to_variant()]),
 			Component::GValue(value) => cursor.write_all(value.bytes().as_slice()),
-			Component::GID(value) => cursor.write_all(value.bytes().as_slice()),
+			Component::Gid(value) => cursor.write_all(value.bytes().as_slice()),
 			Component::Label(value) => cursor.write_all(value.bytes().as_slice()),
 			Component::Usize(value) => cursor.write_all(&[value.try_into().unwrap()]),
 		}
 	}
 
-	pub fn read_uuid(bytes: &[u8]) -> Result<Uuid, IoError> {
+	pub fn _read_uuid(bytes: &[u8]) -> Result<Uuid, IoError> {
 		let mut fix: [u8; 16] = Default::default();
 		fix.copy_from_slice(&bytes[0..16]);
 		Ok(Uuid::from_bytes(fix))

@@ -70,3 +70,10 @@ impl From<rocksdb::Error> for Error {
 		Error::Tx(e.to_string())
 	}
 }
+
+#[cfg(feature = "kv-redb")]
+impl From<redb::Error> for Error {
+	fn from(e: redb::Error) -> Error {
+		Error::Tx(e.to_string())
+	}
+}

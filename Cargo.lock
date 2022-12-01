@@ -1471,6 +1471,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "pyo3-build-config"
+version = "0.17.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "28fcd1e73f06ec85bf3280c48c67e731d8290ad3d730f8be9dc07946923005c8"
+dependencies = [
+ "once_cell",
+ "target-lexicon",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1548,6 +1558,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca3129af7b92a17112d59ad498c6f81eaf463253766b90396d39ea7a39d6613c"
 dependencies = [
  "rand_core 0.5.1",
+]
+
+[[package]]
+name = "redb"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2dcb268658a384e066d5dd04ce4e9875140719ce7f154069c72135de44549a80"
+dependencies = [
+ "libc",
+ "pyo3-build-config",
 ]
 
 [[package]]
@@ -1879,6 +1899,7 @@ dependencies = [
  "log",
  "pin-project-lite",
  "rand 0.8.5",
+ "redb",
  "rocksdb",
  "serde",
  "serde_json",
@@ -2000,6 +2021,12 @@ dependencies = [
  "quote",
  "unicode-ident",
 ]
+
+[[package]]
+name = "target-lexicon"
+version = "0.12.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9410d0f6853b1d94f0e519fb95df60f29d2c1eff2d921ffdf01a4c8a3b54f12d"
 
 [[package]]
 name = "tempfile"

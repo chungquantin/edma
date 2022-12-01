@@ -15,8 +15,9 @@ impl<'a> VertexRepository<'a> {
 	/// The V()-step is meant to read vertices from the graph and is usually
 	/// used to start a GraphTraversal, but can also be used mid-traversal.
 	/// [Documentation](https://tinkerpop.apache.org/docs/current/reference/#v-step)
-	pub async fn v(&self, tx: &Transaction, ids: &Vec<GValue>) -> RepositoryResult<List> {
+	pub async fn v(&self, tx: &Transaction, ids: &[GValue]) -> RepositoryResult<List> {
 		let cf = self.cf();
+
 		match ids.first() {
 			Some(id) => {
 				let key = build_sized(Component::GValue(id));
@@ -29,15 +30,11 @@ impl<'a> VertexRepository<'a> {
 					None => vec![],
 				}))
 			}
-			_ => self.iterate_all().await,
+			_ => self.iterate_all(tx).await,
 		}
 	}
 
-	pub async fn new_v(
-		&self,
-		tx: &mut Transaction,
-		labels: &Vec<GValue>,
-	) -> RepositoryResult<Vertex> {
+	pub async fn new_v(&self, tx: &mut Transaction, labels: &[GValue]) -> RepositoryResult<Vertex> {
 		let new_v = &mut Vertex::default();
 		self.add_v(tx, new_v, labels).await
 	}
@@ -49,7 +46,7 @@ impl<'a> VertexRepository<'a> {
 		&self,
 		tx: &mut Transaction,
 		v: &mut Vertex,
-		labels: &Vec<GValue>,
+		labels: &[GValue],
 	) -> RepositoryResult<Vertex> {
 		let mut serialized_labels = Vec::<String>::new();
 		for label in labels.iter() {
@@ -66,7 +63,7 @@ impl<'a> VertexRepository<'a> {
 			bytes.push(byte);
 		}
 		let cf = self.cf();
-		let key = build_sized(Component::GID(v.id()));
+		let key = build_sized(Component::Gid(v.id()));
 		let val = bytes.concat();
 
 		tx.set(cf, key, val).await.unwrap();
@@ -78,7 +75,7 @@ impl<'a> VertexRepository<'a> {
 	pub async fn new_property(
 		&self,
 		tx: &mut Transaction,
-		args: &Vec<GValue>,
+		args: &[GValue],
 	) -> RepositoryResult<Vertex> {
 		let vertex = &mut Vertex::default();
 		self.property(vertex, tx, args).await
@@ -92,7 +89,7 @@ impl<'a> VertexRepository<'a> {
 		&self,
 		v: &mut Vertex,
 		tx: &mut Transaction,
-		args: &Vec<GValue>,
+		args: &[GValue],
 	) -> RepositoryResult<Vertex> {
 		let property_repo = self.property_repo();
 		let (label, value) = (&args[0], &args[1]);
@@ -102,11 +99,16 @@ impl<'a> VertexRepository<'a> {
 		Ok(v.clone())
 	}
 
-	pub async fn properties(&self, v: &mut Vertex, args: &Vec<GValue>) -> RepositoryResult<Vertex> {
+	pub async fn properties(
+		&self,
+		tx: &Transaction,
+		v: &mut Vertex,
+		args: &[GValue],
+	) -> RepositoryResult<Vertex> {
 		let property_repo = self.property_repo();
 		let properties = match args.first() {
-			Some(label) => property_repo.iterate_from_label(v.id(), label).await.unwrap(),
-			None => property_repo.iterate_from_vertex(v.id()).await.unwrap(),
+			Some(label) => property_repo.iterate_from_label(tx, v.id(), label).await.unwrap(),
+			None => property_repo.iterate_from_vertex(tx, v.id()).await.unwrap(),
 		};
 		println!("properties: {:?}", properties);
 		v.add_properties(properties);
@@ -138,7 +140,7 @@ impl<'a> VertexRepository<'a> {
 		let cf = self.cf();
 		let value = id.get::<String>().unwrap();
 		let gid = &GID::from(value.to_string());
-		let key = build_sized(Component::GID(gid));
+		let key = build_sized(Component::Gid(gid));
 		tx.del(cf, key).await.unwrap();
 		Ok(())
 	}
@@ -154,8 +156,7 @@ impl<'a> VertexRepository<'a> {
 		Ok(List::new(result))
 	}
 
-	pub async fn iterate_all(&self) -> RepositoryResult<List> {
-		let tx = self.ds().transaction(false).unwrap();
+	pub async fn iterate_all(&self, tx: &Transaction) -> RepositoryResult<List> {
 		let cf = self.cf();
 
 		let iterator = tx.iterate(cf).await.unwrap();

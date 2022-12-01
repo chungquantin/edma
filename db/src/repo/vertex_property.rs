@@ -18,9 +18,9 @@ fn build_vertex_property_value(value: &GValue) -> Vec<u8> {
 
 fn build_vertex_property_key(vertex_id: &GID, id: &GID, label: &GValue) -> Vec<u8> {
 	concat_bytes(vec![
-		build_sized(Component::GID(vertex_id)),
+		build_sized(Component::Gid(vertex_id)),
 		build_sized(Component::GValue(label)),
-		build_sized(Component::GID(id)),
+		build_sized(Component::Gid(id)),
 	])
 }
 
@@ -91,23 +91,26 @@ impl<'a> VertexPropertyRepository<'a> {
 	}
 
 	/// Method to iterate the pairs of byte data with prefix as vertex id
-	pub async fn iterate_from_vertex(&self, vertex_id: &GID) -> Result<VertexPropertyMap, Error> {
-		let tx = &self.tx();
+	pub async fn iterate_from_vertex(
+		&self,
+		tx: &Transaction,
+		vertex_id: &GID,
+	) -> Result<VertexPropertyMap, Error> {
 		let cf = self.cf();
-		let prefix = concat_bytes(vec![build_sized(Component::GID(vertex_id))]);
+		let prefix = concat_bytes(vec![build_sized(Component::Gid(vertex_id))]);
 		let iterator = tx.prefix_iterate(cf, prefix).await.unwrap();
 		self.iterate(iterator)
 	}
 
 	pub async fn iterate_from_label(
 		&self,
+		tx: &Transaction,
 		vertex_id: &GID,
 		label: &GValue,
 	) -> Result<VertexPropertyMap, Error> {
-		let tx = &self.tx();
 		let cf = self.cf();
 		let prefix = concat_bytes(vec![
-			build_sized(Component::GID(vertex_id)),
+			build_sized(Component::Gid(vertex_id)),
 			build_sized(Component::GValue(label)),
 		]);
 		let iterator = tx.prefix_iterate(cf, prefix).await.unwrap();

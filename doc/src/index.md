@@ -28,8 +28,6 @@
 	</a>
 </p>
 
----
-
 ## What is SolomonDB?
 
 **SolomonDB** is an open source, distributed, easy-to-use, user friendly graph database built by nomadic engineers. SolomonDB enhances the experience of working with graph database using GQL (Gremlin Query Language). SolomonDB can run in an offline mode and acts as an embedded graph database on top of **RocksDB**. Last but not least, SolomonDB is a database for community. It supports multiple storage layer with a set of plugins for serialization.
@@ -41,8 +39,9 @@ Solomon is the name of a the wisest person who ever lived, King Solomon. If you 
 ## Roadmap
 
 -   [x] Implement RocskDB storage layer
--   [ ] Implement Cassandra storage layer
--   [ ] Database server, or embedded library
+-   [x] Implement Redb storage layer
+-   [ ] Database server
+-   [ ] Embedded library
 -   [ ] Support Gremlin query language
 -   [ ] Multi-row, multi-table ACID transactions
 -   [ ] Single-node, or highly-scalable distributed mode

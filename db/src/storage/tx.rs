@@ -5,18 +5,18 @@ use crate::{
 	Error, SimpleTransaction, CF,
 };
 
-use super::{CassandraDBTransaction, RocksDBTransaction};
+use super::{ReDBTransaction, RocksDBTransaction};
 
 #[allow(clippy::large_enum_variant)]
 pub(super) enum Inner {
 	#[cfg(feature = "kv-rocksdb")]
 	RocksDB(RocksDBTransaction),
-	#[cfg(feature = "kv-cassandradb")]
-	CassandraDB(CassandraDBTransaction),
+	#[cfg(feature = "kv-redb")]
+	ReDB(ReDBTransaction),
 }
 
 pub struct Transaction {
 	pub(super) inner: Inner,
 }
 
-impl_global_transaction!(RocksDB, CassandraDB);
+impl_global_transaction!(RocksDB, ReDB);

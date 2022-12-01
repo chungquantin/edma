@@ -9,8 +9,8 @@ mod repo;
 mod storage;
 mod util;
 
-#[cfg(feature = "kv-cassandradb")]
-pub use crate::storage::kvs::CassandraDBAdapter;
+#[cfg(feature = "kv-redb")]
+pub use crate::storage::kvs::ReDBAdapter;
 #[cfg(feature = "kv-rocksdb")]
 pub use crate::storage::kvs::RocksDBAdapter;
 #[macro_use]

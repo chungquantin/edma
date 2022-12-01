@@ -17,7 +17,7 @@ use rocksdb::{DBCompactionStyle, OptimisticTransactionDB, Options};
 pub struct RocksDBAdapter(StorageAdapter<DBType>);
 
 #[cfg(feature = "test-suite")]
-crate::full_test_impl!(RocksDBAdapter::default());
+crate::full_adapter_test_impl!(RocksDBAdapter::default());
 
 impl RocksDBAdapter {
 	impl_new_type_adapter!(DBType);
@@ -41,7 +41,7 @@ impl DatastoreAdapter for RocksDBAdapter {
 	type Transaction = RocksDBTransaction;
 
 	fn default() -> Self {
-		let path = &generate_path(None);
+		let path = &generate_path("rocksdb", None);
 		RocksDBAdapter::new(path, None).unwrap()
 	}
 

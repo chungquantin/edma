@@ -94,10 +94,7 @@ impl GValue {
 	}
 
 	pub fn is_null(&self) -> bool {
-		match self {
-			GValue::Null => true,
-			_ => false,
-		}
+		matches!(self, GValue::Null)
 	}
 
 	pub fn bytes(&self) -> Vec<u8> {

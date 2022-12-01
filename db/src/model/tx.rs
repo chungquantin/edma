@@ -34,7 +34,24 @@ where
 	pub _db: Pin<Arc<D>>,
 }
 
-#[async_trait]
+impl<DBType, TxType> DBTransaction<DBType, TxType>
+where
+	DBType: 'static,
+	TxType: 'static,
+{
+	pub fn new(tx: TxType, db: Pin<Arc<DBType>>, w: bool) -> Result<Self, Error> {
+		Ok(DBTransaction {
+			tx: Arc::new(Mutex::new(Some(tx))),
+			ok: false,
+			writable: w,
+			readable: true,
+			timestamp: now(),
+			_db: db,
+		})
+	}
+}
+
+#[async_trait(?Send)]
 pub trait SimpleTransaction {
 	// Check if closed
 	fn closed(&self) -> bool;
@@ -98,21 +115,4 @@ pub trait SimpleTransaction {
 		cf: CF,
 		suffix: S,
 	) -> Result<Vec<Result<KeyValuePair, Error>>, Error>;
-}
-
-impl<DBType, TxType> DBTransaction<DBType, TxType>
-where
-	DBType: 'static,
-	TxType: 'static,
-{
-	pub fn new(tx: TxType, db: Pin<Arc<DBType>>, rw: bool) -> Result<Self, Error> {
-		Ok(DBTransaction {
-			tx: Arc::new(Mutex::new(Some(tx))),
-			ok: false,
-			writable: rw,
-			readable: true,
-			timestamp: now(),
-			_db: db,
-		})
-	}
 }

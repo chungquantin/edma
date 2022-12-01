@@ -11,8 +11,16 @@ pub fn path_to_string(path: &Path) -> Result<String, Error> {
 	}
 }
 
+pub fn generate_path(name: &str, id: Option<i32>) -> String {
+	match name {
+		"rocksdb" => generate_rocksdb_path(id),
+		"redb" => generate_redb_path(id),
+		_ => unimplemented!(),
+	}
+}
+
 /// Generate a path to store data for RocksDB
-pub fn generate_path(id: Option<i32>) -> String {
+fn generate_rocksdb_path(id: Option<i32>) -> String {
 	let random_id: i32 = generate_random_i32();
 	let id = &id.unwrap_or(random_id).to_string();
 	let path = if cfg!(target_os = "linux") {
@@ -23,4 +31,18 @@ pub fn generate_path(id: Option<i32>) -> String {
 	.join(format!("solomon-rocksdb-{}", id));
 
 	String::from("rocksdb:") + &path_to_string(&path).unwrap()
+}
+
+/// Generate a path to store data for RocksDB
+fn generate_redb_path(id: Option<i32>) -> String {
+	let random_id: i32 = generate_random_i32();
+	let id = &id.unwrap_or(random_id).to_string();
+	let path = if cfg!(target_os = "linux") {
+		"/dev/shm/".into()
+	} else {
+		temp_dir()
+	}
+	.join(format!("solomon-redb-{}", id));
+
+	String::from("redb:") + &path_to_string(&path).unwrap()
 }

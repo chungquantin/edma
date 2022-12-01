@@ -1,58 +1,38 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
-use rocksdb::{BoundColumnFamily, DBAccess, DBIteratorWithThreadMode, IteratorMode};
+use redb::{RangeIter, ReadableTable, TableDefinition};
 
-use super::ty::{DBType, TxType};
 use crate::{
-	err::Error,
-	interface::{
-		kv::{Key, Val},
-		KeyValuePair,
-	},
-	model::{DBTransaction, SimpleTransaction},
-	CF,
+	interface::{Key, KeyValuePair, Val},
+	DBTransaction, Error, SimpleTransaction, CF,
 };
 
-fn take_with_prefix<T: DBAccess>(
-	iterator: DBIteratorWithThreadMode<T>,
+use super::ty::{DBType, TxType};
+
+type TableKey = &'static [u8];
+type TableValue = &'static [u8];
+
+fn filter_with_prefix(
+	iterator: RangeIter<TableKey, TableValue>,
 	prefix: Vec<u8>,
-) -> impl Iterator<Item = Result<(Box<[u8]>, Box<[u8]>), rocksdb::Error>> + '_ {
-	iterator.take_while(move |item| -> bool {
-		if let Ok((ref k, _)) = *item {
-			k.starts_with(&prefix)
-		} else {
-			true
-		}
+) -> impl Iterator<Item = (&[u8], &[u8])> + '_ {
+	iterator.filter(move |item| -> bool {
+		let (k, _) = *item;
+		k.starts_with(&prefix)
 	})
 }
 
-fn take_with_suffix<T: DBAccess>(
-	iterator: DBIteratorWithThreadMode<T>,
+fn filter_with_suffix(
+	iterator: RangeIter<TableKey, TableValue>,
 	suffix: Vec<u8>,
-) -> impl Iterator<Item = Result<(Box<[u8]>, Box<[u8]>), rocksdb::Error>> + '_ {
-	iterator.take_while(move |item| -> bool {
-		if let Ok((ref k, _)) = *item {
-			k.ends_with(&suffix)
-		} else {
-			true
-		}
+) -> impl Iterator<Item = (&[u8], &[u8])> + '_ {
+	iterator.filter(move |item| -> bool {
+		let (k, _) = *item;
+		k.ends_with(&suffix)
 	})
 }
 
-impl DBTransaction<DBType, TxType> {
-	fn get_column_family(&self, cf: CF) -> Result<Arc<BoundColumnFamily>, Error> {
-		if cf.is_none() {
-			return Err(Error::DsColumnFamilyIsNotValid);
-		}
-		let cf_name = String::from_utf8(cf.unwrap()).unwrap();
-		let bounded_cf = self._db.cf_handle(&cf_name);
-
-		match bounded_cf {
-			Some(cf) => Ok(cf),
-			_ => Err(Error::DsNoColumnFamilyFound),
-		}
-	}
+fn get_table_name(cf: CF) -> String {
+	String::from_utf8(cf.unwrap()).unwrap()
 }
 
 #[async_trait(?Send)]
@@ -68,8 +48,15 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
-		let cf = &self.get_column_family(cf).unwrap();
-		Ok(tx.iterator_cf(cf, IteratorMode::Start).count())
+
+		let name = get_table_name(cf);
+		let def = TableDefinition::<TableKey, TableValue>::new(&name);
+		let table = &tx.open_table(def);
+
+		match table {
+			Ok(t) => Ok(t.len()?),
+			Err(_) => Err(Error::DsNoColumnFamilyFound),
+		}
 	}
 
 	async fn cancel(&mut self) -> Result<(), Error> {
@@ -82,7 +69,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 
 		let mut tx = self.tx.lock().await;
 		match tx.take() {
-			Some(tx) => tx.rollback()?,
+			Some(tx) => tx.abort()?,
 			None => unreachable!(),
 		}
 
@@ -119,11 +106,18 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 			return Err(Error::TxFinished);
 		}
 
-		let tx = self.tx.lock().await;
-		let cf = &self.get_column_family(cf).unwrap();
-		let result = tx.as_ref().unwrap().get_cf(cf, key.into()).unwrap().is_some();
+		let guarded_tx = self.tx.lock().await;
+		let tx = guarded_tx.as_ref().unwrap();
 
-		Ok(result)
+		let name = get_table_name(cf);
+		let def = TableDefinition::<TableKey, TableValue>::new(&name);
+		let table = &tx.open_table(def);
+
+		let key = key.into();
+		match table {
+			Ok(t) => Ok(t.get(&key)?.is_some()),
+			Err(_) => Err(Error::DsNoColumnFamilyFound),
+		}
 	}
 	// Fetch a key from the database [column family]
 	async fn get<K>(&self, cf: CF, key: K) -> Result<Option<Val>, Error>
@@ -136,27 +130,14 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
-		let cf = &self.get_column_family(cf).unwrap();
-		Ok(tx.get_cf(cf, key.into()).unwrap())
-	}
 
-	async fn multi_get<K>(&self, cf: CF, keys: Vec<K>) -> Result<Vec<Option<Val>>, Error>
-	where
-		K: Into<Key> + Send + AsRef<[u8]>,
-	{
-		if self.closed() {
-			return Err(Error::TxFinished);
-		}
+		let name = get_table_name(cf);
+		let def = TableDefinition::<TableKey, TableValue>::new(&name);
+		let table = &tx.open_table(def).unwrap();
 
-		let guarded_tx = self.tx.lock().await;
-		let tx = guarded_tx.as_ref().unwrap();
-		let mut values = vec![];
-		let cf = &self.get_column_family(cf).unwrap();
-		for key in keys.iter() {
-			let value = tx.get_cf(cf, key).unwrap();
-			values.push(value);
-		}
-		Ok(values)
+		let key = key.into();
+		let result = table.get(&key).unwrap();
+		Ok(result.map(|v| v.to_vec()))
 	}
 	// Insert or update a key in the database
 	async fn set<K, V>(&mut self, cf: CF, key: K, val: V) -> Result<(), Error>
@@ -173,11 +154,19 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 			return Err(Error::TxReadonly);
 		}
 
-		// Set the key
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
-		let cf = &self.get_column_family(cf).unwrap();
-		tx.put_cf(cf, key.into(), val.into())?;
+
+		let name = get_table_name(cf);
+		let def = TableDefinition::<TableKey, TableValue>::new(&name);
+		let (key, val) = (key.into(), val.into());
+
+		let mut table = tx.open_table(def);
+		match table.as_mut() {
+			Ok(t) => t.insert(&key, &val)?,
+			Err(_) => return Err(Error::DsNoColumnFamilyFound),
+		};
+
 		Ok(())
 	}
 
@@ -196,16 +185,20 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 			return Err(Error::TxReadonly);
 		}
 
-		// Future tx
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
+
+		let name = get_table_name(cf);
+		let def = TableDefinition::<TableKey, TableValue>::new(&name);
+		let mut table = tx.open_table(def)?;
+
 		let (key, val) = (key.into(), val.into());
 
-		let cf = &self.get_column_family(cf).unwrap();
-		match tx.get_cf(cf, &key)? {
-			None => tx.put_cf(cf, key, val)?,
+		match table.get(&key)? {
+			None => table.insert(&key, &val)?,
 			_ => return Err(Error::TxConditionNotMet),
 		};
+
 		Ok(())
 	}
 
@@ -223,20 +216,23 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 			return Err(Error::TxReadonly);
 		}
 
-		let key = key.into();
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
 
-		let cf = &self.get_column_family(cf).unwrap();
-		match tx.get_cf(cf, &key)? {
-			Some(_v) => tx.delete_cf(cf, key)?,
-			None => return Err(Error::TxnKeyNotFound),
+		let name = get_table_name(cf);
+		let def = TableDefinition::<TableKey, TableValue>::new(&name);
+		let mut table = tx.open_table(def);
+
+		let key = key.into();
+
+		match table.as_mut() {
+			Ok(t) => t.remove(&key)?,
+			Err(_) => return Err(Error::DsNoColumnFamilyFound),
 		};
 
 		Ok(())
 	}
 
-	// Iterate key value elements with handler
 	async fn iterate(&self, cf: CF) -> Result<Vec<Result<KeyValuePair, Error>>, Error> {
 		if self.closed() {
 			return Err(Error::TxFinished);
@@ -245,13 +241,50 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
 
-		let cf = &self.get_column_family(cf).unwrap();
+		let name = get_table_name(cf);
+		let def = TableDefinition::<TableKey, TableValue>::new(&name);
+		let table = tx.open_table(def);
 
-		let iterator = tx.iterator_cf(cf, IteratorMode::Start);
+		let iterator = match table.as_ref() {
+			Ok(t) => t.iter()?,
+			Err(_) => return Err(Error::DsNoColumnFamilyFound),
+		};
 
 		Ok(iterator
+			.map(|p| {
+				let (k, v) = p;
+				Ok((k.to_vec(), v.to_vec()))
+			})
+			.collect())
+	}
+
+	async fn prefix_iterate<P>(
+		&self,
+		cf: CF,
+		prefix: P,
+	) -> Result<Vec<Result<KeyValuePair, Error>>, Error>
+	where
+		P: Into<Key> + Send,
+	{
+		if self.closed() {
+			return Err(Error::TxFinished);
+		}
+
+		let guarded_tx = self.tx.lock().await;
+		let tx = guarded_tx.as_ref().unwrap();
+
+		let name = get_table_name(cf);
+		let def = TableDefinition::<TableKey, TableValue>::new(&name);
+		let table = tx.open_table(def);
+
+		let iterator = table.as_ref().unwrap().iter()?;
+
+		let prefix: Key = prefix.into();
+		let filtered_iterator = filter_with_prefix(iterator, prefix);
+
+		Ok(filtered_iterator
 			.map(|pair| {
-				let (k, v) = pair.unwrap();
+				let (k, v) = pair;
 				Ok((k.to_vec(), v.to_vec()))
 			})
 			.collect())
@@ -271,43 +304,18 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
-		let cf = &self.get_column_family(cf).unwrap();
+
+		let name = get_table_name(cf);
+		let def = TableDefinition::<TableKey, TableValue>::new(&name);
+		let table = tx.open_table(def);
+
+		let iterator = table.as_ref().unwrap().iter()?;
 		let suffix: Key = suffix.into();
+		let filtered_iterator = filter_with_suffix(iterator, suffix);
 
-		let iterator = tx.iterator_cf(cf, IteratorMode::Start);
-		let taken_iterator = take_with_suffix(iterator, suffix);
-
-		Ok(taken_iterator
+		Ok(filtered_iterator
 			.map(|pair| {
-				let (k, v) = pair.unwrap();
-				Ok((k.to_vec(), v.to_vec()))
-			})
-			.collect())
-	}
-
-	// Iterate key value elements with handler
-	async fn prefix_iterate<P>(
-		&self,
-		cf: CF,
-		prefix: P,
-	) -> Result<Vec<Result<KeyValuePair, Error>>, Error>
-	where
-		P: Into<Key> + Send,
-	{
-		if self.closed() {
-			return Err(Error::TxFinished);
-		}
-
-		let guarded_tx = self.tx.lock().await;
-		let tx = guarded_tx.as_ref().unwrap();
-		let cf = &self.get_column_family(cf).unwrap();
-		let prefix: Key = prefix.into();
-		let iterator = tx.prefix_iterator_cf(cf, &prefix);
-		let taken_iterator = take_with_prefix(iterator, prefix);
-
-		Ok(taken_iterator
-			.map(|v| {
-				let (k, v) = v.unwrap();
+				let (k, v) = pair;
 				Ok((k.to_vec(), v.to_vec()))
 			})
 			.collect())

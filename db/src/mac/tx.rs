@@ -1,6 +1,6 @@
 macro_rules! impl_global_transaction {
 	($($x: ident), *) => {
-		#[async_trait]
+		#[async_trait(?Send)]
 		impl SimpleTransaction for Transaction {
 			// Check if closed
 			fn closed(&self) -> bool {

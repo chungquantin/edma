@@ -3,7 +3,7 @@ use log::info;
 use crate::model::DatastoreAdapter;
 use crate::{storage::LOG, Error};
 
-use super::{CassandraDBAdapter, RocksDBAdapter, Transaction};
+use super::{ReDBAdapter, RocksDBAdapter, Transaction};
 
 #[derive(Copy, Clone)]
 pub struct DatastoreRef<'a> {
@@ -22,8 +22,8 @@ impl<'a> DatastoreRef<'a> {
 pub enum Inner {
 	#[cfg(feature = "kv-rocksdb")]
 	RocksDB(RocksDBAdapter),
-	#[cfg(feature = "kv-cassandradb")]
-	CassandraDB(CassandraDBAdapter),
+	#[cfg(feature = "kv-redb")]
+	ReDB(ReDBAdapter),
 }
 
 pub struct Datastore {
@@ -41,12 +41,22 @@ impl Datastore {
 		match path {
 			#[cfg(feature = "kv-rocksdb")]
 			s if s.starts_with("rocksdb:") | s.eq("default") => {
-				info!(target: LOG, "Starting kvs store at {}", path);
+				info!(target: LOG, "Starting RocksDB kvs store at {}", path);
 				let db = RocksDBAdapter::new(s, None).unwrap();
 				let v = Datastore {
 					inner: Inner::RocksDB(db),
 				};
-				info!(target: LOG, "Started kvs store at {}", path);
+				info!(target: LOG, "Started RocksDB kvs store at {}", path);
+				v
+			}
+			#[cfg(feature = "kv-redb")]
+			s if s.starts_with("redb:") => {
+				info!(target: LOG, "Starting Redb kvs store at {}", path);
+				let db = ReDBAdapter::new(s).unwrap();
+				let v = Datastore {
+					inner: Inner::ReDB(db),
+				};
+				info!(target: LOG, "Started Redb kvs store at {}", path);
 				v
 			}
 			_ => unimplemented!(),
@@ -75,7 +85,7 @@ impl Datastore {
 		}
 		impl_transaction_method!(
 			RocksDB feat "kv-rocksdb",
-			CassandraDB feat "kv-cassandradb"
+			ReDB feat "kv-redb"
 		)
 	}
 }

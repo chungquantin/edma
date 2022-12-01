@@ -21,15 +21,16 @@ license = "Apache-2.0"
 
 
 [features]
-default = ["kv-rocksdb", "kv-cassandradb", "ql-gremlin"]
+default = ["kv-rocksdb", "kv-redb", "ql-gremlin", "test-suite"]
 kv-rocksdb = ["dep:rocksdb"]
-kv-cassandradb = []
+kv-redb = ["dep:redb"]
 ql-gremlin = ["dep:gremlin"]
 test-suite = []
 debug-suite = []
 http = ["dep:surf"]
 
 [dependencies]
+redb = { version = "0.10.0", optional = true }
 rocksdb = { version = "0.19.0", optional = true, features = [
  "multi-threaded-cf",
 ] }

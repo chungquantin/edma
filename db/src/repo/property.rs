@@ -32,7 +32,7 @@ impl<'a> PropertyRepository<'a> {
 		let cf = self.cf();
 		let val = build_property_value(value);
 		let key = concat_bytes(vec![
-			build_sized(Component::GID(vertex_id)),
+			build_sized(Component::Gid(vertex_id)),
 			build_sized(Component::GValue(label)),
 		]);
 		tx.set(cf, key.to_vec(), val).await.unwrap();
@@ -60,10 +60,13 @@ impl<'a> PropertyRepository<'a> {
 	}
 
 	/// Method to iterate the pairs of byte data with prefix as vertex id
-	pub async fn iterate_from_vertex(&self, vertex_id: &GID) -> Result<PropertyMap, Error> {
-		let tx = &self.tx();
+	pub async fn iterate_from_vertex(
+		&self,
+		tx: &Transaction,
+		vertex_id: &GID,
+	) -> Result<PropertyMap, Error> {
 		let cf = self.cf();
-		let prefix = build_sized(Component::GID(vertex_id));
+		let prefix = build_sized(Component::Gid(vertex_id));
 		let iterator = tx.prefix_iterate(cf, prefix).await.unwrap();
 		self.iterate(iterator)
 	}

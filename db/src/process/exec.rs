@@ -133,6 +133,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 	{
 		let mut result = vec![];
 		let exec = self.execute().await.unwrap();
+
 		let list = exec.get::<List>().unwrap();
 		for item in list.iter() {
 			let value = T::from_gvalue(item.clone()).unwrap();
@@ -149,9 +150,9 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		let list = self.to_list().await.unwrap();
 		Ok(if self.iter_index < list.len() {
 			let result = list[self.iter_index].clone();
-			let option = Some(result);
+
 			self.iter_index += 1;
-			option
+			Some(result)
 		} else {
 			None
 		})
@@ -167,7 +168,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 
 	/// The V()-step is meant to read vertices from the graph and is usually
 	/// used to start a GraphTraversal, but can also be used mid-traversal.
-	async fn v(&mut self, args: &Vec<GValue>) -> IxResult {
+	async fn v(&mut self, args: &[GValue]) -> IxResult {
 		let tx = &mut self.v.mut_tx();
 		let result = self.v.v(tx, args).await.unwrap();
 
@@ -175,7 +176,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		IxResult::new("V", GValue::List(result))
 	}
 
-	async fn e(&mut self, _ids: &Vec<GValue>) -> IxResult {
+	async fn e(&mut self, _ids: &[GValue]) -> IxResult {
 		self.set_terminator(TerminatorToken::Edge);
 		IxResult::new("E", GValue::Null)
 	}
@@ -183,7 +184,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 	/// The addV()-step is used to add vertices to the graph (map/sideEffect).
 	/// For every incoming object, a vertex is created. Moreover, GraphTraversalSource maintains an addV() method.
 	/// [Documentation](https://tinkerpop.apache.org/docs/current/reference/#addvertex-step)
-	async fn add_v(&mut self, args: &Vec<GValue>) -> IxResult {
+	async fn add_v(&mut self, args: &[GValue]) -> IxResult {
 		let tx = &mut self.v.mut_tx();
 		let vertex = self.v.new_v(tx, args).await.unwrap();
 
@@ -197,16 +198,16 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		IxResult::new("addV", GValue::List(vertices))
 	}
 
-	async fn add_e(&mut self, _labels: &Vec<GValue>) -> IxResult {
+	async fn add_e(&mut self, _labels: &[GValue]) -> IxResult {
 		self.set_terminator(TerminatorToken::Edge);
 		IxResult::new("addE", GValue::Null)
 	}
 
-	async fn property_with_cardinality(&mut self, _args: &Vec<GValue>) -> IxResult {
+	async fn property_with_cardinality(&mut self, _args: &[GValue]) -> IxResult {
 		IxResult::new("property", GValue::Null)
 	}
 
-	async fn vertex_property(&mut self, args: &Vec<GValue>) -> IxResult {
+	async fn vertex_property(&mut self, args: &[GValue]) -> IxResult {
 		let tx = &mut self.v.mut_tx();
 		let mut result: Vec<GValue> = vec![];
 		let source = &self.source.clone();
@@ -229,7 +230,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		IxResult::new("vertex_property", list)
 	}
 
-	async fn add_vertex_property(&mut self, args: &Vec<GValue>) -> IxResult {
+	async fn add_vertex_property(&mut self, args: &[GValue]) -> IxResult {
 		let tx = &mut self.v.mut_tx();
 		let stream = self.result.get_from_source(&self.source);
 		let mut vertices = stream.value.get::<List>().unwrap().clone();
@@ -249,13 +250,14 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		IxResult::new("vertex_property", value)
 	}
 
-	async fn vertices_properties(&mut self, args: &Vec<GValue>) -> IxResult {
+	async fn vertices_properties(&mut self, args: &[GValue]) -> IxResult {
+		let tx = &self.v.tx();
 		let mut result = vec![];
 		let source = &self.source.clone();
 		let mut vertices = self.list_from_source::<Vertex>(source, None).unwrap();
 		if !vertices.is_empty() {
 			for cur in vertices.iter_mut() {
-				let vertex = self.v.properties(cur, args).await.unwrap();
+				let vertex = self.v.properties(tx, cur, args).await.unwrap();
 				result.push(GValue::Vertex(vertex));
 			}
 			self.result.vertices.value = GValue::List(List::new(result.clone()));
@@ -265,12 +267,14 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		IxResult::new("properties", list)
 	}
 
-	async fn new_vertex_properties(&mut self, args: &Vec<GValue>) -> IxResult {
+	async fn new_vertex_properties(&mut self, args: &[GValue]) -> IxResult {
+		let tx = &self.v.tx();
 		let source = &self.source.clone();
 		let new_vertices = self.source_value::<List>(source).unwrap();
 		let cur = new_vertices.last().unwrap();
 		let vertex = cur.get::<Vertex>().unwrap();
-		let vertex_with_properties = self.v.properties(&mut vertex.clone(), args).await.unwrap();
+		let vertex_with_properties =
+			self.v.properties(tx, &mut vertex.clone(), args).await.unwrap();
 		let result = GValue::Vertex(vertex_with_properties);
 		self.result.vertices.value = result.clone();
 
@@ -278,7 +282,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		IxResult::new("properties", result)
 	}
 
-	async fn properties(&mut self, args: &Vec<GValue>) -> IxResult {
+	async fn properties(&mut self, args: &[GValue]) -> IxResult {
 		match self.source.as_str() {
 			"V" => self.vertices_properties(args).await,
 			"addV" => self.new_vertex_properties(args).await,
@@ -292,7 +296,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 	/// follows an addV() or addE(), then it is "folded" into the previous step to enable vertex
 	/// and edge creation with all its properties in one creation operation.
 	/// [Documentation](https://tinkerpop.apache.org/docs/current/reference/#property-step)
-	async fn property(&mut self, args: &Vec<GValue>) -> IxResult {
+	async fn property(&mut self, args: &[GValue]) -> IxResult {
 		match args.first().unwrap().is_cardinality() {
 			true => self.property_with_cardinality(args).await,
 			false => match self.source.as_str() {
@@ -303,7 +307,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		}
 	}
 
-	fn count(&mut self, _args: &Vec<GValue>) -> IxResult
+	fn count(&mut self, _args: &[GValue]) -> IxResult
 	where
 		T: FromGValue + Clone,
 	{
@@ -312,11 +316,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		IxResult::new("count", streamed_terminator)
 	}
 
-	fn filter_vertices_result(
-		&mut self,
-		args: &Vec<GValue>,
-		f: &(dyn Fn(&Vertex, &String) -> bool),
-	) {
+	fn filter_vertices_result(&mut self, args: &[GValue], f: &(dyn Fn(&Vertex, &String) -> bool)) {
 		for arg in args.iter() {
 			let cmp = arg.get::<String>().unwrap();
 			let vertices = self.raw_list_from_source::<Vertex>("V", Some(&|v| f(v, cmp))).unwrap();
@@ -330,7 +330,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		}
 	}
 
-	fn has_id(&mut self, args: &Vec<GValue>) -> IxResult {
+	fn has_id(&mut self, args: &[GValue]) -> IxResult {
 		match self.source.as_str() {
 			s if is_vertex_step(s) => {
 				self.filter_vertices_result(
@@ -343,7 +343,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		}
 	}
 
-	fn has_not(&mut self, args: &Vec<GValue>) -> IxResult {
+	fn has_not(&mut self, args: &[GValue]) -> IxResult {
 		match self.source.as_str() {
 			s if is_vertex_step(s) => {
 				self.filter_vertices_result(args, &(|v, cmp| !v.properties().contains_key(cmp)));
@@ -353,7 +353,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		}
 	}
 
-	fn has_label(&mut self, args: &Vec<GValue>) -> IxResult {
+	fn has_label(&mut self, args: &[GValue]) -> IxResult {
 		match self.source.as_str() {
 			s if is_vertex_step(s) => {
 				self.filter_vertices_result(args, &(|v, cmp| v.label() == cmp));
@@ -363,7 +363,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		}
 	}
 
-	fn has_key(&mut self, args: &Vec<GValue>) -> IxResult {
+	fn has_key(&mut self, args: &[GValue]) -> IxResult {
 		match self.source.as_str() {
 			s if is_vertex_step(s) => {
 				self.filter_vertices_result(args, &(|v, cmp| v.properties().contains_key(cmp)));
@@ -373,7 +373,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		}
 	}
 
-	fn has(&mut self, args: &Vec<GValue>) -> IxResult {
+	fn has(&mut self, args: &[GValue]) -> IxResult {
 		println!("args: {:?}", args);
 		match self.source.as_str() {
 			s if is_vertex_step(s) => {
