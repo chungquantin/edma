@@ -1,4 +1,4 @@
-use gremlin::{GValue, List};
+use solomon_gremlin::{GValue, List};
 
 use crate::IxResult;
 

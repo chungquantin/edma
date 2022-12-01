@@ -1,4 +1,4 @@
-use gremlin::GValue;
+use solomon_gremlin::GValue;
 use thiserror::Error;
 
 #[allow(clippy::large_enum_variant)]

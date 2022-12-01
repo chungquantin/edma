@@ -4,7 +4,7 @@ use crate::{
 	util::{build_byte_map, build_sized, Component},
 	Error, SimpleTransaction, VertexPropertyRepository,
 };
-use gremlin::{GValue, Labels, List, Vertex, GID};
+use solomon_gremlin::{GValue, Labels, List, Vertex, GID};
 use uuid::Uuid;
 
 impl_repository!(VertexRepository(Vertex));

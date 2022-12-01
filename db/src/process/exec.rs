@@ -3,9 +3,9 @@ use std::marker::PhantomData;
 use crate::util::{is_reducing_barrier_step, is_source_step, is_vertex_step};
 use crate::ExecutionResult;
 use crate::{err::Error, storage::DatastoreRef, IxResult, SimpleTransaction, VertexRepository};
-use gremlin::process::traversal::{GraphTraversal, Terminator, TerminatorToken};
-use gremlin::GremlinError;
-use gremlin::{
+use solomon_gremlin::process::traversal::{GraphTraversal, Terminator, TerminatorToken};
+use solomon_gremlin::GremlinError;
+use solomon_gremlin::{
 	process::traversal::{Bytecode, Instruction},
 	FromGValue, GValue, List, Vertex,
 };

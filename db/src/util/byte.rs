@@ -3,9 +3,9 @@ use std::io::{Cursor, Error as IoError, Write};
 use byteorder::{BigEndian, WriteBytesExt};
 use chrono::{DateTime, NaiveDateTime, Timelike, Utc};
 
-use gremlin::{GValue, LabelType, GID};
 use lazy_static::lazy_static;
 use rand::Rng;
+use solomon_gremlin::{GValue, LabelType, GID};
 use uuid::Uuid;
 
 lazy_static! {

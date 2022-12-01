@@ -1,5 +1,5 @@
 use crate::{storage::Datastore, util::generate_path, Database};
-use gremlin::GValue;
+use solomon_gremlin::GValue;
 
 pub async fn vertex_with_property(storage: &str) {
 	let path = &generate_path(storage, None);

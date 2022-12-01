@@ -1,25 +1,18 @@
 [package]
 name = "solomondb"
-version = "0.1.0"
+version = "0.0.1-beta.1"
 publish = true
 edition = "2021"
 readme = "CARGO.md"
 keywords = [
  "database",
  "embedded-database",
- "gremlin",
  "graph-database",
  "key-value",
- "key-value-store",
  "kv-store",
 ]
-categories = [
- "database-implementations",
- "gremlin-compatible",
- "data-structures",
- "graph",
-]
-description = "An embedded and distributed Gremlin-compatible graph database "
+categories = ["database-implementations", "data-structures", "embedded"]
+description = "An embedded and distributed Gremlin-compatible graph database."
 homepage = "https://github.com/nomadiz/solomon-db"
 documentation = "https://nomadiz.github.io/solomon-db/"
 repository = "https://github.com/nomadiz/solomon-db"
@@ -31,7 +24,7 @@ license = "MIT"
 default = ["kv-rocksdb", "kv-redb", "ql-gremlin", "test-suite"]
 kv-rocksdb = ["dep:rocksdb"]
 kv-redb = ["dep:redb"]
-ql-gremlin = ["dep:gremlin"]
+ql-gremlin = ["dep:solomon-gremlin"]
 test-suite = []
 debug-suite = []
 http = ["dep:surf"]
@@ -52,7 +45,7 @@ lazy_static = "1.4.0"
 byteorder = "1.4.3"
 serde = { version = "1.0.147", features = ["derive"] }
 log = "0.4.17"
-gremlin = { path = "../gremlin", version = "0.8.2", optional = true }
+solomon-gremlin = { path = "../gremlin", version = "0.0.1", optional = true }
 pin-project-lite = "0.2.9"
 
 [dev-dependencies]

@@ -1,12 +1,12 @@
 [package]
-authors = ["Enrico Risa <enrico.risa@gmail.com>"]
-name = "gremlin"
-version = "0.8.2"
+authors = ["Chase Chung <cqtin0903@gmail.com>"]
+name = "solomon-gremlin"
+version = "0.0.1"
 edition = "2018"
 license = "Apache-2.0"
-description = "A Rust client for Apache TinkerPop™"
+description = "A partially forked version of Gremlin-rs™"
 repository = "https://github.com/wolf4ood/gremlin-rs"
-keywords = ["database", "graphs", "tinkerpop"]
+keywords = ["database", "graphs", "tinkerpop", "gremlin-rs"]
 categories = ["database"]
 readme = "README.md"
 

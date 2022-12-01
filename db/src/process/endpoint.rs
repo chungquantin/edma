@@ -1,5 +1,5 @@
 use crate::storage::DatastoreRef;
-use gremlin::process::traversal::GraphTraversalSource;
+use solomon_gremlin::process::traversal::GraphTraversalSource;
 
 use super::GraphTerminator;
 

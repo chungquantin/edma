@@ -1,7 +1,7 @@
 use crate::err::Error;
 
 use super::StepExecutor;
-use gremlin::{process::traversal::TerminatorToken, FromGValue, GValue, List, Vertex};
+use solomon_gremlin::{process::traversal::TerminatorToken, FromGValue, GValue, List, Vertex};
 
 pub struct StepCollector<'a, T: FromGValue + Clone> {
 	executor: StepExecutor<'a, T>,

@@ -6,8 +6,8 @@ use crate::util::{
 	build_byte_map, build_bytes, build_sized, build_usize_from_bytes, concat_bytes, Component,
 };
 use crate::{Error, SimpleTransaction};
-use gremlin::structure::VertexPropertyMap;
-use gremlin::{GValue, VertexProperty, GID};
+use solomon_gremlin::structure::VertexPropertyMap;
+use solomon_gremlin::{GValue, VertexProperty, GID};
 
 impl_repository!(VertexPropertyRepository(VertexProperty));
 

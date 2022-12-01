@@ -874,29 +874,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gremlin"
-version = "0.8.2"
-dependencies = [
- "async-std",
- "async-tls",
- "async-trait",
- "async-tungstenite",
- "chrono",
- "futures",
- "gremlin-derive",
- "lazy_static",
- "rustls",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tokio-native-tls",
- "tokio-stream",
- "url",
- "uuid",
-]
-
-[[package]]
 name = "gremlin-derive"
 version = "0.1.0"
 dependencies = [
@@ -1887,14 +1864,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "solomon-gremlin"
+version = "0.0.1"
+dependencies = [
+ "async-std",
+ "async-tls",
+ "async-trait",
+ "async-tungstenite",
+ "chrono",
+ "futures",
+ "gremlin-derive",
+ "lazy_static",
+ "rustls",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tokio-native-tls",
+ "tokio-stream",
+ "url",
+ "uuid",
+]
+
+[[package]]
 name = "solomondb"
-version = "0.1.0"
+version = "0.0.1-beta.1"
 dependencies = [
  "async-trait",
  "byteorder",
  "chrono",
  "futures",
- "gremlin",
  "lazy_static",
  "log",
  "pin-project-lite",
@@ -1903,6 +1902,7 @@ dependencies = [
  "rocksdb",
  "serde",
  "serde_json",
+ "solomon-gremlin",
  "surf",
  "thiserror",
  "tokio",

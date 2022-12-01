@@ -6,7 +6,7 @@ use crate::util::{
 	build_byte_map, build_bytes, build_sized, build_usize_from_bytes, concat_bytes, Component,
 };
 use crate::{Error, SimpleTransaction};
-use gremlin::{GValue, Property, GID};
+use solomon_gremlin::{GValue, Property, GID};
 
 impl_repository!(PropertyRepository(Property));
 

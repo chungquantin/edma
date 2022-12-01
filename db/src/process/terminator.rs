@@ -1,4 +1,4 @@
-use gremlin::{
+use solomon_gremlin::{
 	process::traversal::{GraphTraversal, Terminator},
 	FromGValue,
 };
