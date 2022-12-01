@@ -8,8 +8,6 @@ use lazy_static::lazy_static;
 use rand::Rng;
 use uuid::Uuid;
 
-use crate::Identifier;
-
 lazy_static! {
 	/// The maximum possible datetime.
 	pub static ref MAX_DATETIME: DateTime<Utc> =
@@ -25,7 +23,6 @@ pub enum Component<'a> {
 	/// GLabelType: Gremlin Label Type
 	Label(&'a LabelType),
 	FixedLengthString(&'a str),
-	Identifier(&'a Identifier),
 	DateTime(DateTime<Utc>),
 	Bytes(&'a [u8]),
 	Usize(usize),
@@ -40,7 +37,6 @@ impl<'a> Component<'a> {
 		match *self {
 			Component::Uuid(_) => 16,
 			Component::FixedLengthString(s) => s.len(),
-			Component::Identifier(t) => t.0.len() + 1,
 			Component::DateTime(_) => 8,
 			Component::Bytes(b) => b.len(),
 			Component::GValue(v) | Component::GValueType(v) => v.bytes().len(),
@@ -54,10 +50,6 @@ impl<'a> Component<'a> {
 		match *self {
 			Component::Uuid(uuid) => cursor.write_all(uuid.as_bytes()),
 			Component::FixedLengthString(s) => cursor.write_all(s.as_bytes()),
-			Component::Identifier(i) => {
-				cursor.write_all(&[i.0.len() as u8])?;
-				cursor.write_all(i.0.as_bytes())
-			}
 			Component::DateTime(datetime) => {
 				let time_to_end = nanos_since_epoch(&MAX_DATETIME) - nanos_since_epoch(&datetime);
 				cursor.write_u64::<BigEndian>(time_to_end)

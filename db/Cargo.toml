@@ -6,18 +6,25 @@ edition = "2021"
 readme = "CARGO.md"
 keywords = [
  "database",
+ "embedded-database",
+ "gremlin",
  "graph-database",
  "key-value",
  "key-value-store",
  "kv-store",
 ]
-categories = ["database-implementations", "data-structures", "graph"]
-description = "A scalable, distributed, collaborative graph database build by digital nomads"
-homepage = "https://github.com/surrealdb/solomondb"
-documentation = "https://docs.rs/solomondb/"
-repository = "https://github.com/surrealdb/solomondb"
+categories = [
+ "database-implementations",
+ "gremlin-compatible",
+ "data-structures",
+ "graph",
+]
+description = "An embedded and distributed Gremlin-compatible graph database "
+homepage = "https://github.com/nomadiz/solomon-db"
+documentation = "https://nomadiz.github.io/solomon-db/"
+repository = "https://github.com/nomadiz/solomon-db"
 include = ["**/*.rs", "Cargo.toml"]
-license = "Apache-2.0"
+license = "MIT"
 
 
 [features]
