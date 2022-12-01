@@ -36,6 +36,18 @@
 
 Solomon is the name of a the wisest person who ever lived, King Solomon. If you have ever read Bible, you might know some stories of King Solomon. One of those stories is when King Solomon asks for wishdom. Based on that idea, Solomon DB is built as my personal side project to gain more knowledge about database internals and graph database architecture.
 
+## Usage
+### Embedded storage
+SolomonDB can be used as a Rust embedded storage. The database is published in crates: https://crates.io/crates/solomondb. To add SolomonDB to your project and start building on top of it, using this command
+```
+cargo add solomondb
+```
+Or add solomondb package into your toml file dependecy list
+```toml
+[dependencies]
+solomondb = "0.0.1-beta.1"
+```
+
 ## Roadmap
 
 -   [x] Implement RocskDB storage layer
