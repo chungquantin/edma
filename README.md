@@ -38,6 +38,7 @@ Solomon is the name of a the wisest person who ever lived, King Solomon. If you 
 
 ## Usage
 ### Embedded storage
+#### Installation guide
 SolomonDB can be used as a Rust embedded storage. The database is published in crates: https://crates.io/crates/solomondb. To add SolomonDB to your project and start building on top of it, using this command
 ```
 cargo add solomondb
@@ -47,6 +48,42 @@ Or add solomondb package into your toml file dependecy list
 [dependencies]
 solomondb = "0.0.1-beta.1"
 ```
+#### Getting started
+The current version of **SolomonDB** allows you to work wit RocksDB or Redb using **Gremlin** query language. Hence, applying graph data structure to manage key-value pairs in those embedded storage layer. SolomonDB embedded storage is easy to set up. You only need to identify the path where your database will be located and it's good to go.
+```rs
+use solomondb::Datastore;
+
+let datastore = Datastore::new(path);
+let db = Database::new(datastore.borrow());
+```
+SolomonDB supports GQL (Gremlin Query Language) and it does not require Gremlin Server or Apache TinkerPop to operate. You can query data on top of embedded storages. Below are examples on how to create vertices, properties and traverse to retrieve data.
+```rs
+// Create two new vertices with properties
+let t1 = db
+.traverse()
+.v(1)
+.add_v("person")
+.property("github", "tin-snowflake")
+.property("name", "Tin Chung")
+.property("age", 21)
+.add_v("coder")
+.property("github", "chungquantin")
+.property("age", 30);
+
+// Traverse vertices which have property "github" and label "person"
+let t2 = t1.clone().has_key("github").has_label("person").exec().to_list().await.unwrap();
+// Traverse vertices which have property "github"
+let t3 = t1.clone().has_key("github").exec().to_list().await.unwrap();
+// Traverse vertices which does not have property "name"
+let t4 = t1.clone().has_not("name").exec().next().await.unwrap();
+```
+
+The road map of SolomonDB will include: 
+- Support more storage engines, help to graph modelize the embedded storage
+- Add protobuf and enable single-node mode.
+- Add client libraries (Javascript / Rust) to interact with SolomonDB from client side.
+
+The mission of **SolomonDB** is to make graph traversal become easier, aim at plug-and-play database that can run directly in client app.
 
 ## Roadmap
 
