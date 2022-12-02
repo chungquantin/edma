@@ -30,11 +30,11 @@ macro_rules! full_database_test_impl {
 	($test_name: ident, $code:expr) => {
 		#[cfg(test)]
 		mod $test_name {
-			// define_test!(vertex_with_property, $code);
-			// define_test!(vertex_with_many_property, $code);
-			// define_test!(vertices_iter, $code);
-			// define_test!(vertex_property, $code);
-			// define_test!(multiple_new_vertex, $code);
+			define_test!(vertex_with_property, $code);
+			define_test!(vertex_with_many_property, $code);
+			define_test!(vertices_iter, $code);
+			define_test!(vertex_property, $code);
+			define_test!(multiple_new_vertex, $code);
 			define_test!(vertex_has_step, $code);
 		}
 	};

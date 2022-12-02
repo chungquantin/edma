@@ -136,11 +136,14 @@ mod tests {
 		code.add_step(String::from("V"), vec![1.into()]);
 		code.add_step(
 			String::from("has"),
-			vec![String::from("name").into(), P::new("eq", String::from("marko").into()).into()],
+			vec![
+				String::from("name").into(),
+				Predicate::new("eq", String::from("marko").into()).into(),
+			],
 		);
 		code.add_step(
 			String::from("has"),
-			vec![String::from("age").into(), P::new("eq", 23.into()).into()],
+			vec![String::from("age").into(), Predicate::new("eq", 23.into()).into()],
 		);
 
 		assert_eq!(&code, g.v(1).has(("name", "marko")).has(("age", 23)).bytecode());
@@ -155,7 +158,7 @@ mod tests {
 			vec![
 				String::from("person").into(),
 				String::from("name").into(),
-				P::new("eq", String::from("marko").into()).into(),
+				Predicate::new("eq", String::from("marko").into()).into(),
 			],
 		);
 
@@ -189,50 +192,68 @@ mod tests {
 
 		code.add_step(String::from("V"), vec![1.into()]);
 
-		code.add_step(String::from("has"), vec![String::from("age").into(), P::eq(23).into()]);
-		assert_eq!(&code, g.v(1).has(("age", P::eq(23))).bytecode());
+		code.add_step(
+			String::from("has"),
+			vec![String::from("age").into(), Predicate::eq(23).into()],
+		);
+		assert_eq!(&code, g.v(1).has(("age", Predicate::eq(23))).bytecode());
 
 		// NEQ
 		let mut code = Bytecode::new();
 
 		code.add_step(String::from("V"), vec![1.into()]);
 
-		code.add_step(String::from("has"), vec![String::from("age").into(), P::neq(23).into()]);
-		assert_eq!(&code, g.v(1).has(("age", P::neq(23))).bytecode());
+		code.add_step(
+			String::from("has"),
+			vec![String::from("age").into(), Predicate::neq(23).into()],
+		);
+		assert_eq!(&code, g.v(1).has(("age", Predicate::neq(23))).bytecode());
 
 		// GTE
 		let mut code = Bytecode::new();
 
 		code.add_step(String::from("V"), vec![1.into()]);
 
-		code.add_step(String::from("has"), vec![String::from("age").into(), P::gte(23).into()]);
+		code.add_step(
+			String::from("has"),
+			vec![String::from("age").into(), Predicate::gte(23).into()],
+		);
 
-		assert_eq!(&code, g.v(1).has(("age", P::gte(23))).bytecode());
+		assert_eq!(&code, g.v(1).has(("age", Predicate::gte(23))).bytecode());
 
 		// GT
 		let mut code = Bytecode::new();
 
 		code.add_step(String::from("V"), vec![1.into()]);
 
-		code.add_step(String::from("has"), vec![String::from("age").into(), P::gt(23).into()]);
+		code.add_step(
+			String::from("has"),
+			vec![String::from("age").into(), Predicate::gt(23).into()],
+		);
 
-		assert_eq!(&code, g.v(1).has(("age", P::gt(23))).bytecode());
+		assert_eq!(&code, g.v(1).has(("age", Predicate::gt(23))).bytecode());
 
 		// LTE
 		let mut code = Bytecode::new();
 
 		code.add_step(String::from("V"), vec![1.into()]);
 
-		code.add_step(String::from("has"), vec![String::from("age").into(), P::lte(23).into()]);
-		assert_eq!(&code, g.v(1).has(("age", P::lte(23))).bytecode());
+		code.add_step(
+			String::from("has"),
+			vec![String::from("age").into(), Predicate::lte(23).into()],
+		);
+		assert_eq!(&code, g.v(1).has(("age", Predicate::lte(23))).bytecode());
 
 		// LT
 		let mut code = Bytecode::new();
 
 		code.add_step(String::from("V"), vec![1.into()]);
 
-		code.add_step(String::from("has"), vec![String::from("age").into(), P::lt(23).into()]);
-		assert_eq!(&code, g.v(1).has(("age", P::lt(23))).bytecode());
+		code.add_step(
+			String::from("has"),
+			vec![String::from("age").into(), Predicate::lt(23).into()],
+		);
+		assert_eq!(&code, g.v(1).has(("age", Predicate::lt(23))).bytecode());
 
 		// Within
 		let mut code = Bytecode::new();
@@ -241,16 +262,16 @@ mod tests {
 
 		code.add_step(
 			String::from("has"),
-			vec![String::from("age").into(), P::within((23, 26)).into()],
+			vec![String::from("age").into(), Predicate::within((23, 26)).into()],
 		);
-		assert_eq!(&code, g.v(1).has(("age", P::within((23, 26)))).bytecode());
+		assert_eq!(&code, g.v(1).has(("age", Predicate::within((23, 26)))).bytecode());
 
 		// IS
 		let mut code = Bytecode::new();
 
 		code.add_step(String::from("V"), vec![1.into()]);
 		code.add_step(String::from("values"), vec!["age".into()]);
-		code.add_step(String::from("is"), vec![P::eq(23).into()]);
+		code.add_step(String::from("is"), vec![Predicate::eq(23).into()]);
 
 		assert_eq!(&code, g.v(1).values("age").is(23).bytecode());
 	}
@@ -745,9 +766,9 @@ mod tests {
 
 		code.add_step(String::from("V"), vec![]);
 		code.add_step(String::from("values"), vec!["age".into()]);
-		code.add_step(String::from("where"), vec![P::eq(23).into()]);
+		code.add_step(String::from("where"), vec![Predicate::eq(23).into()]);
 
-		assert_eq!(&code, g.v(()).values("age").where_(P::eq(23)).bytecode());
+		assert_eq!(&code, g.v(()).values("age").where_(Predicate::eq(23)).bytecode());
 	}
 
 	#[test]

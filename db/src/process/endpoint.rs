@@ -24,5 +24,5 @@ impl<'a> Database<'a> {
 	}
 }
 
-// crate::full_database_test_impl!(redb_test, "redb");
+crate::full_database_test_impl!(redb_test, "redb");
 crate::full_database_test_impl!(rocksdb_test, "rocksdb");
