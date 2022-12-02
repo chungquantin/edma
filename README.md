@@ -49,6 +49,7 @@ The road map of SolomonDB will include:
 -   [ ] Single-node, or highly-scalable distributed mode
 -   [ ] Store structured and unstructured data
 -   [ ] Client (JS / Rust / Go) library
+
 The mission of **SolomonDB** is to make graph traversal become easier, aim at plug-and-play database that can run directly in client app.
 
 ## Documentation
