@@ -88,7 +88,7 @@ mod tests {
 
 	use super::GraphTraversalSource;
 	use crate::process::traversal::{Bytecode, Order, Scope, __};
-	use crate::structure::{GValue, P, T};
+	use crate::structure::{GValue, Predicate, T};
 
 	fn empty() -> GraphTraversalSource<MockTerminator> {
 		GraphTraversalSource::new(MockTerminator {})

@@ -81,7 +81,7 @@ impl<'a> VertexRepository<'a> {
 		self.property(vertex, tx, args).await
 	}
 
-	fn property_repo(&self) -> VertexPropertyRepository {
+	pub fn property_repo(&self) -> VertexPropertyRepository {
 		VertexPropertyRepository::new(self.ds_ref)
 	}
 
@@ -110,7 +110,6 @@ impl<'a> VertexRepository<'a> {
 			Some(label) => property_repo.iterate_from_label(tx, v.id(), label).await.unwrap(),
 			None => property_repo.iterate_from_vertex(tx, v.id()).await.unwrap(),
 		};
-		println!("properties: {:?}", properties);
 		v.add_properties(properties);
 		Ok(v.clone())
 	}

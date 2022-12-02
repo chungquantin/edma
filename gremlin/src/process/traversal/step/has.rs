@@ -1,6 +1,6 @@
 use crate::structure::GValue;
 use crate::structure::{Either2, TextP, T};
-use crate::structure::{IntoPredicate, P};
+use crate::structure::{IntoPredicate, Predicate};
 
 pub enum HasStepKey {
 	Str(String),
@@ -28,7 +28,7 @@ impl Into<HasStepKey> for &str {
 pub struct HasStep {
 	label: Option<String>,
 	key: HasStepKey,
-	predicate: Option<Either2<P, TextP>>,
+	predicate: Option<Either2<Predicate, TextP>>,
 }
 
 impl From<HasStep> for Vec<GValue> {

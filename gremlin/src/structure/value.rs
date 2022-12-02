@@ -5,7 +5,7 @@ use crate::structure::{
 	label::LabelType, Cardinality, Edge, GKey, IntermediateRepr, List, Map, Metric, Path, Property,
 	Set, Token, TraversalExplanation, TraversalMetrics, Vertex, VertexProperty,
 };
-use crate::structure::{Pop, TextP, P, T};
+use crate::structure::{Pop, Predicate, TextP, T};
 use crate::{GremlinError, GremlinResult};
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 pub type Date = chrono::DateTime<chrono::offset::Utc>;
@@ -37,7 +37,7 @@ pub enum GValue {
 	Metric(Metric),
 	TraversalExplanation(TraversalExplanation),
 	IntermediateRepr(IntermediateRepr),
-	P(P),
+	P(Predicate),
 	T(T),
 	Bytecode(Bytecode),
 	Traverser(Traverser),
@@ -48,6 +48,20 @@ pub enum GValue {
 	Pop(Pop),
 	Terminator(TerminatorToken),
 	Cardinality(Cardinality),
+}
+
+impl PartialOrd for GValue {
+	fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+		match self {
+			GValue::Int32(v) => v.partial_cmp(other.get::<i32>().unwrap()),
+			GValue::Int64(v) => v.partial_cmp(other.get::<i64>().unwrap()),
+			GValue::Float(v) => v.partial_cmp(other.get::<f32>().unwrap()),
+			GValue::Double(v) => v.partial_cmp(other.get::<f64>().unwrap()),
+			GValue::Date(v) => v.partial_cmp(other.get::<Date>().unwrap()),
+			GValue::String(v) => v.partial_cmp(other.get::<String>().unwrap()),
+			_ => unimplemented!(),
+		}
+	}
 }
 
 impl GValue {
@@ -89,6 +103,7 @@ impl GValue {
 			GValue::Double(_) => 10,
 			GValue::Cardinality(_) => 11,
 			GValue::Set(_) => 12,
+			GValue::P(_) => 13,
 			_ => unimplemented!(),
 		}
 	}
@@ -308,8 +323,8 @@ impl From<GKey> for GValue {
 	}
 }
 
-impl From<P> for GValue {
-	fn from(val: P) -> GValue {
+impl From<Predicate> for GValue {
+	fn from(val: Predicate) -> GValue {
 		GValue::P(val)
 	}
 }

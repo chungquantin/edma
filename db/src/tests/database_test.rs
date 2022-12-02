@@ -1,5 +1,5 @@
 use crate::{storage::Datastore, util::generate_path, Database};
-use solomon_gremlin::GValue;
+use solomon_gremlin::{structure::Predicate, GValue};
 
 pub async fn vertex_with_property(storage: &str) {
 	let path = &generate_path(storage, None);
@@ -167,19 +167,19 @@ pub async fn vertex_has_step(storage: &str) {
 	let t2 = t1.clone().has_key("github").has_label("person").exec().to_list().await.unwrap();
 	let t3 = t1.clone().has_key("github").exec().to_list().await.unwrap();
 	let t4 = t1.clone().has_not("name").exec().next().await.unwrap();
-	// let t5 = t1
-	// 	.clone()
-	// 	.has(("age", P::within((18, 24))))
-	// 	.properties(())
-	// 	.exec()
-	// 	.next()
-	// 	.await
-	// 	.unwrap();
+	let t5 = t1
+		.clone()
+		.has(("age", Predicate::within((21, 24))))
+		.properties(())
+		.exec()
+		.to_list()
+		.await
+		.unwrap();
 
 	assert_eq!(t2.len(), 1);
 	assert_eq!(t3.len(), 2);
 	assert_eq!(t4.unwrap().label(), "coder");
-	// assert_eq!(t5.unwrap().label(), "github");
+	assert_eq!(t5.len(), 3);
 
 	let mut iter = t3.iter();
 	let person_vertex = iter.next().unwrap();

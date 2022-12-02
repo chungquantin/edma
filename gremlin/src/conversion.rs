@@ -1,6 +1,6 @@
 use crate::{
 	process::traversal::{Bytecode, TerminatorToken},
-	structure::{TextP, P as Predicate},
+	structure::{Predicate, TextP},
 	Edge, GKey, GValue, GremlinError, GremlinResult, IntermediateRepr, List, Map, Metric, Path,
 	Property, Token, TraversalExplanation, TraversalMetrics, Vertex, VertexProperty, GID,
 };
@@ -134,6 +134,7 @@ impl_from_gvalue!(TraversalExplanation, GValue::TraversalExplanation);
 impl_from_gvalue!(IntermediateRepr, GValue::IntermediateRepr);
 impl_from_gvalue!(chrono::DateTime<chrono::Utc>, GValue::Date);
 impl_from_gvalue!(Traverser, GValue::Traverser);
+impl_from_gvalue!(Predicate, GValue::P);
 
 impl FromGValue for GKey {
 	fn from_gvalue(v: GValue) -> GremlinResult<GKey> {

@@ -3,12 +3,12 @@ use crate::structure::text_p::TextP;
 use crate::{GValue, ToGValue};
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct P {
+pub struct Predicate {
 	pub(crate) operator: String,
 	pub(crate) value: Box<GValue>,
 }
 
-impl P {
+impl Predicate {
 	pub fn operator(&self) -> &String {
 		&self.operator
 	}
@@ -17,76 +17,76 @@ impl P {
 		&self.value
 	}
 
-	pub(crate) fn new<T>(operator: T, value: GValue) -> P
+	pub(crate) fn new<T>(operator: T, value: GValue) -> Predicate
 	where
 		T: Into<String>,
 	{
-		P {
+		Predicate {
 			operator: operator.into(),
 			value: Box::new(value),
 		}
 	}
-	pub fn eq<V>(value: V) -> P
+	pub fn eq<V>(value: V) -> Predicate
 	where
 		V: ToGValue,
 	{
-		P::new("eq", value.to_gvalue())
+		Predicate::new("eq", value.to_gvalue())
 	}
 
-	pub fn neq<V>(value: V) -> P
+	pub fn neq<V>(value: V) -> Predicate
 	where
 		V: ToGValue,
 	{
-		P::new("neq", value.to_gvalue())
+		Predicate::new("neq", value.to_gvalue())
 	}
 
-	pub fn gt<V>(value: V) -> P
+	pub fn gt<V>(value: V) -> Predicate
 	where
 		V: ToGValue,
 	{
-		P::new("gt", value.to_gvalue())
+		Predicate::new("gt", value.to_gvalue())
 	}
 
-	pub fn gte<V>(value: V) -> P
+	pub fn gte<V>(value: V) -> Predicate
 	where
 		V: ToGValue,
 	{
-		P::new("gte", value.to_gvalue())
+		Predicate::new("gte", value.to_gvalue())
 	}
 
-	pub fn lt<V>(value: V) -> P
+	pub fn lt<V>(value: V) -> Predicate
 	where
 		V: ToGValue,
 	{
-		P::new("lt", value.to_gvalue())
+		Predicate::new("lt", value.to_gvalue())
 	}
 
-	pub fn lte<V>(value: V) -> P
+	pub fn lte<V>(value: V) -> Predicate
 	where
 		V: ToGValue,
 	{
-		P::new("lte", value.to_gvalue())
+		Predicate::new("lte", value.to_gvalue())
 	}
 
-	pub fn within<V>(value: V) -> P
+	pub fn within<V>(value: V) -> Predicate
 	where
 		V: IntoRange,
 	{
-		P::new("within", value.into_range().values.into())
+		Predicate::new("within", value.into_range().values.into())
 	}
 }
 
 pub trait IntoPredicate {
-	fn into_predicate(self) -> Either2<P, TextP>;
+	fn into_predicate(self) -> Either2<Predicate, TextP>;
 }
 
 impl<T: ToGValue> IntoPredicate for T {
-	fn into_predicate(self) -> Either2<P, TextP> {
+	fn into_predicate(self) -> Either2<Predicate, TextP> {
 		let val = self.to_gvalue();
 		match val {
 			GValue::P(ref p) => Either2::A(p.clone()),
 			GValue::TextP(ref p) => Either2::B(p.clone()),
-			_ => Either2::A(P::new("eq", val)),
+			_ => Either2::A(Predicate::new("eq", val)),
 		}
 	}
 }

@@ -1,6 +1,9 @@
 use std::marker::PhantomData;
 
-use crate::util::{is_reducing_barrier_step, is_source_step, is_vertex_step};
+use crate::util::{
+	has_key_predicate_vertex, is_has_key_predicate, is_has_label_key, is_has_label_key_predicate,
+	is_reducing_barrier_step, is_source_step, is_vertex_step,
+};
 use crate::ExecutionResult;
 use crate::{err::Error, storage::DatastoreRef, IxResult, SimpleTransaction, VertexRepository};
 use solomon_gremlin::process::traversal::{GraphTraversal, Terminator, TerminatorToken};
@@ -108,6 +111,12 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 				s if is_reducing_barrier_step(s) => self.process_reducing_barrier_step(step).await,
 				_ => self.process_step(step).await,
 			}
+			println!(
+				"===> Step: {:?} - Result: {:?}",
+				step.operator().as_str(),
+				self.result.vertices
+			);
+			println!("------------");
 		}
 		let collector = StepCollector::new(self.clone());
 		let result = collector.collect(&self.terminator.clone()).unwrap();
@@ -263,23 +272,24 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 			self.result.vertices.value = GValue::List(List::new(result.clone()));
 		}
 		self.set_terminator(TerminatorToken::VertexProperty);
-		let list = GValue::List(List::new(result));
-		IxResult::new("properties", list)
+		IxResult::new("properties", GValue::Null)
 	}
 
 	async fn new_vertex_properties(&mut self, args: &[GValue]) -> IxResult {
 		let tx = &self.v.tx();
 		let source = &self.source.clone();
 		let new_vertices = self.source_value::<List>(source).unwrap();
-		let cur = new_vertices.last().unwrap();
-		let vertex = cur.get::<Vertex>().unwrap();
-		let vertex_with_properties =
-			self.v.properties(tx, &mut vertex.clone(), args).await.unwrap();
-		let result = GValue::Vertex(vertex_with_properties);
-		self.result.vertices.value = result.clone();
-
+		let get_last = new_vertices.last();
+		if get_last.is_some() {
+			let cur = get_last.unwrap();
+			let vertex = cur.get::<Vertex>().unwrap();
+			let vertex_with_properties =
+				self.v.properties(tx, &mut vertex.clone(), args).await.unwrap();
+			let result = GValue::List(List::new(vec![GValue::Vertex(vertex_with_properties)]));
+			self.result.new_vertices.value = result;
+		}
 		self.set_terminator(TerminatorToken::VertexProperty);
-		IxResult::new("properties", result)
+		IxResult::new("properties", GValue::Null)
 	}
 
 	async fn properties(&mut self, args: &[GValue]) -> IxResult {
@@ -316,26 +326,27 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		IxResult::new("count", streamed_terminator)
 	}
 
-	fn filter_vertices_result(&mut self, args: &[GValue], f: &(dyn Fn(&Vertex, &String) -> bool)) {
-		for arg in args.iter() {
-			let cmp = arg.get::<String>().unwrap();
-			let vertices = self.raw_list_from_source::<Vertex>("V", Some(&|v| f(v, cmp))).unwrap();
-			let list = GValue::List(List::new(vertices));
-			self.result.vertices.value = list;
+	fn filter_vertices(&mut self, f: &(dyn Fn(&Vertex) -> bool)) {
+		let vertices = self.raw_list_from_source::<Vertex>("V", Some(&|v| f(v))).unwrap();
+		println!("Vertices: {:?}", vertices.to_vec());
+		let list = GValue::List(List::new(vertices));
+		self.result.vertices.value = list;
 
-			let new_vertices =
-				self.raw_list_from_source::<Vertex>("addV", Some(&|v| f(v, cmp))).unwrap();
-			let list = GValue::List(List::new(new_vertices));
-			self.result.new_vertices.value = list;
-		}
+		let new_vertices = self.raw_list_from_source::<Vertex>("addV", Some(&|v| f(v))).unwrap();
+		println!("Vertices: {:?}", new_vertices.to_vec());
+		let list = GValue::List(List::new(new_vertices));
+		self.result.new_vertices.value = list;
 	}
 
 	fn has_id(&mut self, args: &[GValue]) -> IxResult {
 		match self.source.as_str() {
 			s if is_vertex_step(s) => {
-				self.filter_vertices_result(
-					args,
-					&(|v, cmp| String::from_utf8(v.id().bytes()).unwrap() == *cmp),
+				self.filter_vertices(
+					&(|v| {
+						let arg = args.first().unwrap();
+						let cmp = String::from_gvalue(arg.clone()).unwrap();
+						String::from_utf8(v.id().bytes()).unwrap() == *cmp
+					}),
 				);
 				IxResult::new("has_label", GValue::Null)
 			}
@@ -346,7 +357,13 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 	fn has_not(&mut self, args: &[GValue]) -> IxResult {
 		match self.source.as_str() {
 			s if is_vertex_step(s) => {
-				self.filter_vertices_result(args, &(|v, cmp| !v.properties().contains_key(cmp)));
+				self.filter_vertices(
+					&(|v| {
+						let arg = args.first().unwrap();
+						let cmp = String::from_gvalue(arg.clone()).unwrap();
+						!v.properties().contains_key(&cmp)
+					}),
+				);
 				IxResult::new("has_label", GValue::Null)
 			}
 			_ => unimplemented!(),
@@ -356,7 +373,13 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 	fn has_label(&mut self, args: &[GValue]) -> IxResult {
 		match self.source.as_str() {
 			s if is_vertex_step(s) => {
-				self.filter_vertices_result(args, &(|v, cmp| v.label() == cmp));
+				self.filter_vertices(
+					&(|v| {
+						let arg = args.first().unwrap();
+						let cmp = String::from_gvalue(arg.clone()).unwrap();
+						v.label() == &cmp
+					}),
+				);
 				IxResult::new("has_label", GValue::Null)
 			}
 			_ => unimplemented!(),
@@ -366,7 +389,13 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 	fn has_key(&mut self, args: &[GValue]) -> IxResult {
 		match self.source.as_str() {
 			s if is_vertex_step(s) => {
-				self.filter_vertices_result(args, &(|v, cmp| v.properties().contains_key(cmp)));
+				self.filter_vertices(
+					&(|v| {
+						let arg = args.first().unwrap();
+						let cmp = String::from_gvalue(arg.clone()).unwrap();
+						v.properties().contains_key(&cmp)
+					}),
+				);
 				IxResult::new("has_label", GValue::Null)
 			}
 			_ => unimplemented!(),
@@ -374,10 +403,21 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 	}
 
 	fn has(&mut self, args: &[GValue]) -> IxResult {
-		println!("args: {:?}", args);
 		match self.source.as_str() {
 			s if is_vertex_step(s) => {
-				unimplemented!()
+				self.filter_vertices(
+					&(|v| match args {
+						a if is_has_label_key(a) => {
+							let label = String::from_gvalue(args[0].clone()).unwrap();
+							let key = String::from_gvalue(args[1].clone()).unwrap();
+							v.label() == &label && v.properties().contains_key(&key)
+						}
+						a if is_has_key_predicate(a) => has_key_predicate_vertex(v, args),
+						a if is_has_label_key_predicate(a) => unimplemented!(),
+						_ => unimplemented!(),
+					}),
+				);
+				IxResult::new("has", GValue::Null)
 			}
 			_ => unimplemented!(),
 		}

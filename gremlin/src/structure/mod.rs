@@ -35,7 +35,7 @@ pub use cardinality::Cardinality;
 pub use either::*;
 pub use label::{LabelType, Labels};
 pub use map::{GKey, Map};
-pub use p::{IntoPredicate, P};
+pub use p::{IntoPredicate, Predicate};
 pub use pop::Pop;
 pub use t::T;
 pub use text_p::TextP;
