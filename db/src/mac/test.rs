@@ -36,6 +36,7 @@ macro_rules! full_database_test_impl {
 			define_test!(vertex_property, $code);
 			define_test!(multiple_new_vertex, $code);
 			define_test!(vertex_has_step, $code);
+			define_test!(basic_relationship, $code);
 		}
 	};
 }

@@ -1,6 +1,10 @@
+use std::collections::HashMap;
+
 use crate::conversion::{BorrowFromGValue, FromGValue};
 use crate::GValue;
 use crate::GremlinResult;
+
+pub type PropertyMap = HashMap<String, Property>;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Property {

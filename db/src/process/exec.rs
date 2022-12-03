@@ -1,17 +1,18 @@
+use std::collections::HashMap;
 use std::marker::PhantomData;
 
 use crate::util::{
 	has_key_predicate_vertex, is_has_key_predicate, is_has_label_key, is_has_label_key_predicate,
 	is_reducing_barrier_step, is_source_step, is_vertex_step,
 };
-use crate::ExecutionResult;
 use crate::{err::Error, storage::DatastoreRef, IxResult, SimpleTransaction, VertexRepository};
+use crate::{EdgeRepository, ExecutionResult};
 use solomon_gremlin::process::traversal::{GraphTraversal, Terminator, TerminatorToken};
-use solomon_gremlin::GremlinError;
 use solomon_gremlin::{
 	process::traversal::{Bytecode, Instruction},
 	FromGValue, GValue, List, Vertex,
 };
+use solomon_gremlin::{Edge, GremlinError};
 
 use super::StepCollector;
 
@@ -21,7 +22,9 @@ pub struct StepExecutor<'a, T: FromGValue + Clone> {
 	pub result: ExecutionResult,
 	terminator: TerminatorToken,
 	source: String,
+	alias: HashMap<String, (TerminatorToken, GValue)>,
 	v: VertexRepository<'a>,
+	e: EdgeRepository<'a>,
 	phantom: PhantomData<T>,
 	iter_index: usize,
 }
@@ -38,6 +41,8 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 			terminator: TerminatorToken::Null,
 			source: String::default(),
 			v: VertexRepository::new(ds_ref),
+			e: EdgeRepository::new(ds_ref),
+			alias: HashMap::default(),
 			phantom: PhantomData,
 			iter_index: 0,
 		}
@@ -92,6 +97,9 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 			"hasKey" => self.has_key(args),
 			"hasNot" => self.has_not(args),
 			"has" => self.has(args),
+			"as" => self.as_(args),
+			"from" => self.from(args).await,
+			"to" => self.to(args),
 			_ => unimplemented!(),
 		};
 
@@ -175,6 +183,47 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		Ok(self.iter_index + 1 < list.len())
 	}
 
+	fn as_(&mut self, args: &[GValue]) -> IxResult {
+		let collector = StepCollector::new(self.clone());
+		let alias = args.first().unwrap().get::<String>().unwrap();
+		let token = self.terminator.clone();
+
+		let result = collector.collect(&self.terminator.clone()).unwrap();
+		self.alias.insert(alias.to_string(), (token, result.clone()));
+
+		IxResult::new("as", result)
+	}
+
+	async fn from(&mut self, args: &[GValue]) -> IxResult {
+		let tx = &mut self.v.mut_tx();
+		let arg = args.first().unwrap();
+		match arg {
+			GValue::Vertex(v) => {
+				let stream = self.result.get_from_source(&self.source);
+				let mut edges = stream.value.get::<List>().unwrap().clone();
+
+				let last = edges.last_mut().unwrap();
+				let mut edge = last.get::<Edge>().unwrap().clone();
+
+				edge.set_in_v(v.clone());
+
+				// Mutate last edge in edge
+				let value = GValue::Edge(edge.clone());
+				*last = value.clone();
+
+				self.result.new_edges.value = GValue::List(edges);
+				tx.commit().await.unwrap();
+
+				IxResult::new("as", value)
+			}
+			_ => unimplemented!(),
+		}
+	}
+
+	fn to(&mut self, args: &[GValue]) -> IxResult {
+		unimplemented!()
+	}
+
 	/// The V()-step is meant to read vertices from the graph and is usually
 	/// used to start a GraphTraversal, but can also be used mid-traversal.
 	async fn v(&mut self, args: &[GValue]) -> IxResult {
@@ -207,9 +256,18 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		IxResult::new("addV", GValue::List(vertices))
 	}
 
-	async fn add_e(&mut self, _labels: &[GValue]) -> IxResult {
+	async fn add_e(&mut self, args: &[GValue]) -> IxResult {
+		let tx = &mut self.v.mut_tx();
+		let edge = self.e.new_e(tx, args).await.unwrap();
+
+		// Push new vertex to the end of vertices
+		let mut edges = self.source_value::<List>("addE").unwrap();
+		edges.push(GValue::Edge(edge));
+		self.result.new_edges.value = GValue::List(edges.clone());
+
+		tx.commit().await.unwrap();
 		self.set_terminator(TerminatorToken::Edge);
-		IxResult::new("addE", GValue::Null)
+		IxResult::new("addE", GValue::List(edges))
 	}
 
 	async fn property_with_cardinality(&mut self, _args: &[GValue]) -> IxResult {
