@@ -220,7 +220,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		}
 	}
 
-	fn to(&mut self, args: &[GValue]) -> IxResult {
+	fn to(&mut self, _args: &[GValue]) -> IxResult {
 		unimplemented!()
 	}
 

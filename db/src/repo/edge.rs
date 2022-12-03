@@ -106,7 +106,7 @@ impl<'a> EdgeRepository<'a> {
 	pub async fn in_v(&self, tx: &mut Transaction, e: &mut Edge, v: Vertex) {
 		e.set_in_v(v.clone());
 		let iter = self.iterate_from_edge(tx, e.id()).await.unwrap();
-		let edge = iter.last().unwrap().get::<Edge>().unwrap();
+		let _edge = iter.last().unwrap().get::<Edge>().unwrap();
 
 		todo!()
 	}
