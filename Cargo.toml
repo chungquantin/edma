@@ -1,2 +1,2 @@
 [workspace]
-members = ["db"]
+members = ["db", "gui"]
