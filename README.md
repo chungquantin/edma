@@ -6,18 +6,15 @@
 &nbsp;
 <a href="https://github.com/nomadiz/edma"><img src="https://img.shields.io/github/v/release/nomadiz/edma?color=%23ff00a0&include_prereleases&label=version&sort=semver&style=flat-square"></a>
 &nbsp;
-<a href="https://github.com/nomadiz/edma/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT License-00bfff.svg?style=flat-square"></a>
-
+<a href="https://github.com/nomadiz/edma/blob/master/LICENSE">
+<img src="https://img.shields.io/badge/license-MIT License-00bfff.svg?style=flat-square"></a>
 </p>
 <p>
     <a href="https://github.com/nomadiz/edma/graphs/contributors" alt="Contributors">
         <img src="https://img.shields.io/github/contributors/nomadiz/edma" /></a>
     <a href="https://github.com/nomadiz/edma/pulse" alt="Activity">
         &nbsp;
-        <img src="https://img.shields.io/github/commit-activity/m/nomadiz/edma" /></a>
-    <a href="https://users.rust-lang.org/t/solomondb-in-development-gremlin-compatible-graph-database-update/84750" alt="Activity">
-        &nbsp;
-		<img src="https://img.shields.io/badge/Rust%20User%20Forum-follow-orange"/>
+        <img src="https://img.shields.io/github/commit-activity/m/nomadiz/edma" />
 	</a>
 </p>
 
