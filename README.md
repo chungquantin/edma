@@ -43,7 +43,7 @@ The road map of SolomonDB will include:
 -   [x] Implement Redb storage layer
 - 	[ ] Add protobuf and enable single-node mode.
 -   [ ] Database server
--   [ ] Embedded library
+-   [X] Embedded library
 -   [ ] Support Gremlin query language
 -   [ ] Multi-row, multi-table ACID transactions
 -   [ ] Single-node, or highly-scalable distributed mode
@@ -56,16 +56,10 @@ The mission of **SolomonDB** is to make graph traversal become easier, aim at pl
 
 For guidance on installation, development, deployment, and administration, see our [SolomonDB documentation](https://nomadiz.github.io/solomon-db/).
 
-The documentation page is built using Rust Mdbook. Shoutout to Rust ecosystem. ❤️
+The documentation page is built using Rust Mdbook. Shoutout to Rust ecosystem.
 
 ## Community
 
-Join our growing community around the world, for help, ideas, and discussions regarding SurrealDB.
-
 -   View SolomonDB [Blog](https://nomadiz.hashnode.dev/)
 -   View weekly announcement [Rust language Forum](https://users.rust-lang.org/t/solomondb-gremlin-compatible-graph-database-weekly-update/84750)
-
-Support the creator
-
--   [Github](https://github.com/chungquantin)
--   [Twitter](https://twitter.com/chasechung111)
+-   Support the creator [Twitter](https://twitter.com/chasechung111)
