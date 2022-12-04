@@ -1,6 +1,6 @@
 [package]
 name = "solomondb"
-version = "0.0.1-beta.1"
+version = "0.0.1-beta.2"
 publish = true
 edition = "2021"
 readme = "CARGO.md"
@@ -45,7 +45,7 @@ lazy_static = "1.4.0"
 byteorder = "1.4.3"
 serde = { version = "1.0.147", features = ["derive"] }
 log = "0.4.17"
-solomon-gremlin = { path = "../gremlin", version = "0.0.1", optional = true }
+solomon-gremlin = { path = "../gremlin", version = "0.0.2", optional = true }
 pin-project-lite = "0.2.9"
 
 [dev-dependencies]
