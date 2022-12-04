@@ -4,8 +4,6 @@ mod interface;
 mod mac;
 mod constant;
 mod model;
-mod process;
-mod repo;
 mod storage;
 mod util;
 
@@ -18,7 +16,4 @@ pub use crate::storage::kvs::RocksDBAdapter;
 pub mod tests;
 
 use crate::err::*;
-
 pub use crate::model::*;
-pub use crate::process::Database;
-pub use crate::repo::*;

@@ -5,7 +5,6 @@ use chrono::{DateTime, NaiveDateTime, Timelike, Utc};
 
 use lazy_static::lazy_static;
 use rand::Rng;
-use solomon_gremlin::{GValue, LabelType, GID};
 use uuid::Uuid;
 
 lazy_static! {
@@ -18,18 +17,10 @@ lazy_static! {
 
 pub enum Component<'a> {
 	Uuid(Uuid),
-	/// GID: Gremlin Identifier
-	Gid(&'a GID),
-	/// GLabelType: Gremlin Label Type
-	Label(&'a LabelType),
 	FixedLengthString(&'a str),
 	DateTime(DateTime<Utc>),
 	Bytes(&'a [u8]),
 	Usize(usize),
-	/// GValue: Gremlin Value
-	GValue(&'a GValue),
-	/// GValueType: Gremlin Value Type
-	GValueType(&'a GValue),
 }
 
 impl<'a> Component<'a> {
@@ -39,9 +30,6 @@ impl<'a> Component<'a> {
 			Component::FixedLengthString(s) => s.len(),
 			Component::DateTime(_) => 8,
 			Component::Bytes(b) => b.len(),
-			Component::GValue(v) | Component::GValueType(v) => v.bytes().len(),
-			Component::Gid(v) => v.bytes_len(),
-			Component::Label(v) => v.bytes_len(),
 			Component::Usize(_) => 1,
 		}
 	}
@@ -55,10 +43,6 @@ impl<'a> Component<'a> {
 				cursor.write_u64::<BigEndian>(time_to_end)
 			}
 			Component::Bytes(bytes) => cursor.write_all(bytes),
-			Component::GValueType(v) => cursor.write_all(&[v.to_variant()]),
-			Component::GValue(value) => cursor.write_all(value.bytes().as_slice()),
-			Component::Gid(value) => cursor.write_all(value.bytes().as_slice()),
-			Component::Label(value) => cursor.write_all(value.bytes().as_slice()),
 			Component::Usize(value) => cursor.write_all(&[value.try_into().unwrap()]),
 		}
 	}
