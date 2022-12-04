@@ -6,6 +6,7 @@ use crate::util::{
 	build_byte_map, build_bytes, build_sized, build_usize_from_bytes, concat_bytes, Component,
 };
 use crate::{Error, SimpleTransaction};
+use solomon_gremlin::structure::PropertyMap;
 use solomon_gremlin::{GValue, Property, GID};
 
 impl_repository!(PropertyRepository(Property));
@@ -13,8 +14,6 @@ impl_repository!(PropertyRepository(Property));
 fn build_property_value(value: &GValue) -> Vec<u8> {
 	build_bytes(&[Component::GValueType(value), Component::GValue(value)]).unwrap()
 }
-
-type PropertyMap = HashMap<String, Property>;
 
 impl<'a> PropertyRepository<'a> {
 	/// The property()-step is used to add properties to the elements of the graph (sideEffect).
@@ -25,14 +24,14 @@ impl<'a> PropertyRepository<'a> {
 	pub async fn property(
 		&self,
 		tx: &mut Transaction,
-		vertex_id: &GID,
+		id: &GID,
 		label: &GValue,
 		value: &GValue,
 	) -> Result<Property, Error> {
 		let cf = self.cf();
 		let val = build_property_value(value);
 		let key = concat_bytes(vec![
-			build_sized(Component::Gid(vertex_id)),
+			build_sized(Component::Gid(id)),
 			build_sized(Component::GValue(label)),
 		]);
 		tx.set(cf, key.to_vec(), val).await.unwrap();
@@ -59,14 +58,29 @@ impl<'a> PropertyRepository<'a> {
 		Ok(map)
 	}
 
-	/// Method to iterate the pairs of byte data with prefix as vertex id
-	pub async fn iterate_from_vertex(
+	/// Method to iterate the pairs of byte data with prefix as edge id
+	pub async fn iterate_from_edge(
 		&self,
 		tx: &Transaction,
-		vertex_id: &GID,
+		edge_id: &GID,
 	) -> Result<PropertyMap, Error> {
 		let cf = self.cf();
-		let prefix = build_sized(Component::Gid(vertex_id));
+		let prefix = build_sized(Component::Gid(edge_id));
+		let iterator = tx.prefix_iterate(cf, prefix).await.unwrap();
+		self.iterate(iterator)
+	}
+
+	pub async fn iterate_from_label(
+		&self,
+		tx: &Transaction,
+		edge_id: &GID,
+		label: &GValue,
+	) -> Result<PropertyMap, Error> {
+		let cf = self.cf();
+		let prefix = concat_bytes(vec![
+			build_sized(Component::Gid(edge_id)),
+			build_sized(Component::GValue(label)),
+		]);
 		let iterator = tx.prefix_iterate(cf, prefix).await.unwrap();
 		self.iterate(iterator)
 	}

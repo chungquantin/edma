@@ -187,3 +187,45 @@ pub async fn vertex_has_step(storage: &str) {
 	let coder_vertex = iter.next().unwrap();
 	assert_eq!(coder_vertex.label(), "coder");
 }
+
+pub async fn basic_relationship(storage: &str) {
+	let path = &generate_path(storage, None);
+	let datastore = Datastore::new(path);
+	let db = Database::new(datastore.borrow());
+
+	let edge = db
+		.traverse()
+		.add_v("person")
+		.property("name", "chungquantin")
+		.as_("v1")
+		.add_v("person")
+		.property("name", "tin-snowflake")
+		.as_("v2")
+		.add_e("LIKE")
+		.from("v1")
+		.to("v2")
+		.exec()
+		.next()
+		.await
+		.unwrap()
+		.unwrap();
+
+	assert_eq!(edge.label(), "LIKE");
+	assert_eq!(edge.in_v().as_ref().unwrap().label(), "person");
+	assert_eq!(edge.out_v().as_ref().unwrap().label(), "person");
+	assert_eq!(
+		edge.out_v()
+			.as_ref()
+			.unwrap()
+			.property("name")
+			.unwrap()
+			.first()
+			.unwrap()
+			.get::<String>()
+			.unwrap(),
+		"tin-snowflake"
+	);
+
+	let edges = db.traverse().e(()).exec().to_list().await.unwrap();
+	assert_eq!(edges.len(), 1);
+}

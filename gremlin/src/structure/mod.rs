@@ -25,7 +25,7 @@ pub use self::gid::{GIDs, GID};
 pub use self::list::List;
 pub use self::metrics::{IntermediateRepr, Metric, TraversalExplanation, TraversalMetrics};
 pub use self::path::Path;
-pub use self::property::Property;
+pub use self::property::{Property, PropertyMap};
 pub use self::set::Set;
 pub use self::token::Token;
 pub use self::value::GValue;

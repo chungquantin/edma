@@ -21,8 +21,19 @@ impl<'a, T: FromGValue + Clone> StepCollector<'a, T> {
 		list
 	}
 
+	fn collect_edge_list(&self) -> List {
+		let mut list = self.executor.source_value::<List>("E").unwrap();
+		let new_edges = self.executor.source_value::<List>("addE").unwrap();
+		list.append(&mut new_edges.core());
+		list
+	}
+
 	fn collect_vertex(&self) -> GValue {
 		GValue::List(self.collect_vertex_list())
+	}
+
+	fn collect_edge(&self) -> GValue {
+		GValue::List(self.collect_edge_list())
 	}
 
 	fn collect_vertex_properties(&self) -> GValue {
@@ -58,6 +69,7 @@ impl<'a, T: FromGValue + Clone> StepCollector<'a, T> {
 			TerminatorToken::Vertex => Ok(self.collect_vertex()),
 			TerminatorToken::VertexProperty => Ok(self.collect_vertex_properties()),
 			TerminatorToken::Int64 => Ok(self.collect_count()),
+			TerminatorToken::Edge => Ok(self.collect_edge()),
 			_ => unimplemented!(),
 		}
 	}
