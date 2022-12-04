@@ -202,8 +202,8 @@ pub async fn basic_relationship(storage: &str) {
 		.property("name", "tin-snowflake")
 		.as_("v2")
 		.add_e("LIKE")
-		// .from("v1")
-		// .to("v2")
+		.from("v1")
+		.to("v2")
 		.exec()
 		.next()
 		.await
@@ -211,18 +211,21 @@ pub async fn basic_relationship(storage: &str) {
 		.unwrap();
 
 	assert_eq!(edge.label(), "LIKE");
-	// assert_eq!(edge.in_v().as_ref().unwrap().label(), "person");
-	// assert_eq!(edge.out_v().as_ref().unwrap().label(), "person");
-	// assert_eq!(
-	// 	edge.out_v()
-	// 		.as_ref()
-	// 		.unwrap()
-	// 		.property("name")
-	// 		.unwrap()
-	// 		.first()
-	// 		.unwrap()
-	// 		.get::<String>()
-	// 		.unwrap(),
-	// 	"tin_snowflake"
-	// );
+	assert_eq!(edge.in_v().as_ref().unwrap().label(), "person");
+	assert_eq!(edge.out_v().as_ref().unwrap().label(), "person");
+	assert_eq!(
+		edge.out_v()
+			.as_ref()
+			.unwrap()
+			.property("name")
+			.unwrap()
+			.first()
+			.unwrap()
+			.get::<String>()
+			.unwrap(),
+		"tin-snowflake"
+	);
+
+	let edges = db.traverse().e(()).exec().to_list().await.unwrap();
+	assert_eq!(edges.len(), 1);
 }

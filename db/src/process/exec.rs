@@ -99,7 +99,7 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 			"has" => self.has(args),
 			"as" => self.as_(args),
 			"from" => self.from(args).await,
-			"to" => self.to(args),
+			"to" => self.to(args).await,
 			_ => unimplemented!(),
 		};
 
@@ -195,33 +195,63 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 	}
 
 	async fn from(&mut self, args: &[GValue]) -> IxResult {
-		let tx = &mut self.v.mut_tx();
+		let tx = &mut self.e.mut_tx();
 		let arg = args.first().unwrap();
 		match arg {
-			GValue::Vertex(v) => {
+			// Alias
+			GValue::String(v) => {
+				let (_, value) = self.alias.get(v).unwrap();
+				let list = value.get::<List>().unwrap();
+				let last_vertex = list.clone().last().unwrap();
 				let stream = self.result.get_from_source(&self.source);
 				let mut edges = stream.value.get::<List>().unwrap().clone();
 
-				let last = edges.last_mut().unwrap();
-				let mut edge = last.get::<Edge>().unwrap().clone();
-
-				edge.set_in_v(v.clone());
+				let last_edge = edges.last_mut().unwrap();
+				let edge = &mut last_edge.get::<Edge>().unwrap().clone();
+				let vertex = last_vertex.get::<Vertex>().unwrap();
+				self.e.in_v(tx, edge, vertex).await.unwrap();
 
 				// Mutate last edge in edge
 				let value = GValue::Edge(edge.clone());
-				*last = value.clone();
+				*last_edge = value.clone();
 
 				self.result.new_edges.value = GValue::List(edges);
 				tx.commit().await.unwrap();
 
-				IxResult::new("as", value)
+				IxResult::new("from", value)
 			}
 			_ => unimplemented!(),
 		}
 	}
 
-	fn to(&mut self, args: &[GValue]) -> IxResult {
-		unimplemented!()
+	async fn to(&mut self, args: &[GValue]) -> IxResult {
+		let tx = &mut self.e.mut_tx();
+		let arg = args.first().unwrap();
+		match arg {
+			// Alias
+			GValue::String(v) => {
+				let (_, value) = self.alias.get(v).unwrap();
+				let list = value.get::<List>().unwrap();
+				let last_vertex = list.clone().last().unwrap();
+				let stream = self.result.get_from_source(&self.source);
+				let mut edges = stream.value.get::<List>().unwrap().clone();
+
+				let last_edge = edges.last_mut().unwrap();
+				let edge = &mut last_edge.get::<Edge>().unwrap().clone();
+				let vertex = last_vertex.get::<Vertex>().unwrap();
+				self.e.out_v(tx, edge, vertex).await.unwrap();
+
+				// Mutate last edge in edge
+				let value = GValue::Edge(edge.clone());
+				*last_edge = value.clone();
+
+				self.result.new_edges.value = GValue::List(edges);
+				tx.commit().await.unwrap();
+
+				IxResult::new("from", value)
+			}
+			_ => unimplemented!(),
+		}
 	}
 
 	/// The V()-step is meant to read vertices from the graph and is usually
@@ -234,9 +264,12 @@ impl<'a, T: FromGValue + Clone> StepExecutor<'a, T> {
 		IxResult::new("V", GValue::List(result))
 	}
 
-	async fn e(&mut self, _ids: &[GValue]) -> IxResult {
+	async fn e(&mut self, args: &[GValue]) -> IxResult {
+		let tx = &mut self.e.mut_tx();
+		let result = self.e.e(tx, args).await.unwrap();
+
 		self.set_terminator(TerminatorToken::Edge);
-		IxResult::new("E", GValue::Null)
+		IxResult::new("E", GValue::List(result))
 	}
 
 	/// The addV()-step is used to add vertices to the graph (map/sideEffect).

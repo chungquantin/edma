@@ -11,6 +11,34 @@ impl_repository!(EdgeRepository(Edge));
 type RepositoryResult<T> = Result<T, Error>;
 const UUID_SIZE: usize = 16;
 
+/// Byte layout:
+/// ( size + edge id | size + incoming vertex id | size + outgoing vertex id )
+fn build_edge_key<'a>(edge: &Edge) -> Vec<u8> {
+	let vertex = |v: &Option<Vertex>| {
+		let vec = vec![0; UUID_SIZE];
+		let empty_uuid = vec.as_slice();
+		let result = {
+			match v {
+				Some(v) => v.id().clone().bytes(),
+				None => empty_uuid.to_vec(),
+			}
+		};
+
+		result
+	};
+	let in_v = vertex(edge.in_v());
+	let in_v_component = Component::Bytes(in_v.as_slice());
+	let out_v = vertex(edge.out_v());
+	let out_v_component = Component::Bytes(out_v.as_slice());
+	let bytes = concat_bytes(vec![
+		build_sized(Component::Gid(edge.id())),
+		build_sized(in_v_component),
+		build_sized(out_v_component),
+	]);
+	println!("bytes: {:?}", build_sized(Component::Gid(edge.id())));
+	bytes
+}
+
 impl<'a> EdgeRepository<'a> {
 	/// The V()-step is meant to read vertices from the graph and is usually
 	/// used to start a GraphTraversal, but can also be used mid-traversal.
@@ -62,16 +90,11 @@ impl<'a> EdgeRepository<'a> {
 		}
 
 		let cf = self.cf();
-		let vec = Vec::with_capacity(UUID_SIZE);
-		let empty_uuid = vec.as_slice();
-		let key = concat_bytes(vec![
-			build_sized(Component::Gid(e.id())),
-			build_sized(Component::Bytes(empty_uuid)),
-			build_sized(Component::Bytes(empty_uuid)),
-		]);
+
+		let key = build_edge_key(e);
 		let val = bytes.concat();
 
-		tx.set(cf, key, val).await.unwrap();
+		tx.put(cf, key, val).await.unwrap();
 
 		Ok(e.clone())
 	}
@@ -103,12 +126,45 @@ impl<'a> EdgeRepository<'a> {
 		Ok(e.clone())
 	}
 
-	pub async fn in_v(&self, tx: &mut Transaction, e: &mut Edge, v: Vertex) {
-		e.set_in_v(v.clone());
-		let iter = self.iterate_from_edge(tx, e.id()).await.unwrap();
-		let edge = iter.last().unwrap().get::<Edge>().unwrap();
+	pub async fn in_v(
+		&self,
+		tx: &mut Transaction,
+		e: &mut Edge,
+		v: &Vertex,
+	) -> RepositoryResult<Edge> {
+		let cf = self.cf();
+		let old_key = build_edge_key(e);
 
-		todo!()
+		if tx.exi(cf.clone(), old_key.clone()).await.unwrap() {
+			tx.del(cf.clone(), old_key).await.unwrap();
+			// Update edge in storage with new key
+			e.set_in_v(v.clone());
+			let new_key = build_edge_key(e);
+			let val = build_sized(Component::FixedLengthString(e.label()));
+			tx.put(cf, new_key, val).await.unwrap();
+		}
+		Ok(e.clone())
+	}
+
+	pub async fn out_v(
+		&self,
+		tx: &mut Transaction,
+		e: &mut Edge,
+		v: &Vertex,
+	) -> RepositoryResult<Edge> {
+		let cf = self.cf();
+		let old_key = build_edge_key(e);
+
+		if tx.exi(cf.clone(), old_key.clone()).await.unwrap() {
+			tx.del(cf.clone(), old_key).await.unwrap();
+			// Update edge in storage with new key
+			e.set_out_v(v.clone());
+			let new_key = build_edge_key(e);
+			println!("New key: {:?}", new_key);
+			let val = build_sized(Component::FixedLengthString(e.label()));
+			tx.put(cf, new_key, val).await.unwrap();
+		}
+		Ok(e.clone())
 	}
 
 	pub async fn properties(
@@ -128,11 +184,15 @@ impl<'a> EdgeRepository<'a> {
 
 	fn from_pair(&self, p: &KeyValuePair) -> RepositoryResult<Edge> {
 		let (k, v) = p;
-		// Handle deserializing and rebuild vertex stream
-		let bytemap = &build_byte_map(vec!["gid"], k.to_vec());
+		// Handle deserializing and rebuild edge stream
+		let bytemap = &build_byte_map(vec!["gid", "in_v", "out_v"], k.to_vec());
 		let gid = GID::Bytes(bytemap.get("gid").unwrap().to_vec());
-		let mut vertex = Edge::partial_new(gid);
-		// handle deserializing label data of vertex
+		let mut edge = Edge::partial_new(gid);
+		let in_v = GID::Bytes(bytemap.get("in_v").unwrap().to_vec());
+		edge.set_partial_in_v(in_v);
+		let out_v = GID::Bytes(bytemap.get("out_v").unwrap().to_vec());
+		edge.set_partial_out_v(out_v);
+		// handle deserializing label data of edge
 		let mut i = 0;
 		while i < v.len() {
 			let len = *v[i..i + 1].first().unwrap();
@@ -140,11 +200,11 @@ impl<'a> EdgeRepository<'a> {
 			let end = usize_len + i + 1;
 			let data = &v[i + 1..end];
 			let label = String::from_utf8(data.to_vec()).unwrap();
-			vertex.add_label(label);
+			edge.add_label(label);
 			i += usize_len + 1;
 		}
 
-		Ok(vertex)
+		Ok(edge)
 	}
 
 	pub async fn drop_v(&self, tx: &mut Transaction, id: GID) -> Result<(), Error> {
@@ -176,7 +236,7 @@ impl<'a> EdgeRepository<'a> {
 
 	pub async fn iterate_from_edge(&self, tx: &Transaction, edge_id: &GID) -> Result<List, Error> {
 		let cf = self.cf();
-		let prefix = concat_bytes(vec![build_sized(Component::Gid(edge_id))]);
+		let prefix = build_sized(Component::Gid(edge_id));
 		let iterator = tx.prefix_iterate(cf, prefix).await.unwrap();
 		self.iterate(iterator)
 	}

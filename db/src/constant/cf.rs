@@ -14,7 +14,7 @@ pub enum ColumnFamily {
 lazy_static! {
 	pub static ref COLUMN_FAMILIES: HashMap<ColumnFamily, String> = HashMap::from([
 		(ColumnFamily::TestSuite, "test_suite:v1".to_string()),
-		(ColumnFamily::Edge, "vertices:v1".to_string()),
+		(ColumnFamily::Edge, "edges:v1".to_string()),
 		(ColumnFamily::VertexProperty, "vertex-properties:v1".to_string()),
 		(ColumnFamily::Property, "properties:v1".to_string()),
 		(ColumnFamily::Vertex, "vertices:v1".to_string())

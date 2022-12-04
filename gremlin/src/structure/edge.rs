@@ -82,6 +82,14 @@ impl Edge {
 		&self.label
 	}
 
+	pub fn set_partial_in_v(&mut self, id: GID) {
+		self.in_v = Some(Vertex::partial_new(id));
+	}
+
+	pub fn set_partial_out_v(&mut self, id: GID) {
+		self.in_v = Some(Vertex::partial_new(id));
+	}
+
 	pub fn set_in_v(&mut self, v: Vertex) {
 		self.in_v = Some(v);
 	}
