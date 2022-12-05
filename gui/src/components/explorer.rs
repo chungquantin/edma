@@ -32,7 +32,7 @@ fn build_tree<'a>(config: Config) -> StatefulTree<'a> {
 	let mut item = TreeItem::new_leaf("RocksDB");
 	let paths = config.paths.to_vec();
 	for path in paths {
-		let chunk = path.split(":").nth(1).unwrap();
+		let chunk = path.split(':').nth(1).unwrap();
 		let path = get_absolute_path(chunk);
 		let child = TreeItem::new_leaf(path);
 		item.add_child(child);
