@@ -2,6 +2,7 @@ use crate::{
 	components::{MenuItem, RenderAbleComponent},
 	config::Config,
 	constants::Focus,
+	events::EventState,
 };
 use anyhow::Result;
 use db::{Datastore, SimpleTransaction};
@@ -11,7 +12,7 @@ use tui::{
 };
 
 use crate::{
-	components::{EventState, FileTabComponent, HomeTabComponent, MenuContainerComponent},
+	components::{FileTabComponent, HomeTabComponent, MenuContainerComponent},
 	events::Key,
 };
 

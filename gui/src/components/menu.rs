@@ -8,9 +8,13 @@ use tui::{
 	Frame,
 };
 
-use crate::{config::Config, constants::Focus, events::Key};
+use crate::{
+	config::Config,
+	constants::Focus,
+	events::{EventState, Key},
+};
 
-use super::{container::render_container, EventState, RenderAbleComponent};
+use super::{container::render_container, RenderAbleComponent};
 
 #[derive(Copy, Clone, Debug)]
 pub enum MenuItem {

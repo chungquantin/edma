@@ -1,4 +1,4 @@
-use tui_tree_widget::{TreeItem, TreeState};
+use tui_tree_widget::{flatten, TreeItem, TreeState};
 
 pub struct StatefulTree<'a> {
 	pub state: TreeState,
@@ -19,6 +19,12 @@ impl<'a> StatefulTree<'a> {
 			state: TreeState::default(),
 			items,
 		}
+	}
+
+	pub fn select(&mut self, index: usize) {
+		let visible = flatten(&self.state.get_all_opened(), &self.items);
+		let new_identifier = visible[index].identifier.clone();
+		self.state.select(new_identifier);
 	}
 
 	pub fn first(&mut self) {

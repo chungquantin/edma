@@ -4,25 +4,25 @@ use crate::config::Config;
 
 use super::{container::render_container, RenderAbleComponent};
 
-pub struct EditorComponent {
+pub struct StatusComponent {
 	config: Config,
 }
 
-impl EditorComponent {
+impl StatusComponent {
 	pub fn new(config: Config) -> Self {
-		EditorComponent {
+		StatusComponent {
 			config,
 		}
 	}
 }
-impl RenderAbleComponent for EditorComponent {
+impl RenderAbleComponent for StatusComponent {
 	fn render<B: Backend>(
 		&self,
 		f: &mut Frame<B>,
 		rect: Rect,
 		focused: bool,
 	) -> Result<(), anyhow::Error> {
-		f.render_widget(render_container("Editor", focused), rect);
+		f.render_widget(render_container("Status", focused), rect);
 		Ok(())
 	}
 }

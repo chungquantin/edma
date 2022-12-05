@@ -5,9 +5,14 @@ use tui::{
 	Frame,
 };
 
-use crate::{config::Config, events::Key};
+use crate::{
+	config::Config,
+	events::{EventState, Key},
+};
 
-use super::{explorer::FileExplorerComponent, EditorComponent, EventState, RenderAbleComponent};
+use super::{
+	explorer::FileExplorerComponent, EditorComponent, RenderAbleComponent, StatusComponent,
+};
 
 enum Focus {
 	Explorer,
@@ -19,6 +24,7 @@ pub struct FileTabComponent<'a> {
 	config: Config,
 	explorer: FileExplorerComponent<'a>,
 	editor: EditorComponent,
+	status: StatusComponent,
 }
 
 impl<'a> FileTabComponent<'a> {
@@ -26,6 +32,7 @@ impl<'a> FileTabComponent<'a> {
 		FileTabComponent {
 			explorer: FileExplorerComponent::new(config.clone()),
 			editor: EditorComponent::new(config.clone()),
+			status: StatusComponent::new(config.clone()),
 			focus: Focus::Explorer,
 			config,
 		}
@@ -38,6 +45,10 @@ impl<'a> FileTabComponent<'a> {
 					self.focus = Focus::Editor;
 					return Ok(EventState::Consumed);
 				}
+				if self.explorer.is_selected() {
+					println!("Selected: {:?}", self.explorer.selected_file())
+				}
+
 				if self.explorer.event(key).await?.is_consumed() {
 					return Ok(EventState::Consumed);
 				}
@@ -61,17 +72,23 @@ impl<'a> RenderAbleComponent for FileTabComponent<'a> {
 		rect: Rect,
 		focused: bool,
 	) -> Result<(), anyhow::Error> {
-		let stack_chunks = Layout::default()
+		let main_chunks = Layout::default()
 			.direction(Direction::Horizontal)
 			.constraints([Constraint::Percentage(20), Constraint::Percentage(80)])
 			.split(rect);
 
+		let stack_chunks = Layout::default()
+			.direction(Direction::Vertical)
+			.constraints([Constraint::Length(main_chunks[0].height - 3), Constraint::Length(2)])
+			.split(main_chunks[1]);
+
 		self.explorer.render(
 			f,
-			stack_chunks[0],
+			main_chunks[0],
 			focused && matches!(self.focus, Focus::Explorer),
 		)?;
-		self.editor.render(f, stack_chunks[1], focused && matches!(self.focus, Focus::Editor))?;
+		self.editor.render(f, stack_chunks[0], focused && matches!(self.focus, Focus::Editor))?;
+		self.status.render(f, stack_chunks[1], false)?;
 
 		Ok(())
 	}

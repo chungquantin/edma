@@ -14,3 +14,4 @@ anyhow = "1.0.66"
 tokio = { version = "1.11.0", features = ["full"] }
 tui-tree-widget = "0.11.0"
 edma_storage = { path = "../db", version = "*" }
+path-absolutize = "3.0.14"
