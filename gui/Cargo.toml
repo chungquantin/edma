@@ -16,3 +16,4 @@ tui = { version = "0.14", default-features = false, features = [
  'serde',
 ] }
 thiserror = "1.0"
+anyhow = "1.0.66"

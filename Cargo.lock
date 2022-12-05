@@ -825,6 +825,7 @@ dependencies = [
 name = "gui"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "chrono",
  "crossterm 0.19.0",
  "rand 0.7.3",
@@ -1697,7 +1698,6 @@ dependencies = [
  "futures",
  "lazy_static",
  "log",
- "pin-project-lite",
  "rand 0.8.5",
  "redb",
  "rocksdb",

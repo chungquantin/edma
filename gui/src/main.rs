@@ -1,4 +1,6 @@
+use crate::components::RenderAbleComponent;
 use chrono::prelude::*;
+use components::{FileTabComponent, HomeTabComponent, MenuContainerComponent};
 use crossterm::{
 	event::{self, Event as CEvent, KeyCode},
 	terminal::{disable_raw_mode, enable_raw_mode},
@@ -10,13 +12,13 @@ use std::thread;
 use std::time::{Duration, Instant};
 use thiserror::Error;
 use tui::{
-	backend::{Backend, CrosstermBackend},
-	layout::{Alignment, Constraint, Direction, Layout, Rect},
-	style::{Color, Modifier, Style},
-	text::{Span, Spans},
-	widgets::{Block, BorderType, Borders, Paragraph, Tabs},
-	Frame, Terminal,
+	backend::CrosstermBackend,
+	layout::{Constraint, Direction, Layout},
+	Terminal,
 };
+
+mod components;
+mod constants;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -31,9 +33,6 @@ enum Event<I> {
 	Tick,
 }
 
-const BORDER_TYPE: BorderType = BorderType::Rounded;
-const PRIMARY_COLOR: Color = Color::DarkGray;
-
 #[derive(Serialize, Deserialize, Clone)]
 struct Pet {
 	id: usize,
@@ -44,7 +43,7 @@ struct Pet {
 }
 
 #[derive(Copy, Clone, Debug)]
-enum MenuItem {
+pub enum MenuItem {
 	Home,
 	File,
 }
@@ -60,7 +59,6 @@ impl From<MenuItem> for usize {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 	enable_raw_mode().expect("can run in raw mode");
-
 	// Handling multi-threaded IO event
 	let (tx, rx) = mpsc::channel();
 	let tick_rate = Duration::from_millis(200);
@@ -77,10 +75,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 				}
 			}
 
-			if last_tick.elapsed() >= tick_rate {
-				if let Ok(_) = tx.send(Event::Tick) {
-					last_tick = Instant::now();
-				}
+			if last_tick.elapsed() >= tick_rate && tx.send(Event::Tick).is_ok() {
+				last_tick = Instant::now();
 			}
 		}
 	});
@@ -90,51 +86,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let mut terminal = Terminal::new(backend)?;
 	terminal.clear()?;
 
-	let menu_titles = vec!["EDMA", "Home", "File", "Help", "Github", "Quit"];
-	let mut active_menu_item = MenuItem::Home;
-
+	let mut menu = MenuContainerComponent::new(MenuItem::Home);
 	loop {
-		terminal.draw(|rect| {
-			let window = rect.size();
-			let v_layout = Layout::default()
+		terminal.draw(|f| {
+			let window = f.size();
+			let main_chunks = Layout::default()
 				.direction(Direction::Vertical)
 				.constraints(
 					[Constraint::Length(3), Constraint::Min(2), Constraint::Length(3)].as_ref(),
 				)
 				.split(window);
+			let (top, mid) = (main_chunks[0], main_chunks[1]);
 
-			let menu = menu_titles
-				.iter()
-				.enumerate()
-				.map(|(index, t)| {
-					if index == 0 {
-						Spans::from(vec![Span::styled(*t, Style::default().fg(Color::Yellow))])
-					} else {
-						let (first, rest) = t.split_at(1);
-						Spans::from(vec![
-							Span::styled(
-								first,
-								Style::default()
-									.fg(Color::Yellow)
-									.add_modifier(Modifier::UNDERLINED),
-							),
-							Span::styled(rest, Style::default().fg(Color::White)),
-						])
-					}
-				})
-				.collect();
+			menu.render(f, top, false).unwrap();
 
-			let tabs = Tabs::new(menu)
-				.select(active_menu_item.into())
-				.block(render_area("Menu", PRIMARY_COLOR))
-				.divider(Span::raw("|"));
-
-			rect.render_widget(tabs, v_layout[0]);
-
-			match active_menu_item {
-				MenuItem::Home => HomeTabComponent::new().render(rect, v_layout[1]),
-				MenuItem::File => FileTabComponent::new().render(rect, v_layout[1]),
-			}
+			let home_tab = HomeTabComponent::new();
+			let file_tab = FileTabComponent::new();
+			match menu.active_menu_item {
+				MenuItem::Home => home_tab.render(f, mid, false).unwrap(),
+				MenuItem::File => file_tab.render(f, mid, false).unwrap(),
+			};
 		})?;
 
 		match rx.recv()? {
@@ -144,8 +115,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 					terminal.show_cursor()?;
 					break;
 				}
-				KeyCode::Char('h') => active_menu_item = MenuItem::Home,
-				KeyCode::Char('f') => active_menu_item = MenuItem::File,
+				KeyCode::Char('h') => {
+					menu.set_active(MenuItem::Home);
+				}
+				KeyCode::Char('f') => {
+					menu.set_active(MenuItem::File);
+				}
 				_ => {}
 			},
 			Event::Tick => {}
@@ -153,50 +128,4 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 	}
 
 	Ok(())
-}
-
-fn render_area<'a>(title: &'a str, color: Color) -> Block<'a> {
-	Block::<'a>::default()
-		.borders(Borders::ALL)
-		.style(Style::default().fg(color))
-		.title(title)
-		.border_type(BORDER_TYPE)
-}
-
-struct FileTabComponent {}
-
-impl FileTabComponent {
-	pub fn new() -> Self {
-		FileTabComponent {}
-	}
-
-	pub fn render<B: Backend>(self, f: &mut Frame<B>, area: Rect) {
-		let h_layout = Layout::default()
-			.direction(Direction::Horizontal)
-			.constraints([Constraint::Percentage(20), Constraint::Percentage(80)])
-			.split(area);
-
-		f.render_widget(render_area("Explorer", PRIMARY_COLOR), h_layout[0]);
-		f.render_widget(render_area("", PRIMARY_COLOR), h_layout[1]);
-	}
-}
-
-struct HomeTabComponent {}
-
-impl HomeTabComponent {
-	pub fn new() -> Self {
-		HomeTabComponent {}
-	}
-
-	pub fn render<B: Backend>(self, f: &mut Frame<B>, area: Rect) {
-		let home = Paragraph::new(vec![
-			Spans::from(vec![Span::raw("")]),
-			Spans::from(vec![Span::raw("EDMA")]),
-			Spans::from(vec![Span::raw("Embedded Database Management for All")]),
-		])
-		.alignment(Alignment::Center)
-		.block(render_area("Home", PRIMARY_COLOR));
-
-		f.render_widget(home, area)
-	}
 }
