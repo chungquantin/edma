@@ -10,6 +10,7 @@ use tui::{
 
 use crate::{
 	constants::{BORDER_TYPE, PRIMARY_COLOR},
+	events::Key,
 	MenuItem,
 };
 
@@ -30,6 +31,18 @@ pub struct MenuContainerComponent {
 	pub active_menu_item: MenuItem,
 }
 
+#[derive(PartialEq, Eq, Debug)]
+pub enum EventState {
+	Consumed,
+	NotConsumed,
+}
+
+impl EventState {
+	pub fn is_consumed(&self) -> bool {
+		*self == Self::Consumed
+	}
+}
+
 impl MenuContainerComponent {
 	pub fn new(active_menu_item: MenuItem) -> Self {
 		MenuContainerComponent {
@@ -39,6 +52,18 @@ impl MenuContainerComponent {
 
 	pub fn set_active(&mut self, active_menu_item: MenuItem) {
 		self.active_menu_item = active_menu_item;
+	}
+
+	pub async fn event(&mut self, key: Key) -> Result<EventState> {
+		if key == Key::Char('h') {
+			self.set_active(MenuItem::Home);
+			return Ok(EventState::Consumed);
+		}
+		if key == Key::Char('f') {
+			self.set_active(MenuItem::File);
+			return Ok(EventState::Consumed);
+		}
+		Ok(EventState::NotConsumed)
 	}
 }
 
@@ -101,7 +126,7 @@ impl RenderAbleComponent for FileTabComponent {
 			.split(rect);
 
 		f.render_widget(render_area("Explorer", PRIMARY_COLOR), h_layout[0]);
-		f.render_widget(render_area("", PRIMARY_COLOR), h_layout[1]);
+		f.render_widget(render_area("Database", PRIMARY_COLOR), h_layout[1]);
 
 		Ok(())
 	}

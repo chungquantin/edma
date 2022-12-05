@@ -1,46 +1,17 @@
-use crate::components::RenderAbleComponent;
-use chrono::prelude::*;
-use components::{FileTabComponent, HomeTabComponent, MenuContainerComponent};
+use anyhow::Result;
+use app::AppComponent;
 use crossterm::{
-	event::{self, Event as CEvent, KeyCode},
-	terminal::{disable_raw_mode, enable_raw_mode},
+	terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+	ExecutableCommand,
 };
-use serde::{Deserialize, Serialize};
+use events::{Event, Events, Key};
 use std::io;
-use std::sync::mpsc;
-use std::thread;
-use std::time::{Duration, Instant};
-use thiserror::Error;
-use tui::{
-	backend::CrosstermBackend,
-	layout::{Constraint, Direction, Layout},
-	Terminal,
-};
+use tui::{backend::CrosstermBackend, Terminal};
 
+mod app;
 mod components;
 mod constants;
-
-#[derive(Error, Debug)]
-pub enum Error {
-	#[error("error reading the DB file: {0}")]
-	ReadDBError(#[from] io::Error),
-	#[error("error parsing the DB file: {0}")]
-	ParseDBError(#[from] serde_json::Error),
-}
-
-enum Event<I> {
-	Input(I),
-	Tick,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-struct Pet {
-	id: usize,
-	name: String,
-	category: String,
-	age: usize,
-	created_at: DateTime<Utc>,
-}
+mod events;
 
 #[derive(Copy, Clone, Debug)]
 pub enum MenuItem {
@@ -57,75 +28,60 @@ impl From<MenuItem> for usize {
 	}
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-	enable_raw_mode().expect("can run in raw mode");
-	// Handling multi-threaded IO event
-	let (tx, rx) = mpsc::channel();
-	let tick_rate = Duration::from_millis(200);
-	thread::spawn(move || {
-		let mut last_tick = Instant::now();
-		loop {
-			let timeout = tick_rate
-				.checked_sub(last_tick.elapsed())
-				.unwrap_or_else(|| Duration::from_secs(0));
-
-			if event::poll(timeout).expect("poll works") {
-				if let CEvent::Key(key) = event::read().expect("can read events") {
-					tx.send(Event::Input(key)).expect("can send events");
-				}
-			}
-
-			if last_tick.elapsed() >= tick_rate && tx.send(Event::Tick).is_ok() {
-				last_tick = Instant::now();
-			}
-		}
-	});
+#[tokio::main]
+async fn main() -> Result<()> {
+	setup_terminal()?;
 
 	let stdout = io::stdout();
 	let backend = CrosstermBackend::new(stdout);
 	let mut terminal = Terminal::new(backend)?;
+	let events = Events::new(250);
+	let mut app = AppComponent::new();
 	terminal.clear()?;
 
-	let mut menu = MenuContainerComponent::new(MenuItem::Home);
 	loop {
 		terminal.draw(|f| {
-			let window = f.size();
-			let main_chunks = Layout::default()
-				.direction(Direction::Vertical)
-				.constraints(
-					[Constraint::Length(3), Constraint::Min(2), Constraint::Length(3)].as_ref(),
-				)
-				.split(window);
-			let (top, mid) = (main_chunks[0], main_chunks[1]);
-
-			menu.render(f, top, false).unwrap();
-
-			let home_tab = HomeTabComponent::new();
-			let file_tab = FileTabComponent::new();
-			match menu.active_menu_item {
-				MenuItem::Home => home_tab.render(f, mid, false).unwrap(),
-				MenuItem::File => file_tab.render(f, mid, false).unwrap(),
-			};
+			if app.render(f).is_err() {
+				std::process::exit(1);
+			}
 		})?;
 
-		match rx.recv()? {
-			Event::Input(event) => match event.code {
-				KeyCode::Char('q') => {
-					disable_raw_mode()?;
-					terminal.show_cursor()?;
-					break;
+		match events.next()? {
+			Event::Input(key) => match app.event(key).await {
+				Ok(state) => {
+					if !state.is_consumed() && (key == Key::Char('q')) {
+						break;
+					}
 				}
-				KeyCode::Char('h') => {
-					menu.set_active(MenuItem::Home);
-				}
-				KeyCode::Char('f') => {
-					menu.set_active(MenuItem::File);
-				}
-				_ => {}
+				Err(_) => unimplemented!(),
 			},
+
 			Event::Tick => {}
 		}
 	}
 
+	shutdown_terminal();
+	terminal.show_cursor()?;
+
 	Ok(())
+}
+
+fn setup_terminal() -> Result<()> {
+	enable_raw_mode()?;
+	io::stdout().execute(EnterAlternateScreen)?;
+	Ok(())
+}
+
+fn shutdown_terminal() {
+	let leave_screen = io::stdout().execute(LeaveAlternateScreen).map(|_f| ());
+
+	if let Err(e) = leave_screen {
+		eprintln!("leave_screen failed:\n{}", e);
+	}
+
+	let leave_raw_mode = disable_raw_mode();
+
+	if let Err(e) = leave_raw_mode {
+		eprintln!("leave_raw_mode failed:\n{}", e);
+	}
 }
