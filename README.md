@@ -8,8 +8,7 @@
 &nbsp;
 <a href="https://github.com/nomadiz/edma/blob/master/LICENSE">
 <img src="https://img.shields.io/badge/license-MIT License-00bfff.svg?style=flat-square"></a>
-</p>
-<p>
+&nbsp;
     <a href="https://github.com/nomadiz/edma/graphs/contributors" alt="Contributors">
         <img src="https://img.shields.io/github/contributors/nomadiz/edma" /></a>
     <a href="https://github.com/nomadiz/edma/pulse" alt="Activity">
