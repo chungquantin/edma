@@ -13,21 +13,6 @@ mod components;
 mod constants;
 mod events;
 
-#[derive(Copy, Clone, Debug)]
-pub enum MenuItem {
-	Home,
-	File,
-}
-
-impl From<MenuItem> for usize {
-	fn from(input: MenuItem) -> usize {
-		match input {
-			MenuItem::Home => 0,
-			MenuItem::File => 1,
-		}
-	}
-}
-
 #[tokio::main]
 async fn main() -> Result<()> {
 	setup_terminal()?;

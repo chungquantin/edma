@@ -8,7 +8,8 @@ edition = "2021"
 [dependencies]
 crossterm = { version = "0.19" }
 serde = { version = "1.0", features = ["derive"] }
-tui = { version = "0.14", default-features = false, features = ['crossterm'] }
+tui = { version = "0.19", default-features = false, features = ['crossterm'] }
 thiserror = "1.0"
 anyhow = "1.0.66"
 tokio = { version = "1.11.0", features = ["full"] }
+tui-tree-widget = "0.11.0"
