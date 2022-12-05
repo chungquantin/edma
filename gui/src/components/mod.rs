@@ -2,18 +2,18 @@ use anyhow::Result;
 use tui::{backend::Backend, layout::Rect, Frame};
 
 mod container;
+mod editor;
 mod explorer;
 mod file;
 mod home;
 mod menu;
-mod tab;
 
 pub use container::*;
+pub use editor::*;
 pub use explorer::*;
 pub use file::*;
 pub use home::*;
 pub use menu::*;
-pub use tab::*;
 
 pub trait RenderAbleComponent {
 	fn render<B: Backend>(&self, f: &mut Frame<B>, rect: Rect, focused: bool) -> Result<()>;

@@ -5,25 +5,29 @@ use tui::{
 	Frame,
 };
 
-use crate::events::Key;
+use crate::{config::Config, events::Key};
 
-use super::{
-	container::render_container, explorer::FileExplorerComponent, EventState, RenderAbleComponent,
-};
+use super::{explorer::FileExplorerComponent, EditorComponent, EventState, RenderAbleComponent};
 
 enum Focus {
 	Explorer,
-	Database,
+	Editor,
 }
 
-pub struct FileTabComponent {
+pub struct FileTabComponent<'a> {
 	focus: Focus,
+	config: Config,
+	explorer: FileExplorerComponent<'a>,
+	editor: EditorComponent,
 }
 
-impl FileTabComponent {
-	pub fn new() -> Self {
+impl<'a> FileTabComponent<'a> {
+	pub fn new(config: Config) -> Self {
 		FileTabComponent {
+			explorer: FileExplorerComponent::new(config.clone()),
+			editor: EditorComponent::new(config.clone()),
 			focus: Focus::Explorer,
+			config,
 		}
 	}
 
@@ -31,19 +35,26 @@ impl FileTabComponent {
 		match self.focus {
 			Focus::Explorer => {
 				if key == Key::Right {
-					self.focus = Focus::Database
+					self.focus = Focus::Editor;
+					return Ok(EventState::Consumed);
 				}
+				if self.explorer.event(key).await?.is_consumed() {
+					return Ok(EventState::Consumed);
+				}
+				Ok(EventState::NotConsumed)
 			}
-			Focus::Database => {
+			Focus::Editor => {
 				if key == Key::Left {
-					self.focus = Focus::Explorer
+					self.focus = Focus::Explorer;
+					return Ok(EventState::Consumed);
 				}
+				Ok(EventState::NotConsumed)
 			}
 		}
-		Ok(EventState::NotConsumed)
 	}
 }
-impl RenderAbleComponent for FileTabComponent {
+
+impl<'a> RenderAbleComponent for FileTabComponent<'a> {
 	fn render<B: Backend>(
 		&self,
 		f: &mut Frame<B>,
@@ -55,16 +66,12 @@ impl RenderAbleComponent for FileTabComponent {
 			.constraints([Constraint::Percentage(20), Constraint::Percentage(80)])
 			.split(rect);
 
-		FileExplorerComponent::new().render(
+		self.explorer.render(
 			f,
 			stack_chunks[0],
 			focused && matches!(self.focus, Focus::Explorer),
 		)?;
-
-		f.render_widget(
-			render_container("Database", focused && matches!(self.focus, Focus::Database)),
-			stack_chunks[1],
-		);
+		self.editor.render(f, stack_chunks[1], focused && matches!(self.focus, Focus::Editor))?;
 
 		Ok(())
 	}

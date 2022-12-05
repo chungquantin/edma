@@ -178,7 +178,7 @@ macro_rules! impl_global_transaction {
 						Transaction {
 							inner: Inner::$x(ds),
 							..
-						} => ds.iterate(cf ).await,
+						} => ds.iterate(cf).await,
 					)*
 				}
 			}

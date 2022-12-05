@@ -46,4 +46,6 @@ pub trait DatastoreAdapter {
 	fn default() -> Self;
 
 	fn spawn(&self) -> Self;
+
+	fn path(&self) -> &str;
 }

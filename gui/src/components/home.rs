@@ -7,13 +7,19 @@ use tui::{
 	Frame,
 };
 
+use crate::config::Config;
+
 use super::{container::render_container, RenderAbleComponent};
 
-pub struct HomeTabComponent {}
+pub struct HomeTabComponent {
+	config: Config,
+}
 
 impl HomeTabComponent {
-	pub fn new() -> Self {
-		HomeTabComponent {}
+	pub fn new(config: Config) -> Self {
+		HomeTabComponent {
+			config,
+		}
 	}
 }
 impl RenderAbleComponent for HomeTabComponent {

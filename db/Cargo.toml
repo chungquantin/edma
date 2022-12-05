@@ -1,6 +1,6 @@
 [package]
-name = "solomondb"
-version = "0.0.1-beta.2"
+name = "edma_storage"
+version = "0.0.1"
 publish = true
 edition = "2021"
 readme = "CARGO.md"

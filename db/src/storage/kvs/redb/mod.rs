@@ -42,6 +42,10 @@ impl DatastoreAdapter for ReDBAdapter {
 		ReDBAdapter::default()
 	}
 
+	fn path(&self) -> &str {
+		&self.0.path
+	}
+
 	fn transaction(&self, w: bool) -> Result<Self::Transaction, Error> {
 		let inner = self.get_initialized_inner().unwrap();
 		let db = &inner.db_instance;

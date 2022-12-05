@@ -1,8 +1,10 @@
 use anyhow::Result;
 use app::AppComponent;
+use config::Config;
 use crossterm::{
+	event::{DisableMouseCapture, EnableMouseCapture},
+	execute,
 	terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-	ExecutableCommand,
 };
 use events::{Event, Events, Key};
 use std::io;
@@ -10,8 +12,10 @@ use tui::{backend::CrosstermBackend, Terminal};
 
 mod app;
 mod components;
+mod config;
 mod constants;
 mod events;
+mod utils;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -20,13 +24,16 @@ async fn main() -> Result<()> {
 	let stdout = io::stdout();
 	let backend = CrosstermBackend::new(stdout);
 	let mut terminal = Terminal::new(backend)?;
-	let events = Events::new(250);
-	let mut app = AppComponent::new();
+	let events = Events::new(200);
+	let config = Config::new();
+
+	let mut app = AppComponent::new(config);
 	terminal.clear()?;
 
 	loop {
 		terminal.draw(|f| {
-			if app.render(f).is_err() {
+			if let Err(err) = app.render(f) {
+				println!("Error thrown: {:?}", err);
 				std::process::exit(1);
 			}
 		})?;
@@ -45,7 +52,7 @@ async fn main() -> Result<()> {
 		}
 	}
 
-	shutdown_terminal();
+	shutdown_terminal()?;
 	terminal.show_cursor()?;
 
 	Ok(())
@@ -53,20 +60,15 @@ async fn main() -> Result<()> {
 
 fn setup_terminal() -> Result<()> {
 	enable_raw_mode()?;
-	io::stdout().execute(EnterAlternateScreen)?;
+	let mut stdout = io::stdout();
+	execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
 	Ok(())
 }
 
-fn shutdown_terminal() {
-	let leave_screen = io::stdout().execute(LeaveAlternateScreen).map(|_f| ());
+fn shutdown_terminal() -> Result<()> {
+	disable_raw_mode()?;
 
-	if let Err(e) = leave_screen {
-		eprintln!("leave_screen failed:\n{}", e);
-	}
-
-	let leave_raw_mode = disable_raw_mode();
-
-	if let Err(e) = leave_raw_mode {
-		eprintln!("leave_raw_mode failed:\n{}", e);
-	}
+	let mut stdout = io::stdout();
+	execute!(stdout, LeaveAlternateScreen, DisableMouseCapture)?;
+	Ok(())
 }

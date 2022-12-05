@@ -1,8 +1,10 @@
 use crate::{
 	components::{MenuItem, RenderAbleComponent},
+	config::Config,
 	constants::Focus,
 };
 use anyhow::Result;
+use db::{Datastore, SimpleTransaction};
 use tui::{
 	backend::Backend,
 	layout::{Constraint, Direction, Layout},
@@ -13,20 +15,22 @@ use crate::{
 	events::Key,
 };
 
-pub struct AppComponent {
+pub struct AppComponent<'a> {
 	home: HomeTabComponent,
-	file: FileTabComponent,
+	file: FileTabComponent<'a>,
 	menu: MenuContainerComponent,
 	focus: Focus,
+	config: Config,
 }
 
-impl AppComponent {
-	pub fn new() -> Self {
+impl<'a> AppComponent<'a> {
+	pub fn new(config: Config) -> Self {
 		AppComponent {
-			home: HomeTabComponent::new(),
-			file: FileTabComponent::new(),
-			menu: MenuContainerComponent::new(),
+			home: HomeTabComponent::new(config.clone()),
+			file: FileTabComponent::new(config.clone()),
+			menu: MenuContainerComponent::new(config.clone()),
 			focus: Focus::MenuContainer,
+			config,
 		}
 	}
 
@@ -101,5 +105,16 @@ impl AppComponent {
 			}
 		}
 		Ok(EventState::NotConsumed)
+	}
+
+	async fn scan_storage(path: &str) -> Vec<(Vec<u8>, Vec<u8>)> {
+		let mut result = vec![];
+		let ds = Datastore::new(path);
+		let tx = ds.transaction(false).unwrap();
+		let data = tx.iterate(None).await.unwrap();
+		for pair in data {
+			result.push(pair.unwrap());
+		}
+		result
 	}
 }

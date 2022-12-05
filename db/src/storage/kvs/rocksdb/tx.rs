@@ -136,8 +136,13 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
-		let cf = &self.get_column_family(cf).unwrap();
-		Ok(tx.get_cf(cf, key.into()).unwrap())
+		Ok(match cf {
+			Some(_) => {
+				let cf = &self.get_column_family(cf).unwrap();
+				tx.get_cf(cf, key.into()).unwrap()
+			}
+			None => tx.get(key.into()).unwrap(),
+		})
 	}
 
 	async fn multi_get<K>(&self, cf: CF, keys: Vec<K>) -> Result<Vec<Option<Val>>, Error>
@@ -151,9 +156,14 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
 		let mut values = vec![];
-		let cf = &self.get_column_family(cf).unwrap();
 		for key in keys.iter() {
-			let value = tx.get_cf(cf, key).unwrap();
+			let value = match cf {
+				Some(_) => {
+					let cf = &self.get_column_family(cf.clone()).unwrap();
+					tx.get_cf(cf, key).unwrap()
+				}
+				None => tx.get(key).unwrap(),
+			};
 			values.push(value);
 		}
 		Ok(values)
@@ -176,8 +186,13 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		// Set the key
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
-		let cf = &self.get_column_family(cf).unwrap();
-		tx.put_cf(cf, key.into(), val.into())?;
+		match cf {
+			Some(_) => {
+				let cf = &self.get_column_family(cf).unwrap();
+				tx.put_cf(cf, key.into(), val.into())?;
+			}
+			None => tx.put(key.into(), val.into())?,
+		};
 		Ok(())
 	}
 
@@ -201,11 +216,22 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		let tx = guarded_tx.as_ref().unwrap();
 		let (key, val) = (key.into(), val.into());
 
-		let cf = &self.get_column_family(cf).unwrap();
-		match tx.get_cf(cf, &key)? {
-			None => tx.put_cf(cf, key, val)?,
-			_ => return Err(Error::TxConditionNotMet),
+		match cf {
+			Some(_) => {
+				let cf = &self.get_column_family(cf).unwrap();
+				match tx.get_cf(cf, &key)? {
+					None => tx.put_cf(cf, key, val)?,
+					_ => return Err(Error::TxConditionNotMet),
+				};
+			}
+			None => {
+				match tx.get(&key)? {
+					None => tx.put(key, val)?,
+					_ => return Err(Error::TxConditionNotMet),
+				};
+			}
 		};
+
 		Ok(())
 	}
 
@@ -245,9 +271,13 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
 
-		let cf = &self.get_column_family(cf).unwrap();
-
-		let iterator = tx.iterator_cf(cf, IteratorMode::Start);
+		let iterator = match cf {
+			Some(_) => {
+				let cf = &self.get_column_family(cf).unwrap();
+				tx.iterator_cf(cf, IteratorMode::Start)
+			}
+			None => tx.iterator(IteratorMode::Start),
+		};
 
 		Ok(iterator
 			.map(|pair| {

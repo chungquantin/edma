@@ -49,6 +49,10 @@ impl DatastoreAdapter for RocksDBAdapter {
 		RocksDBAdapter::default()
 	}
 
+	fn path(&self) -> &str {
+		&self.0.path
+	}
+
 	fn transaction(&self, rw: bool) -> Result<RocksDBTransaction, Error> {
 		let inner = self.get_initialized_inner().unwrap();
 		let db = &inner.db_instance;

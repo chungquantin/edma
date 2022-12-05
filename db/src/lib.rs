@@ -15,5 +15,6 @@ pub use crate::storage::kvs::RocksDBAdapter;
 #[cfg(test)]
 pub mod tests;
 
-use crate::err::*;
+pub use crate::err::*;
 pub use crate::model::*;
+pub use crate::storage::Datastore;

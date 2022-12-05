@@ -8,7 +8,7 @@ use tui::{
 	Frame,
 };
 
-use crate::{constants::Focus, events::Key};
+use crate::{config::Config, constants::Focus, events::Key};
 
 use super::{container::render_container, EventState, RenderAbleComponent};
 
@@ -29,14 +29,16 @@ impl From<MenuItem> for usize {
 
 pub struct MenuContainerComponent {
 	pub active_menu_item: MenuItem,
+	config: Config,
 }
 
 const DEFAULT_ACTIVE_TAB: MenuItem = MenuItem::Home;
 
 impl MenuContainerComponent {
-	pub fn new() -> Self {
+	pub fn new(config: Config) -> Self {
 		MenuContainerComponent {
 			active_menu_item: DEFAULT_ACTIVE_TAB,
+			config,
 		}
 	}
 
