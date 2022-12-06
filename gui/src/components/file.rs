@@ -2,6 +2,7 @@ use anyhow::Result;
 use tui::{
 	backend::Backend,
 	layout::{Constraint, Direction, Layout, Rect},
+	text::Span,
 	Frame,
 };
 
@@ -24,7 +25,7 @@ pub struct FileTabComponent<'a> {
 	config: Config,
 	explorer: FileExplorerComponent<'a>,
 	editor: EditorComponent,
-	status: StatusComponent,
+	status: StatusComponent<'a>,
 }
 
 impl<'a> FileTabComponent<'a> {
@@ -41,15 +42,18 @@ impl<'a> FileTabComponent<'a> {
 	pub async fn event(&mut self, key: Key) -> Result<EventState> {
 		match self.focus {
 			Focus::Explorer => {
-				if key == Key::Right {
-					self.focus = Focus::Editor;
-					return Ok(EventState::Consumed);
-				}
-				if self.explorer.is_selected() {
-					println!("Selected: {:?}", self.explorer.selected_file())
-				}
-
 				if self.explorer.event(key).await?.is_consumed() {
+					if self.explorer.is_selected() {
+						let get_selected_file = self.explorer.selected_file();
+						self.status.set_text(Span::raw(get_selected_file.unwrap()));
+					} else {
+						self.status.reset();
+					}
+
+					if key == Key::Right {
+						self.focus = Focus::Editor;
+						return Ok(EventState::Consumed);
+					}
 					return Ok(EventState::Consumed);
 				}
 				Ok(EventState::NotConsumed)

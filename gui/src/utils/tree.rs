@@ -21,12 +21,6 @@ impl<'a> StatefulTree<'a> {
 		}
 	}
 
-	pub fn select(&mut self, index: usize) {
-		let visible = flatten(&self.state.get_all_opened(), &self.items);
-		let new_identifier = visible[index].identifier.clone();
-		self.state.select(new_identifier);
-	}
-
 	pub fn first(&mut self) {
 		self.state.select_first();
 	}
@@ -47,7 +41,7 @@ impl<'a> StatefulTree<'a> {
 		self.state.key_left();
 	}
 
-	pub fn right(&mut self) {
+	pub fn _right(&mut self) {
 		self.state.key_right();
 	}
 

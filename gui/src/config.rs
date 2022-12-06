@@ -6,7 +6,7 @@ pub struct Config {
 impl Config {
 	pub fn new() -> Self {
 		Config {
-			paths: vec!["rocksdb:./temp".to_string()],
+			paths: vec!["rocksdb:./temp".to_string(), "rocksdb:./temp/v2".to_string()],
 		}
 	}
 }
