@@ -124,13 +124,14 @@ mod test {
 		assert!(db.transaction(false).is_ok());
 
 		// Seeding database
-		let cf_name = COLUMN_FAMILIES.get(&ColumnFamily::TestSuite).unwrap();
-		let cf = Some(cf_name.to_string().into());
-		let mut tx = db.transaction(true).unwrap();
+		// let cf_name = COLUMN_FAMILIES.get(&ColumnFamily::TestSuite).unwrap();
+		// let cf = Some(cf_name.to_string().into());
+		let cf = None;
 
 		let key = "mock key";
 		let val = "mock value";
 
+		let mut tx = db.transaction(true).unwrap();
 		tx.set(cf.clone(), key, val).await.unwrap();
 		assert!(tx.exi(cf.clone(), key).await.unwrap());
 		let res = tx.get(cf.clone(), key).await.unwrap();
@@ -138,7 +139,9 @@ mod test {
 			Some(v) => assert_eq!(val, from_utf8(&v).unwrap()),
 			None => panic!("Wrong value"),
 		}
+		tx.commit().await.unwrap();
 
+		let mut tx = db.transaction(true).unwrap();
 		let new_val = "mock value 2";
 		tx.set(cf.clone(), key, new_val).await.unwrap();
 		assert!(tx.exi(cf.clone(), key).await.unwrap());
@@ -147,5 +150,6 @@ mod test {
 			Some(v) => assert_eq!(new_val, from_utf8(&v).unwrap()),
 			None => panic!("Wrong value"),
 		}
+		tx.commit().await.unwrap();
 	}
 }

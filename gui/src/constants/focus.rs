@@ -2,5 +2,5 @@
 pub enum Focus {
 	MenuContainer,
 	HomeTabBody,
-	FileTabBody,
+	DatabaseTabBody,
 }

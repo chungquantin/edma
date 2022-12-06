@@ -2,7 +2,6 @@ use anyhow::Result;
 use app::AppComponent;
 use config::Config;
 use crossterm::{
-	event::{DisableMouseCapture, EnableMouseCapture},
 	execute,
 	terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -61,7 +60,7 @@ async fn main() -> Result<()> {
 fn setup_terminal() -> Result<()> {
 	enable_raw_mode()?;
 	let mut stdout = io::stdout();
-	execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+	execute!(stdout, EnterAlternateScreen)?;
 	Ok(())
 }
 
@@ -69,6 +68,6 @@ fn shutdown_terminal() -> Result<()> {
 	disable_raw_mode()?;
 
 	let mut stdout = io::stdout();
-	execute!(stdout, LeaveAlternateScreen, DisableMouseCapture)?;
+	execute!(stdout, LeaveAlternateScreen)?;
 	Ok(())
 }

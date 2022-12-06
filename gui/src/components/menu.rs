@@ -19,14 +19,14 @@ use super::{container::render_container, RenderAbleComponent};
 #[derive(Copy, Clone, Debug)]
 pub enum MenuItem {
 	Home,
-	File,
+	Database,
 }
 
 impl From<MenuItem> for usize {
 	fn from(input: MenuItem) -> usize {
 		match input {
 			MenuItem::Home => 0,
-			MenuItem::File => 1,
+			MenuItem::Database => 1,
 		}
 	}
 }
@@ -49,7 +49,7 @@ impl MenuContainerComponent {
 	pub fn active_focus(&self) -> Focus {
 		match self.active_menu_item {
 			MenuItem::Home => Focus::HomeTabBody,
-			MenuItem::File => Focus::FileTabBody,
+			MenuItem::Database => Focus::DatabaseTabBody,
 		}
 	}
 
@@ -58,12 +58,12 @@ impl MenuContainerComponent {
 	}
 
 	pub async fn event(&mut self, key: Key) -> Result<EventState> {
-		if key == Key::Char('h') {
+		if key == Key::Char('h') || key == Key::Char('H') {
 			self.set_active(MenuItem::Home);
 			return Ok(EventState::Consumed);
 		}
-		if key == Key::Char('f') {
-			self.set_active(MenuItem::File);
+		if key == Key::Char('d') || key == Key::Char('D') {
+			self.set_active(MenuItem::Database);
 			return Ok(EventState::Consumed);
 		}
 		Ok(EventState::NotConsumed)
@@ -77,7 +77,7 @@ impl RenderAbleComponent for MenuContainerComponent {
 		area: Rect,
 		focused: bool,
 	) -> Result<(), anyhow::Error> {
-		let menu_titles = vec!["EDMA", "Home", "File", "Help", "Github", "Quit"];
+		let menu_titles = vec!["EDMA", "Home", "Database", "Help", "Github", "Quit"];
 
 		let menu = menu_titles
 			.iter()

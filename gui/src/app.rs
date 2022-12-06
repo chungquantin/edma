@@ -12,13 +12,13 @@ use tui::{
 };
 
 use crate::{
-	components::{FileTabComponent, HomeTabComponent, MenuContainerComponent},
+	components::{DatabaseTabComponent, HomeTabComponent, MenuContainerComponent},
 	events::Key,
 };
 
 pub struct AppComponent<'a> {
 	home: HomeTabComponent,
-	file: FileTabComponent<'a>,
+	database: DatabaseTabComponent<'a>,
 	menu: MenuContainerComponent,
 	focus: Focus,
 	config: Config,
@@ -28,7 +28,7 @@ impl<'a> AppComponent<'a> {
 	pub fn new(config: Config) -> Self {
 		AppComponent {
 			home: HomeTabComponent::new(config.clone()),
-			file: FileTabComponent::new(config.clone()),
+			database: DatabaseTabComponent::new(config.clone()),
 			menu: MenuContainerComponent::new(config.clone()),
 			focus: Focus::MenuContainer,
 			config,
@@ -51,8 +51,8 @@ impl<'a> AppComponent<'a> {
 			MenuItem::Home => {
 				self.home.render(f, mid, matches!(self.focus(), Focus::HomeTabBody))?
 			}
-			MenuItem::File => {
-				self.file.render(f, mid, matches!(self.focus(), Focus::FileTabBody))?
+			MenuItem::Database => {
+				self.database.render(f, mid, matches!(self.focus(), Focus::DatabaseTabBody))?
 			}
 		};
 
@@ -95,8 +95,8 @@ impl<'a> AppComponent<'a> {
 					self.focus = Focus::MenuContainer
 				}
 			}
-			Focus::FileTabBody => {
-				if self.file.event(key).await?.is_consumed() {
+			Focus::DatabaseTabBody => {
+				if self.database.event(key).await?.is_consumed() {
 					return Ok(EventState::Consumed);
 				}
 
@@ -106,16 +106,5 @@ impl<'a> AppComponent<'a> {
 			}
 		}
 		Ok(EventState::NotConsumed)
-	}
-
-	async fn scan_storage(path: &str) -> Vec<(Vec<u8>, Vec<u8>)> {
-		let mut result = vec![];
-		let ds = Datastore::new(path);
-		let tx = ds.transaction(false).unwrap();
-		let data = tx.iterate(None).await.unwrap();
-		for pair in data {
-			result.push(pair.unwrap());
-		}
-		result
 	}
 }

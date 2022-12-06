@@ -37,14 +37,6 @@ impl<'a> StatefulTree<'a> {
 		self.state.key_up(&self.items);
 	}
 
-	pub fn left(&mut self) {
-		self.state.key_left();
-	}
-
-	pub fn _right(&mut self) {
-		self.state.key_right();
-	}
-
 	pub fn toggle(&mut self) {
 		self.state.toggle_selected();
 	}

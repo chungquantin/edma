@@ -1,3 +1,5 @@
+use super::{container::render_container, RenderAbleComponent};
+use crate::{config::Config, constants::DEFAULT_STATUS_TEXT};
 use tui::{
 	backend::Backend,
 	layout::Rect,
@@ -6,22 +8,16 @@ use tui::{
 	Frame,
 };
 
-use crate::config::Config;
-
-use super::{container::render_container, RenderAbleComponent};
-
 pub struct StatusComponent<'a> {
 	config: Config,
 	text: Span<'a>,
 }
 
-const DEFAULT_TEXT: &str = "No status displayed...";
-
 impl<'a> StatusComponent<'a> {
 	pub fn new(config: Config) -> Self {
 		StatusComponent {
 			config,
-			text: Span::raw(DEFAULT_TEXT),
+			text: Span::raw(DEFAULT_STATUS_TEXT),
 		}
 	}
 
@@ -30,7 +26,7 @@ impl<'a> StatusComponent<'a> {
 	}
 
 	pub fn reset(&mut self) {
-		self.text = Span::raw(DEFAULT_TEXT);
+		self.text = Span::raw(DEFAULT_STATUS_TEXT);
 	}
 }
 

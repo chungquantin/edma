@@ -10,7 +10,7 @@ use tui_tree_widget::{Tree, TreeItem, TreeState};
 use crate::{
 	config::Config,
 	events::{EventState, Key},
-	utils::{get_absolute_path, StatefulTree},
+	utils::{get_db_absolute_path, StatefulTree},
 };
 
 use super::{container::render_container, RenderAbleComponent};
@@ -20,23 +20,23 @@ enum Focus {
 	Container,
 }
 
-pub struct FileExplorerComponent<'a> {
+type DatabaseInfo = (String, String);
+
+pub struct DatabaseExplorerComponent<'a> {
 	config: Config,
 	pub tree: StatefulTree<'a>,
 	focus: Focus,
 	selected_index: usize,
-	selected_file: Option<String>,
+	selected_database: Option<DatabaseInfo>,
 	is_toggled: bool,
 }
 
 fn build_tree<'a>(config: Config) -> StatefulTree<'a> {
 	let paths = config.paths.to_vec();
-	let name = String::from("RocksDB") + " (" + &paths.len().to_string() + " databases)";
+	let name = format!("RocksDB ({} databases)", paths.len().to_string());
 	let mut item = TreeItem::new_leaf(name);
 	for path in paths {
-		let separator = ':';
-		let chunk = path.split(separator).nth(1).unwrap();
-		let path = get_absolute_path(chunk);
+		let (_, path) = get_db_absolute_path(&path);
 		let child = TreeItem::new_leaf(path);
 		item.add_child(child);
 	}
@@ -44,28 +44,84 @@ fn build_tree<'a>(config: Config) -> StatefulTree<'a> {
 	StatefulTree::with_items(vec![item])
 }
 
-impl<'a> FileExplorerComponent<'a> {
-	pub fn selected_file(&self) -> Option<String> {
-		self.selected_file.clone()
+impl<'a> DatabaseExplorerComponent<'a> {
+	pub fn selected_file(&self) -> Option<DatabaseInfo> {
+		self.selected_database.clone()
 	}
 
 	pub fn is_selected(&self) -> bool {
-		self.selected_file.is_some()
+		self.selected_database.is_some()
 	}
 
 	pub fn new(config: Config) -> Self {
-		FileExplorerComponent {
+		DatabaseExplorerComponent {
 			tree: build_tree(config.clone()),
 			config,
 			focus: Focus::Container,
 			selected_index: 0,
-			selected_file: None,
+			selected_database: None,
 			is_toggled: false,
 		}
 	}
 
+	fn handle_toggle(&mut self) -> Result<EventState> {
+		if self.is_dir() {
+			self.tree.toggle();
+			self.is_toggled = !self.is_toggled;
+		}
+		return Ok(EventState::Consumed);
+	}
+
+	fn handle_escape(&mut self) -> Result<EventState> {
+		self.tree.state = TreeState::default();
+		self.focus = Focus::Container;
+		self.reset_tree();
+		return Ok(EventState::Consumed);
+	}
+
+	fn handle_select(&mut self) -> Result<EventState> {
+		if !self.is_dir() {
+			let index = self.selected_index.saturating_sub(1);
+			let path = self.config.paths[index].clone();
+			let database = get_db_absolute_path(&path);
+			self.selected_database = Some(database);
+		} else {
+			self.reset_tree();
+		}
+		return Ok(EventState::Consumed);
+	}
+
+	fn handle_select_first(&mut self) -> Result<EventState> {
+		self.tree.first();
+		self.selected_index = 0;
+		return Ok(EventState::Consumed);
+	}
+
+	fn handle_select_last(&mut self) -> Result<EventState> {
+		self.tree.last();
+		self.selected_index = self.tree.items.len().saturating_sub(1);
+		return Ok(EventState::Consumed);
+	}
+
+	fn handle_up(&mut self) -> Result<EventState> {
+		self.tree.up();
+		if !self.is_dir() {
+			self.selected_index = self.selected_index.saturating_sub(1);
+		}
+		return Ok(EventState::Consumed);
+	}
+
+	fn handle_down(&mut self) -> Result<EventState> {
+		self.tree.down();
+		if self.is_toggled {
+			self.selected_index =
+				std::cmp::min(self.selected_index.saturating_add(1), self.config.paths.len());
+		}
+		return Ok(EventState::Consumed);
+	}
+
 	fn reset_tree(&mut self) {
-		self.selected_file = None;
+		self.selected_database = None;
 		self.selected_index = 0;
 	}
 
@@ -79,65 +135,16 @@ impl<'a> FileExplorerComponent<'a> {
 			self.tree.first();
 			return Ok(EventState::Consumed);
 		}
+
 		if matches!(self.focus, Focus::TreeView) {
 			match key {
-				Key::Char('\n' | ' ') => {
-					if self.is_dir() {
-						self.tree.toggle();
-						self.is_toggled = !self.is_toggled;
-					}
-					return Ok(EventState::Consumed);
-				}
-				Key::Esc => {
-					self.tree.state = TreeState::default();
-					self.focus = Focus::Container;
-					self.reset_tree();
-					return Ok(EventState::Consumed);
-				}
-				Key::Enter => {
-					// Index at banner, not database
-					if !self.is_dir() {
-						let index = self.selected_index.saturating_sub(1);
-						// self.tree.select(index);
-						let separator = ':';
-						let path = self.config.paths[index].clone();
-						let chunk = path.split(separator).nth(1).unwrap();
-						let abs = get_absolute_path(chunk);
-						self.selected_file = Some(abs);
-					} else {
-						self.reset_tree();
-					}
-					return Ok(EventState::Consumed);
-				}
-				Key::Left => {
-					self.tree.left();
-					self.reset_tree();
-					return Ok(EventState::Consumed);
-				}
-				Key::Down => {
-					self.tree.down();
-					if self.is_toggled {
-						self.selected_index = self.selected_index.saturating_add(1);
-					}
-					return Ok(EventState::Consumed);
-				}
-				Key::Up => {
-					self.tree.up();
-					if !self.is_dir() {
-						self.selected_index = self.selected_index.saturating_sub(1);
-					}
-					return Ok(EventState::Consumed);
-				}
-				Key::Home => {
-					self.tree.first();
-					self.selected_index = 0;
-					return Ok(EventState::Consumed);
-				}
-				Key::End => {
-					self.tree.last();
-					self.selected_index = self.tree.items.len().saturating_sub(1);
-					return Ok(EventState::Consumed);
-				}
+				Key::Char('\n' | ' ') => return self.handle_toggle(),
+				Key::Esc => return self.handle_escape(),
+				Key::Enter => return self.handle_select(),
+				Key::Down => return self.handle_down(),
+				Key::Up => return self.handle_up(),
+				Key::Home => return self.handle_select_first(),
+				Key::End => return self.handle_select_last(),
 				_ => {}
 			}
 		}
@@ -146,7 +153,7 @@ impl<'a> FileExplorerComponent<'a> {
 	}
 }
 
-impl<'a> RenderAbleComponent for FileExplorerComponent<'a> {
+impl<'a> RenderAbleComponent for DatabaseExplorerComponent<'a> {
 	fn render<B: Backend>(
 		&self,
 		f: &mut Frame<B>,
