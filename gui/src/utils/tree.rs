@@ -1,4 +1,4 @@
-use tui_tree_widget::{flatten, TreeItem, TreeState};
+use tui_tree_widget::{TreeItem, TreeState};
 
 pub struct StatefulTree<'a> {
 	pub state: TreeState,
