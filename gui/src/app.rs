@@ -39,7 +39,7 @@ impl<'a> AppComponent<'a> {
 		let main_chunks = Layout::default()
 			.direction(Direction::Vertical)
 			.constraints(
-				[Constraint::Length(3), Constraint::Min(2), Constraint::Length(3)].as_ref(),
+				[Constraint::Length(3), Constraint::Percentage(80), Constraint::Length(3)].as_ref(),
 			)
 			.split(window);
 		let (top, mid) = (main_chunks[0], main_chunks[1]);

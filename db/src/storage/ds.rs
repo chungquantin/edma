@@ -111,8 +111,6 @@ impl Datastore {
 
 #[cfg(test)]
 mod test {
-	use std::str::from_utf8;
-
 	use crate::{
 		constant::{ColumnFamily, COLUMN_FAMILIES},
 		SimpleTransaction,
@@ -130,28 +128,18 @@ mod test {
 		// let cf = Some(cf_name.to_string().into());
 		let cf = None;
 
-		let key = [1, 2, 3, 10, 200, 3, 5, 9];
-		let val = "mock value";
+		let key1 = i32::to_be_bytes(2001);
+		let key2 = "hello world";
+		let key3 = "this is a key";
+
+		let val1 = "mock value";
+		let val2 = "mock value 2";
+		let val3 = "this is a new value";
 
 		let mut tx = db.transaction(true).unwrap();
-		tx.set(cf.clone(), key, val).await.unwrap();
-		assert!(tx.exi(cf.clone(), key).await.unwrap());
-		let res = tx.get(cf.clone(), key).await.unwrap();
-		match res {
-			Some(v) => assert_eq!(val, from_utf8(&v).unwrap()),
-			None => panic!("Wrong value"),
-		}
-		tx.commit().await.unwrap();
-
-		let mut tx = db.transaction(true).unwrap();
-		let new_val = "mock value 2";
-		tx.set(cf.clone(), key, new_val).await.unwrap();
-		assert!(tx.exi(cf.clone(), key).await.unwrap());
-		let res = tx.get(cf.clone(), key).await.unwrap();
-		match res {
-			Some(v) => assert_eq!(new_val, from_utf8(&v).unwrap()),
-			None => panic!("Wrong value"),
-		}
+		tx.set(cf.clone(), key1, val1).await.unwrap();
+		tx.set(cf.clone(), key2, val2).await.unwrap();
+		tx.set(cf.clone(), key3, val3).await.unwrap();
 		tx.commit().await.unwrap();
 	}
 }

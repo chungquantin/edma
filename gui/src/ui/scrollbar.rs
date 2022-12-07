@@ -54,11 +54,7 @@ impl Widget for Scrollbar {
 		let (bar_top, bar_height) = {
 			let scrollbar_area = area.inner(&Margin {
 				horizontal: 0,
-				vertical: if self.border {
-					1
-				} else {
-					0
-				},
+				vertical: u16::from(self.border),
 			});
 
 			(scrollbar_area.top(), scrollbar_area.height)

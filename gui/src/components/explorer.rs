@@ -34,8 +34,8 @@ pub struct DatabaseExplorerComponent<'a> {
 }
 
 fn build_tree<'a>(config: Config) -> StatefulTree<'a> {
-	let paths = config.paths.to_vec();
-	let name = format!("RocksDB ({} databases)", paths.len().to_string());
+	let paths = config.databases.to_vec();
+	let name = format!("RocksDB ({} databases)", paths.len());
 	let mut item = TreeItem::new_leaf(name);
 	for path in paths {
 		let (_, path) = get_db_absolute_path(&path);
@@ -71,26 +71,26 @@ impl<'a> DatabaseExplorerComponent<'a> {
 			self.tree.toggle();
 			self.is_toggled = !self.is_toggled;
 		}
-		return Ok(EventState::Consumed);
+		Ok(EventState::Consumed)
 	}
 
 	fn handle_escape(&mut self) -> Result<EventState> {
 		self.tree.state = TreeState::default();
 		self.focus = Focus::Container;
 		self.reset_tree();
-		return Ok(EventState::Consumed);
+		Ok(EventState::Consumed)
 	}
 
 	fn handle_select(&mut self) -> Result<EventState> {
 		if !self.is_dir() {
 			let index = self.selected_index.saturating_sub(1);
-			let path = self.config.paths[index].clone();
+			let path = self.config.databases[index].clone();
 			let database = get_db_absolute_path(&path);
 			self.selected_database = Some(database);
 		} else {
 			self.reset_tree();
 		}
-		return Ok(EventState::Consumed);
+		Ok(EventState::Consumed)
 	}
 
 	fn handle_select_first(&mut self) -> Result<EventState> {
@@ -102,7 +102,7 @@ impl<'a> DatabaseExplorerComponent<'a> {
 	fn handle_select_last(&mut self) -> Result<EventState> {
 		self.tree.last();
 		self.selected_index = self.tree.items.len().saturating_sub(1);
-		return Ok(EventState::Consumed);
+		Ok(EventState::Consumed)
 	}
 
 	fn handle_up(&mut self) -> Result<EventState> {
@@ -110,16 +110,16 @@ impl<'a> DatabaseExplorerComponent<'a> {
 		if !self.is_dir() {
 			self.selected_index = self.selected_index.saturating_sub(1);
 		}
-		return Ok(EventState::Consumed);
+		self.handle_select()
 	}
 
 	fn handle_down(&mut self) -> Result<EventState> {
 		self.tree.down();
 		if self.is_toggled {
 			self.selected_index =
-				std::cmp::min(self.selected_index.saturating_add(1), self.config.paths.len());
+				std::cmp::min(self.selected_index.saturating_add(1), self.config.databases.len());
 		}
-		return Ok(EventState::Consumed);
+		self.handle_select()
 	}
 
 	fn reset_tree(&mut self) {
@@ -142,7 +142,6 @@ impl<'a> DatabaseExplorerComponent<'a> {
 			match key {
 				Key::Char('\n' | ' ') => return self.handle_toggle(),
 				Key::Esc => return self.handle_escape(),
-				Key::Enter => return self.handle_select(),
 				Key::Down => return self.handle_down(),
 				Key::Up => return self.handle_up(),
 				Key::Home => return self.handle_select_first(),

@@ -25,7 +25,7 @@ pub struct DatabaseTabComponent<'a> {
 	focus: Focus,
 	config: Config,
 	explorer: DatabaseExplorerComponent<'a>,
-	editor: DatabaseEditorComponent,
+	editor: DatabaseEditorComponent<'a>,
 	status: StatusComponent<'a>,
 }
 

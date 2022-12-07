@@ -6,13 +6,6 @@ pub struct StatefulTree<'a> {
 }
 
 impl<'a> StatefulTree<'a> {
-	pub fn new() -> Self {
-		Self {
-			state: TreeState::default(),
-			items: Vec::new(),
-		}
-	}
-
 	pub fn with_items(items: Vec<TreeItem<'a>>) -> Self {
 		Self {
 			state: TreeState::default(),

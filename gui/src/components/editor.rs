@@ -18,11 +18,17 @@ use crate::{
 
 use super::{container::render_container, PreviewComponent, RenderAbleComponent};
 
-pub struct DatabaseEditorComponent {
+enum Focus {
+	Table,
+	Container,
+}
+
+pub struct DatabaseEditorComponent<'a> {
 	config: Config,
-	preview: PreviewComponent,
+	preview: PreviewComponent<'a>,
 	table: StatefulTable,
 	pairs: Vec<KeyValuePair>,
+	focus: Focus,
 	// scroll: VerticalScroll,
 }
 
@@ -45,20 +51,23 @@ fn build_table(pairs: Vec<KeyValuePair>) -> StatefulTable {
 		let value = format!("{:?}", value.to_vec());
 		items.push(vec![index, key, value])
 	}
-	let table = StatefulTable::with_items(items.to_vec());
-	table
+	StatefulTable::with_items(items.to_vec())
 }
 
-impl DatabaseEditorComponent {
+impl DatabaseEditorComponent<'_> {
 	pub async fn scan_database(&mut self, name: &str, path: &str) {
-		let db_path = format!("{}:{}", name.to_string(), path.to_string());
+		let db_path = format!("{}:{}", name, path);
 		let pairs = scan_from_path(&db_path).await;
 		self.table = build_table(pairs.to_vec());
 		self.pairs = pairs;
 	}
 
+	fn pairs_empty(&self) -> bool {
+		self.pairs.is_empty()
+	}
+
 	fn generate_label(&self) -> String {
-		format!("Editor ({} key-value pairs)", self.pairs.len().to_string())
+		format!("Editor ({} key-value pairs)", self.pairs.len())
 	}
 
 	pub fn new(config: Config) -> Self {
@@ -67,28 +76,68 @@ impl DatabaseEditorComponent {
 			// scroll: VerticalScroll::new(false, false),
 			pairs: vec![],
 			table: StatefulTable::default(),
+			focus: Focus::Container,
 			config,
 		}
 	}
 
+	fn update_preview(&mut self) {
+		match self.table.state.selected() {
+			Some(selected) if !self.pairs_empty() => {
+				let pair = Some(self.pairs[selected].clone());
+				self.preview.set_pair(pair)
+			}
+			_ => self.preview.set_pair(None),
+		}
+	}
+
+	fn handle_enter(&mut self) -> Result<EventState> {
+		self.table.state = TableState::default();
+		self.focus = Focus::Table;
+		self.update_preview();
+		Ok(EventState::Consumed)
+	}
+
+	fn handle_escape(&mut self) -> Result<EventState> {
+		self.table.state = TableState::default();
+		self.focus = Focus::Container;
+		self.update_preview();
+		Ok(EventState::Consumed)
+	}
+
+	fn handle_prev(&mut self) -> Result<EventState> {
+		self.table.previous();
+		self.update_preview();
+		Ok(EventState::Consumed)
+	}
+
+	fn handle_next(&mut self) -> Result<EventState> {
+		self.table.next();
+		self.focus = Focus::Table;
+		self.update_preview();
+		return Ok(EventState::Consumed);
+	}
+
 	pub async fn event(&mut self, key: Key) -> Result<EventState> {
-		if key == Key::Esc {
-			self.table.state = TableState::default();
+		if self.preview.event(key).await?.is_consumed() {
 			return Ok(EventState::Consumed);
 		}
-		if key == Key::Up {
-			self.table.previous();
-			return Ok(EventState::Consumed);
+
+		match key {
+			Key::Enter => return self.handle_enter(),
+			Key::Esc => return self.handle_escape(),
+			_ if matches!(key, Key::Up) && matches!(self.focus, Focus::Table) => {
+				return self.handle_prev()
+			}
+			Key::Down => return self.handle_next(),
+			_ => {}
 		}
-		if key == Key::Down {
-			self.table.next();
-			return Ok(EventState::Consumed);
-		}
+
 		Ok(EventState::NotConsumed)
 	}
 }
 
-impl RenderAbleComponent for DatabaseEditorComponent {
+impl RenderAbleComponent for DatabaseEditorComponent<'_> {
 	fn render<B: Backend>(
 		&self,
 		f: &mut Frame<B>,
@@ -100,16 +149,13 @@ impl RenderAbleComponent for DatabaseEditorComponent {
 			.constraints([Constraint::Percentage(100), Constraint::Percentage(0)])
 			.split(rect);
 
-		if self.pairs.len() > 0 {
-			match self.table.state.selected() {
-				Some(selected) => {
-					chunks = Layout::default()
-						.direction(Direction::Vertical)
-						.constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-						.split(rect);
-					self.preview.render(f, chunks[1], false).unwrap();
-				}
-				None => {}
+		if !self.pairs_empty() {
+			if self.table.state.selected().is_some() && self.preview.pair().is_some() {
+				chunks = Layout::default()
+					.direction(Direction::Vertical)
+					.constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
+					.split(rect);
+				self.preview.render(f, chunks[1], focused).unwrap();
 			}
 
 			let header_cells = ["#", "Key", "Value"]

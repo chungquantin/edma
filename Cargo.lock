@@ -861,6 +861,7 @@ dependencies = [
  "tui",
  "tui-tree-widget",
  "unicode-width",
+ "uuid",
 ]
 
 [[package]]
