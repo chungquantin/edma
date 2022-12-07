@@ -77,6 +77,9 @@ impl<'a> DatabaseExplorerComponent<'a> {
 	fn handle_escape(&mut self) -> Result<EventState> {
 		self.tree.state = TreeState::default();
 		self.focus = Focus::Container;
+		self.selected_index = 0;
+		self.selected_database = None;
+		self.is_toggled = false;
 		self.reset_tree();
 		Ok(EventState::Consumed)
 	}
@@ -96,7 +99,7 @@ impl<'a> DatabaseExplorerComponent<'a> {
 	fn handle_select_first(&mut self) -> Result<EventState> {
 		self.tree.first();
 		self.selected_index = 0;
-		return Ok(EventState::Consumed);
+		Ok(EventState::Consumed)
 	}
 
 	fn handle_select_last(&mut self) -> Result<EventState> {

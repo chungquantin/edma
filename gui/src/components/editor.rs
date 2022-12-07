@@ -115,7 +115,7 @@ impl DatabaseEditorComponent<'_> {
 		self.table.next();
 		self.focus = Focus::Table;
 		self.update_preview();
-		return Ok(EventState::Consumed);
+		Ok(EventState::Consumed)
 	}
 
 	pub async fn event(&mut self, key: Key) -> Result<EventState> {

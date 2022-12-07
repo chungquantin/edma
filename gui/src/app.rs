@@ -1,5 +1,5 @@
 use crate::{
-	components::{MenuItem, RenderAbleComponent},
+	components::{LayoutTabComponent, MenuItem, RenderAbleComponent},
 	config::Config,
 	constants::Focus,
 	events::EventState,
@@ -19,6 +19,7 @@ pub struct AppComponent<'a> {
 	home: HomeTabComponent,
 	database: DatabaseTabComponent<'a>,
 	menu: MenuContainerComponent,
+	layout: LayoutTabComponent,
 	focus: Focus,
 	config: Config,
 }
@@ -29,6 +30,7 @@ impl<'a> AppComponent<'a> {
 			home: HomeTabComponent::new(config.clone()),
 			database: DatabaseTabComponent::new(config.clone()),
 			menu: MenuContainerComponent::new(config.clone()),
+			layout: LayoutTabComponent::new(config.clone()),
 			focus: Focus::MenuContainer,
 			config,
 		}
@@ -52,6 +54,9 @@ impl<'a> AppComponent<'a> {
 			}
 			MenuItem::Database => {
 				self.database.render(f, mid, matches!(self.focus(), Focus::DatabaseTabBody))?
+			}
+			MenuItem::Layout => {
+				self.layout.render(f, mid, matches!(self.focus(), Focus::LayoutTabBody))?
 			}
 		};
 
@@ -99,6 +104,11 @@ impl<'a> AppComponent<'a> {
 					return Ok(EventState::Consumed);
 				}
 
+				if key == Key::Up {
+					self.focus = Focus::MenuContainer
+				}
+			}
+			Focus::LayoutTabBody => {
 				if key == Key::Up {
 					self.focus = Focus::MenuContainer
 				}

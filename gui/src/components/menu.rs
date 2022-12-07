@@ -20,6 +20,7 @@ use super::{container::render_container, RenderAbleComponent};
 pub enum MenuItem {
 	Home,
 	Database,
+	Layout,
 }
 
 impl From<MenuItem> for usize {
@@ -27,6 +28,7 @@ impl From<MenuItem> for usize {
 		match input {
 			MenuItem::Home => 0,
 			MenuItem::Database => 1,
+			MenuItem::Layout => 1,
 		}
 	}
 }
@@ -50,6 +52,7 @@ impl MenuContainerComponent {
 		match self.active_menu_item {
 			MenuItem::Home => Focus::HomeTabBody,
 			MenuItem::Database => Focus::DatabaseTabBody,
+			MenuItem::Layout => Focus::LayoutTabBody,
 		}
 	}
 
@@ -66,6 +69,10 @@ impl MenuContainerComponent {
 			self.set_active(MenuItem::Database);
 			return Ok(EventState::Consumed);
 		}
+		if key == Key::Char('l') || key == Key::Char('L') {
+			self.set_active(MenuItem::Layout);
+			return Ok(EventState::Consumed);
+		}
 		Ok(EventState::NotConsumed)
 	}
 }
@@ -77,7 +84,7 @@ impl RenderAbleComponent for MenuContainerComponent {
 		area: Rect,
 		focused: bool,
 	) -> Result<(), anyhow::Error> {
-		let menu_titles = vec!["EDMA", "Home", "Database", "Help", "Github", "Quit"];
+		let menu_titles = vec!["EDMA", "Home", "Database", "Layout", "Help", "Github", "Quit"];
 
 		let menu = menu_titles
 			.iter()

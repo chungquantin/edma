@@ -44,11 +44,11 @@ impl ByteLayout {
 	}
 
 	pub fn from(&self) -> usize {
-		self.from.clone()
+		self.from
 	}
 
 	pub fn to(&self) -> usize {
-		self.to.clone()
+		self.to
 	}
 
 	pub fn build(&self) -> Self {
@@ -130,7 +130,7 @@ impl FromLayoutVariant for Vec<u8> {
 				}
 				format!("{:?}", value)
 			}
-			_ => default_value.to_string(),
+			_ => default_value,
 		}
 	}
 }

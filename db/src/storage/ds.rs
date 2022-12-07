@@ -142,4 +142,28 @@ mod test {
 		tx.set(cf.clone(), key3, val3).await.unwrap();
 		tx.commit().await.unwrap();
 	}
+
+	#[tokio::test]
+	async fn should_create_with_cf() {
+		let db = Datastore::new("rocksdb:../temp");
+		assert!(db.transaction(false).is_ok());
+
+		// Seeding database
+		let cf_name = COLUMN_FAMILIES.get(&ColumnFamily::TestSuite).unwrap();
+		let cf = Some(cf_name.to_string().into());
+
+		let key1 = i32::to_be_bytes(2100);
+		let key2 = "cf => hello world";
+		let key3 = "cf => this is a key";
+
+		let val1 = "cf => mock value";
+		let val2 = "cf => mock value 2";
+		let val3 = "cf => this is a new value";
+
+		let mut tx = db.transaction(true).unwrap();
+		tx.set(cf.clone(), key1, val1).await.unwrap();
+		tx.set(cf.clone(), key2, val2).await.unwrap();
+		tx.set(cf.clone(), key3, val3).await.unwrap();
+		tx.commit().await.unwrap();
+	}
 }
