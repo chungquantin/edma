@@ -7,14 +7,12 @@ use tui::{
 };
 
 use crate::{
+	components::RenderAbleComponent,
 	config::Config,
 	events::{EventState, Key},
 };
 
-use super::{
-	explorer::DatabaseExplorerComponent, DatabaseEditorComponent, RenderAbleComponent,
-	StatusComponent,
-};
+use super::{explorer::DatabaseExplorerComponent, DatabaseEditorComponent, StatusComponent};
 
 enum Focus {
 	Explorer,

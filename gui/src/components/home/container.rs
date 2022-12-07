@@ -8,9 +8,11 @@ use tui::{
 	Frame,
 };
 
-use crate::{config::Config, constants::BANNER};
-
-use super::{container::render_container, RenderAbleComponent};
+use crate::{
+	components::{render_container, RenderAbleComponent},
+	config::Config,
+	constants::BANNER,
+};
 
 pub struct HomeTabComponent {
 	config: Config,

@@ -8,14 +8,13 @@ use tui::{
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
 use crate::{
+	components::{render_container, RenderAbleComponent},
 	config::Config,
 	constants::HIGHLIGHT_COLOR,
 	events::{EventState, Key},
 	ui::StatefulTree,
 	utils::get_db_absolute_path,
 };
-
-use super::{container::render_container, RenderAbleComponent};
 
 enum Focus {
 	TreeView,

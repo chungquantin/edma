@@ -1,17 +1,25 @@
 use tui::widgets::TableState;
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct StatefulTable {
 	pub state: TableState,
+	pub headers: Vec<&'static str>,
 	pub items: Vec<Vec<String>>,
 }
 
 impl StatefulTable {
-	pub fn with_items(items: Vec<Vec<String>>) -> Self {
-		Self {
-			state: TableState::default(),
-			items,
-		}
+	pub fn with_items(&mut self, items: Vec<Vec<String>>) -> &mut Self {
+		self.items = items;
+		self
+	}
+
+	pub fn with_headers(&mut self, headers: Vec<&'static str>) -> &mut Self {
+		self.headers = headers;
+		self
+	}
+
+	pub fn build(&self) -> Self {
+		self.clone()
 	}
 
 	pub fn next(&mut self) {

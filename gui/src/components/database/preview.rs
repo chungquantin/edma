@@ -10,14 +10,13 @@ use tui::{
 };
 
 use crate::{
+	components::{render_container, RenderAbleComponent},
 	config::Config,
 	constants::HIGHLIGHT_COLOR,
 	events::{EventState, Key},
 	ui::StatefulList,
 	utils::FromLayoutVariant,
 };
-
-use super::{container::render_container, RenderAbleComponent};
 
 pub struct PreviewComponent<'a> {
 	config: Config,
@@ -67,7 +66,7 @@ impl PreviewComponent<'_> {
 			let l = &self.config.layouts[index];
 			let mut items: Vec<String> = vec![];
 			for item in l.layout.iter() {
-				let converted = raw.from_variant(item.variant());
+				let converted = raw.from_variant(item.variant.clone());
 				items.push(converted);
 			}
 			data = items;

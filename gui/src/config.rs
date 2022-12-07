@@ -8,8 +8,8 @@ pub struct Config {
 
 fn build_template(name: &str, variant: LayoutVariant) -> LayoutTemplate {
 	LayoutTemplate::new(
-		name,
-		vec![ByteLayout::default().with_variant(variant).range(0, usize::MAX).build()],
+		&format!("SYSTEM:{}", name),
+		vec![ByteLayout::default().with_variant(variant).build()],
 	)
 }
 

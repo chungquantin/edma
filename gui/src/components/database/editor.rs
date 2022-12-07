@@ -10,13 +10,14 @@ use tui::{
 };
 
 use crate::{
+	components::{render_container, RenderAbleComponent},
 	config::Config,
 	constants::HIGHLIGHT_COLOR,
 	events::{EventState, Key},
 	ui::StatefulTable,
 };
 
-use super::{container::render_container, PreviewComponent, RenderAbleComponent};
+use super::PreviewComponent;
 
 enum Focus {
 	Table,
@@ -51,7 +52,10 @@ fn build_table(pairs: Vec<KeyValuePair>) -> StatefulTable {
 		let value = format!("{:?}", value.to_vec());
 		items.push(vec![index, key, value])
 	}
-	StatefulTable::with_items(items.to_vec())
+	StatefulTable::default()
+		.with_items(items.to_vec())
+		.with_headers(vec!["#", "Key", "Value"])
+		.build()
 }
 
 impl DatabaseEditorComponent<'_> {
@@ -158,7 +162,9 @@ impl RenderAbleComponent for DatabaseEditorComponent<'_> {
 				self.preview.render(f, chunks[1], focused).unwrap();
 			}
 
-			let header_cells = ["#", "Key", "Value"]
+			let header_cells = self
+				.table
+				.headers
 				.iter()
 				.map(|h| Cell::from(*h).style(Style::default().fg(Color::Black)));
 			let normal_style = Style::default().bg(Color::DarkGray);

@@ -1,5 +1,8 @@
-use super::{container::render_container, RenderAbleComponent};
-use crate::{config::Config, constants::DEFAULT_STATUS_TEXT};
+use crate::{
+	components::{render_container, RenderAbleComponent},
+	config::Config,
+	constants::DEFAULT_STATUS_TEXT,
+};
 use tui::{
 	backend::Backend,
 	layout::Rect,

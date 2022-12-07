@@ -16,11 +16,39 @@ impl Default for LayoutVariant {
 	}
 }
 
-#[derive(Clone, Default)]
+impl LayoutVariant {
+	pub fn to_string(&self) -> String {
+		match self {
+			LayoutVariant::String => "String",
+			LayoutVariant::Int32 => "Int32",
+			LayoutVariant::Int64 => "Int64",
+			LayoutVariant::Uuid => "Uuid",
+			LayoutVariant::Float32 => "Float32",
+			LayoutVariant::Float64 => "Float64",
+			LayoutVariant::Boolean => "Boolean",
+			LayoutVariant::Bytes => "Bytes",
+		}
+		.to_string()
+	}
+}
+
+#[derive(Clone)]
 pub struct ByteLayout {
-	variant: LayoutVariant,
-	from: usize,
-	to: usize,
+	pub variant: LayoutVariant,
+	pub name: String,
+	pub from: usize,
+	pub to: usize,
+}
+
+impl Default for ByteLayout {
+	fn default() -> Self {
+		Self {
+			variant: Default::default(),
+			name: "*".to_string(),
+			from: usize::MIN,
+			to: usize::MAX,
+		}
+	}
 }
 
 #[derive(Clone)]
@@ -39,24 +67,17 @@ impl LayoutTemplate {
 }
 
 impl ByteLayout {
-	pub fn variant(&self) -> LayoutVariant {
-		self.variant.clone()
-	}
-
-	pub fn from(&self) -> usize {
-		self.from
-	}
-
-	pub fn to(&self) -> usize {
-		self.to
-	}
-
 	pub fn build(&self) -> Self {
 		self.clone()
 	}
 
 	pub fn with_variant(&mut self, variant: LayoutVariant) -> &mut Self {
 		self.variant = variant;
+		self
+	}
+
+	pub fn with_name(&mut self, name: String) -> &mut Self {
+		self.name = name;
 		self
 	}
 

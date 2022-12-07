@@ -14,6 +14,10 @@ impl<'a> StatefulList<'a> {
 		}
 	}
 
+	pub fn first(&mut self) {
+		self.state.select(Some(0));
+	}
+
 	pub fn next(&mut self) {
 		let i = match self.state.selected() {
 			Some(i) => {

@@ -19,7 +19,7 @@ pub struct AppComponent<'a> {
 	home: HomeTabComponent,
 	database: DatabaseTabComponent<'a>,
 	menu: MenuContainerComponent,
-	layout: LayoutTabComponent,
+	layout: LayoutTabComponent<'a>,
 	focus: Focus,
 	config: Config,
 }
@@ -109,6 +109,10 @@ impl<'a> AppComponent<'a> {
 				}
 			}
 			Focus::LayoutTabBody => {
+				if self.layout.event(key).await?.is_consumed() {
+					return Ok(EventState::Consumed);
+				}
+
 				if key == Key::Up {
 					self.focus = Focus::MenuContainer
 				}
