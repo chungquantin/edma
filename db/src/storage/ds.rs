@@ -113,8 +113,10 @@ impl Datastore {
 mod test {
 	use std::str::from_utf8;
 
-	use crate::constant::{ColumnFamily, COLUMN_FAMILIES};
-	use crate::SimpleTransaction;
+	use crate::{
+		constant::{ColumnFamily, COLUMN_FAMILIES},
+		SimpleTransaction,
+	};
 
 	use super::Datastore;
 
@@ -128,7 +130,7 @@ mod test {
 		// let cf = Some(cf_name.to_string().into());
 		let cf = None;
 
-		let key = "mock key";
+		let key = [1, 2, 3, 10, 200, 3, 5, 9];
 		let val = "mock value";
 
 		let mut tx = db.transaction(true).unwrap();

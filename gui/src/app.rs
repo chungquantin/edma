@@ -5,7 +5,6 @@ use crate::{
 	events::EventState,
 };
 use anyhow::Result;
-use db::{Datastore, SimpleTransaction};
 use tui::{
 	backend::Backend,
 	layout::{Constraint, Direction, Layout},

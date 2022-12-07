@@ -4,6 +4,8 @@ mod editor;
 mod explorer;
 mod home;
 mod menu;
+mod preview;
+mod scroll_vertical;
 mod status;
 mod traits;
 
@@ -13,5 +15,7 @@ pub use editor::*;
 pub use explorer::*;
 pub use home::*;
 pub use menu::*;
+pub use preview::*;
+pub use scroll_vertical::*;
 pub use status::*;
 pub use traits::*;

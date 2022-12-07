@@ -10,7 +10,7 @@ use tui::{
 
 use crate::{
 	config::Config,
-	constants::Focus,
+	constants::{Focus, HIGHLIGHT_COLOR},
 	events::{EventState, Key},
 };
 
@@ -84,13 +84,13 @@ impl RenderAbleComponent for MenuContainerComponent {
 			.enumerate()
 			.map(|(index, t)| {
 				if index == 0 {
-					Spans::from(vec![Span::styled(*t, Style::default().fg(Color::Yellow))])
+					Spans::from(vec![Span::styled(*t, Style::default().fg(HIGHLIGHT_COLOR))])
 				} else {
 					let (first, rest) = t.split_at(1);
 					Spans::from(vec![
 						Span::styled(
 							first,
-							Style::default().fg(Color::Yellow).add_modifier(Modifier::UNDERLINED),
+							Style::default().fg(HIGHLIGHT_COLOR).add_modifier(Modifier::UNDERLINED),
 						),
 						Span::styled(rest, Style::default().fg(Color::White)),
 					])

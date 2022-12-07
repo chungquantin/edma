@@ -2,15 +2,17 @@ use anyhow::Result;
 use tui::{
 	backend::Backend,
 	layout::Rect,
-	style::{Color, Modifier, Style},
+	style::{Modifier, Style},
 	Frame,
 };
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
 use crate::{
 	config::Config,
+	constants::HIGHLIGHT_COLOR,
 	events::{EventState, Key},
-	utils::{get_db_absolute_path, StatefulTree},
+	ui::StatefulTree,
+	utils::get_db_absolute_path,
 };
 
 use super::{container::render_container, RenderAbleComponent};
@@ -162,9 +164,7 @@ impl<'a> RenderAbleComponent for DatabaseExplorerComponent<'a> {
 	) -> Result<(), anyhow::Error> {
 		let tree_widget = Tree::new(self.tree.items.clone())
 			.block(render_container("Explorer", focused))
-			.highlight_style(
-				Style::default().fg(Color::Black).bg(Color::Yellow).add_modifier(Modifier::BOLD),
-			);
+			.highlight_style(Style::default().fg(HIGHLIGHT_COLOR).add_modifier(Modifier::BOLD));
 
 		f.render_stateful_widget(tree_widget, rect, &mut self.tree.state.clone());
 

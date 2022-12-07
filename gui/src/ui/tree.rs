@@ -6,7 +6,6 @@ pub struct StatefulTree<'a> {
 }
 
 impl<'a> StatefulTree<'a> {
-	#[allow(dead_code)]
 	pub fn new() -> Self {
 		Self {
 			state: TreeState::default(),

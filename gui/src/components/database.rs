@@ -70,6 +70,10 @@ impl<'a> DatabaseTabComponent<'a> {
 					self.focus = Focus::Explorer;
 					return Ok(EventState::Consumed);
 				}
+
+				if self.editor.event(key).await?.is_consumed() {
+					return Ok(EventState::Consumed);
+				}
 				Ok(EventState::NotConsumed)
 			}
 		}

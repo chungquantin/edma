@@ -14,6 +14,7 @@ mod components;
 mod config;
 mod constants;
 mod events;
+mod ui;
 mod utils;
 
 #[tokio::main]
