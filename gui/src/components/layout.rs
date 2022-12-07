@@ -23,7 +23,7 @@ impl LayoutTabComponent {
 		}
 	}
 
-	pub async fn event(&mut self, key: Key) -> Result<EventState> {
+	pub async fn event(&mut self, _key: Key) -> Result<EventState> {
 		Ok(EventState::NotConsumed)
 	}
 }
