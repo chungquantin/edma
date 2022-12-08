@@ -1,3 +1,10 @@
+use crate::{
+	components::{render_container, RenderAbleComponent},
+	config::Config,
+	constants::HIGHLIGHT_COLOR,
+	events::{EventState, Key},
+	ui::StatefulList,
+};
 use anyhow::Result;
 use tui::{
 	backend::Backend,
@@ -6,14 +13,6 @@ use tui::{
 	text::{Span, Spans},
 	widgets::{List, ListItem, ListState},
 	Frame,
-};
-
-use crate::{
-	components::{render_container, RenderAbleComponent},
-	config::Config,
-	constants::HIGHLIGHT_COLOR,
-	events::{EventState, Key},
-	ui::StatefulList,
 };
 
 enum Focus {

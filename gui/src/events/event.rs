@@ -1,4 +1,4 @@
-use crossterm::event;
+use crossterm::event::{self};
 use std::{sync::mpsc, thread, time::Duration};
 
 use super::Key;
@@ -24,9 +24,11 @@ pub enum Event<I> {
 	Tick,
 }
 
+type Message = Event<Key>;
+
 pub struct Events {
-	rx: mpsc::Receiver<Event<Key>>,
-	_tx: mpsc::Sender<Event<Key>>,
+	rx: mpsc::Receiver<Message>,
+	_tx: mpsc::Sender<Message>,
 }
 
 impl Events {
@@ -43,8 +45,8 @@ impl Events {
 		let event_tx = tx.clone();
 		thread::spawn(move || loop {
 			if event::poll(config.tick_rate).unwrap() {
-				if let event::Event::Key(key) = event::read().unwrap() {
-					let key = Key::from(key);
+				if let event::Event::Key(event) = event::read().unwrap() {
+					let key = Key::from(event);
 
 					event_tx.send(Event::Input(key)).unwrap();
 				}
@@ -59,7 +61,7 @@ impl Events {
 		}
 	}
 
-	pub fn next(&self) -> Result<Event<Key>, mpsc::RecvError> {
+	pub fn next(&self) -> Result<Message, mpsc::RecvError> {
 		self.rx.recv()
 	}
 }

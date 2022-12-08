@@ -1,12 +1,3 @@
-use anyhow::Result;
-use tui::{
-	backend::Backend,
-	layout::Rect,
-	style::{Modifier, Style},
-	Frame,
-};
-use tui_tree_widget::{Tree, TreeItem, TreeState};
-
 use crate::{
 	components::{render_container, RenderAbleComponent},
 	config::Config,
@@ -15,6 +6,14 @@ use crate::{
 	ui::StatefulTree,
 	utils::get_db_absolute_path,
 };
+use anyhow::Result;
+use tui::{
+	backend::Backend,
+	layout::Rect,
+	style::{Modifier, Style},
+	Frame,
+};
+use tui_tree_widget::{Tree, TreeItem, TreeState};
 
 enum Focus {
 	TreeView,

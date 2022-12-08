@@ -175,9 +175,9 @@ checksum = "7a40729d2133846d9ed0ea60a8b9541bccddab49cd30f0715a1da672fe9a2524"
 
 [[package]]
 name = "async-trait"
-version = "0.1.58"
+version = "0.1.59"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e805d94e6b5001b651426cf4cd446b1ab5f319d27bab5c644f61de0a804360c"
+checksum = "31e6e93155431f3931513b243d371981bb2770112b370c82745a1d19d2f99364"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -859,6 +859,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tui",
+ "tui-textarea",
  "tui-tree-widget",
  "unicode-width",
  "uuid",
@@ -2101,6 +2102,16 @@ dependencies = [
  "crossterm 0.25.0",
  "unicode-segmentation",
  "unicode-width",
+]
+
+[[package]]
+name = "tui-textarea"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "437ad97a57d66f7231dab16f51ede1ff5a3aac68c83eb10fa3a178e454b63cae"
+dependencies = [
+ "crossterm 0.25.0",
+ "tui",
 ]
 
 [[package]]

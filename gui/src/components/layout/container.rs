@@ -1,3 +1,8 @@
+use crate::{
+	components::RenderAbleComponent,
+	config::Config,
+	events::{EventState, Key},
+};
 use anyhow::Result;
 use tui::{
 	backend::Backend,
@@ -5,23 +10,19 @@ use tui::{
 	Frame,
 };
 
-use crate::{
-	components::RenderAbleComponent,
-	config::Config,
-	events::{EventState, Key},
-};
-
-use super::{LayoutContentComponent, LayoutExplorerComponent};
+use super::{CommandEditorComponent, LayoutContentComponent, LayoutExplorerComponent};
 
 enum Focus {
 	Explorer,
 	Layout,
+	Editor,
 }
 
 pub struct LayoutTabComponent<'a> {
 	config: Config,
 	explorer: LayoutExplorerComponent<'a>,
 	layout: LayoutContentComponent,
+	editor: CommandEditorComponent,
 	focus: Focus,
 }
 
@@ -30,6 +31,7 @@ impl LayoutTabComponent<'_> {
 		LayoutTabComponent {
 			explorer: LayoutExplorerComponent::new(config.clone()),
 			layout: LayoutContentComponent::new(config.clone()),
+			editor: CommandEditorComponent::new(config.clone()),
 			config,
 			focus: Focus::Explorer,
 		}
@@ -39,7 +41,7 @@ impl LayoutTabComponent<'_> {
 		match self.focus {
 			Focus::Explorer => {
 				if key == Key::Right {
-					self.focus = Focus::Layout;
+					self.focus = Focus::Editor;
 					return Ok(EventState::Consumed);
 				}
 
@@ -61,6 +63,26 @@ impl LayoutTabComponent<'_> {
 				if self.layout.event(key).await?.is_consumed() {
 					return Ok(EventState::Consumed);
 				}
+
+				if key == Key::Up {
+					self.focus = Focus::Editor;
+					return Ok(EventState::Consumed);
+				}
+				Ok(EventState::NotConsumed)
+			}
+			Focus::Editor => {
+				if self.editor.event(key).await?.is_consumed() {
+					return Ok(EventState::Consumed);
+				}
+				if key == Key::Left {
+					self.focus = Focus::Explorer;
+					return Ok(EventState::Consumed);
+				}
+
+				if key == Key::Down {
+					self.focus = Focus::Layout;
+					return Ok(EventState::Consumed);
+				}
 				Ok(EventState::NotConsumed)
 			}
 		}
@@ -78,6 +100,10 @@ impl RenderAbleComponent for LayoutTabComponent<'_> {
 			.direction(Direction::Horizontal)
 			.constraints([Constraint::Percentage(20), Constraint::Percentage(80)])
 			.split(rect);
+		let stack_chunks = Layout::default()
+			.direction(Direction::Vertical)
+			.constraints([Constraint::Length(3), Constraint::Length(main_chunks[0].height - 3)])
+			.split(main_chunks[1]);
 
 		self.explorer.render(
 			f,
@@ -85,7 +111,8 @@ impl RenderAbleComponent for LayoutTabComponent<'_> {
 			focused && matches!(self.focus, Focus::Explorer),
 		)?;
 
-		self.layout.render(f, main_chunks[1], focused && matches!(self.focus, Focus::Layout))?;
+		self.editor.render(f, stack_chunks[0], focused && matches!(self.focus, Focus::Editor))?;
+		self.layout.render(f, stack_chunks[1], focused && matches!(self.focus, Focus::Layout))?;
 		Ok(())
 	}
 }

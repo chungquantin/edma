@@ -145,7 +145,7 @@ mod test {
 
 	#[tokio::test]
 	async fn should_create_with_cf() {
-		let db = Datastore::new("rocksdb:../temp");
+		let db = Datastore::new("rocksdb:../temp/cf");
 		assert!(db.transaction(false).is_ok());
 
 		// Seeding database

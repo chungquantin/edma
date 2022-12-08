@@ -79,17 +79,31 @@ impl<'a> AppComponent<'a> {
 		Ok(EventState::NotConsumed)
 	}
 
-	async fn components_event(&mut self, _key: Key) -> Result<EventState> {
+	async fn components_event(&mut self, key: Key) -> Result<EventState> {
+		match self.focus {
+			Focus::MenuContainer => {
+				if self.menu.event(key).await?.is_consumed() {
+					return Ok(EventState::Consumed);
+				}
+			}
+			Focus::DatabaseTabBody => {
+				if self.database.event(key).await?.is_consumed() {
+					return Ok(EventState::Consumed);
+				}
+			}
+			Focus::LayoutTabBody => {
+				if self.layout.event(key).await?.is_consumed() {
+					return Ok(EventState::Consumed);
+				}
+			}
+			_ => {}
+		}
 		Ok(EventState::NotConsumed)
 	}
 
 	async fn move_focus(&mut self, key: Key) -> Result<EventState> {
 		match self.focus {
 			Focus::MenuContainer => {
-				if self.menu.event(key).await?.is_consumed() {
-					return Ok(EventState::Consumed);
-				}
-
 				if key == Key::Down {
 					self.focus = self.menu.active_focus();
 				}
@@ -100,19 +114,11 @@ impl<'a> AppComponent<'a> {
 				}
 			}
 			Focus::DatabaseTabBody => {
-				if self.database.event(key).await?.is_consumed() {
-					return Ok(EventState::Consumed);
-				}
-
 				if key == Key::Up {
 					self.focus = Focus::MenuContainer
 				}
 			}
 			Focus::LayoutTabBody => {
-				if self.layout.event(key).await?.is_consumed() {
-					return Ok(EventState::Consumed);
-				}
-
 				if key == Key::Up {
 					self.focus = Focus::MenuContainer
 				}

@@ -1,15 +1,14 @@
+use crate::{
+	components::RenderAbleComponent,
+	config::Config,
+	events::{EventState, Key},
+};
 use anyhow::Result;
 use tui::{
 	backend::Backend,
 	layout::{Constraint, Direction, Layout, Rect},
 	text::Span,
 	Frame,
-};
-
-use crate::{
-	components::RenderAbleComponent,
-	config::Config,
-	events::{EventState, Key},
 };
 
 use super::{explorer::DatabaseExplorerComponent, DatabaseEditorComponent, StatusComponent};
