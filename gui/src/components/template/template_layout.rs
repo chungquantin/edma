@@ -16,7 +16,7 @@ use crate::{
 	utils::{ByteLayout, LayoutTemplate},
 };
 
-pub struct LayoutContentComponent {
+pub struct TemplateLayoutComponent {
 	config: Config,
 	layout: Option<LayoutTemplate>,
 	table: Option<StatefulTable>,
@@ -47,7 +47,7 @@ fn build_table(layouts: Vec<ByteLayout>) -> StatefulTable {
 		.build()
 }
 
-impl LayoutContentComponent {
+impl TemplateLayoutComponent {
 	pub fn set_layout(&mut self, layout: Option<LayoutTemplate>) {
 		self.layout = layout.clone();
 		if let Some(l) = layout {
@@ -56,7 +56,7 @@ impl LayoutContentComponent {
 	}
 
 	pub fn new(config: Config) -> Self {
-		LayoutContentComponent {
+		TemplateLayoutComponent {
 			config,
 			layout: None,
 			table: None,
@@ -68,7 +68,7 @@ impl LayoutContentComponent {
 	}
 }
 
-impl RenderAbleComponent for LayoutContentComponent {
+impl RenderAbleComponent for TemplateLayoutComponent {
 	fn render<B: Backend>(
 		&self,
 		f: &mut Frame<B>,

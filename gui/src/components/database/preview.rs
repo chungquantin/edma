@@ -27,7 +27,7 @@ pub struct PreviewComponent<'a> {
 
 fn build_list(config: Config) -> StatefulList<'static> {
 	let items: Vec<_> = config
-		.layouts
+		.templates
 		.iter()
 		.map(|layout| {
 			ListItem::new(Spans::from(vec![Span::styled(layout.name.clone(), Style::default())]))
@@ -57,21 +57,22 @@ impl PreviewComponent<'_> {
 		self.pair = pair;
 	}
 
-	fn deserialize_key(&self, layout: &StatefulList, raw: Vec<u8>) -> String {
+	fn deserialize_key(&self, layout: &StatefulList, raw: Vec<u8>) -> Vec<(String, String)> {
 		let selected_layout = layout.state.selected();
-		let default = format!("{:?}", raw);
+		let default = ("*".to_string(), format!("{:?}", raw));
 		let mut data = vec![default];
 		if let Some(layout) = selected_layout {
 			let index = layout;
-			let l = &self.config.layouts[index];
-			let mut items: Vec<String> = vec![];
+			let l = &self.config.templates[index];
+			let mut items: Vec<(String, String)> = vec![];
 			for item in l.layout.iter() {
-				let converted = raw.from_variant(item.variant.clone());
-				items.push(converted);
+				let slice = raw[item.from..std::cmp::min(item.to, raw.len())].to_vec();
+				let converted = slice.from_variant(item.variant.clone());
+				items.push((item.name.clone(), converted));
 			}
 			data = items;
 		}
-		data.concat()
+		data
 	}
 
 	fn render_layout<B: Backend>(
@@ -98,8 +99,14 @@ impl PreviewComponent<'_> {
 		layout: &StatefulList,
 		bytes: Vec<u8>,
 	) {
-		let key = self.deserialize_key(layout, bytes);
-		let content = Paragraph::new(vec![Spans::from(vec![Span::raw(key)])])
+		let values = self.deserialize_key(layout, bytes);
+		let mut spans = vec![];
+		for (name, item) in values.iter() {
+			spans.push(Span::styled(name, Style::default().fg(HIGHLIGHT_COLOR)));
+			spans.push(Span::raw(":"));
+			spans.push(Span::raw(item));
+		}
+		let content = Paragraph::new(vec![Spans::from(spans)])
 			.wrap(Wrap {
 				trim: true,
 			})

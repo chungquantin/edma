@@ -1,6 +1,6 @@
 use anyhow::Result;
 use app::AppComponent;
-use config::Config;
+use config::load_config;
 use crossterm::{
 	execute,
 	terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
@@ -10,6 +10,7 @@ use std::io;
 use tui::{backend::CrosstermBackend, Terminal};
 
 mod app;
+mod cli;
 mod components;
 mod config;
 mod constants;
@@ -19,13 +20,15 @@ mod utils;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+	let value = crate::cli::parse();
+	let config = load_config(&value.config);
+
 	setup_terminal()?;
 
 	let stdout = io::stdout();
 	let backend = CrosstermBackend::new(stdout);
 	let mut terminal = Terminal::new(backend)?;
 	let events = Events::new(200);
-	let config = Config::new();
 
 	let mut app = AppComponent::new(config);
 	terminal.clear()?;

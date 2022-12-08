@@ -28,7 +28,7 @@ impl From<MenuItem> for usize {
 		match input {
 			MenuItem::Home => 0,
 			MenuItem::Database => 1,
-			MenuItem::Layout => 1,
+			MenuItem::Layout => 2,
 		}
 	}
 }
@@ -84,7 +84,7 @@ impl RenderAbleComponent for MenuContainerComponent {
 		area: Rect,
 		focused: bool,
 	) -> Result<(), anyhow::Error> {
-		let menu_titles = vec!["EDMA", "Home", "Database", "Layout", "Help", "Github", "Quit"];
+		let menu_titles = vec!["EDMA", "Home", "Database", "Layout", "Quit"];
 
 		let menu = menu_titles
 			.iter()

@@ -3,7 +3,7 @@ use tui::{
 	backend::Backend,
 	layout::{Alignment, Constraint, Direction, Layout, Rect},
 	style::{Color, Style},
-	text::Text,
+	text::{Span, Spans, Text},
 	widgets::{Block, Paragraph, Wrap},
 	Frame,
 };
@@ -55,6 +55,23 @@ impl RenderAbleComponent for HomeTabComponent {
 		// Banner text with correct styling
 		let mut top_text = Text::from(BANNER);
 		top_text.patch_style(Style::default().fg(Color::White));
+		// Contains the banner
+		let top_text = Paragraph::new(top_text)
+			.style(Style::default().fg(Color::White))
+			.alignment(Alignment::Center)
+			.block(Block::default());
+		f.render_widget(top_text, chunks[0]);
+
+		let title_text = Paragraph::new(vec![
+			Spans::from(vec![Span::raw("------------------------------------")]),
+			Spans::from(vec![Span::raw("Embedded Database Management for All")]),
+			Spans::from(vec![Span::raw("------------------------------------")]),
+			Spans::from(vec![Span::raw(format!("Config path: {}", self.config.path))]),
+		])
+		.style(Style::default().fg(Color::White))
+		.block(Block::default())
+		.alignment(Alignment::Center);
+		f.render_widget(title_text, chunks[1]);
 
 		let bottom_text_raw = format!(
     "{}{}",
@@ -63,15 +80,8 @@ impl RenderAbleComponent for HomeTabComponent {
   );
 		let bottom_text = Text::from(bottom_text_raw.as_str());
 
-		// Contains the banner
-		let top_text = Paragraph::new(top_text)
-			.style(Style::default().fg(Color::White))
-			.alignment(Alignment::Center)
-			.block(Block::default());
-		f.render_widget(top_text, chunks[0]);
-
 		// CHANGELOG
-		let bottom_text = Paragraph::new(bottom_text)
+		let _bottom_text = Paragraph::new(bottom_text)
 			.style(Style::default().fg(Color::White))
 			.block(Block::default())
 			.alignment(Alignment::Center)
@@ -79,7 +89,7 @@ impl RenderAbleComponent for HomeTabComponent {
 				trim: false,
 			});
 		// .scroll((0, 0));
-		f.render_widget(bottom_text, chunks[1]);
+		// f.render_widget(bottom_text, chunks[1]);
 
 		Ok(())
 	}

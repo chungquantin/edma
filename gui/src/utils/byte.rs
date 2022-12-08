@@ -1,9 +1,11 @@
-#[derive(Clone)]
+use uuid::Uuid;
+
+#[derive(Clone, Debug)]
 pub enum LayoutVariant {
 	String,
 	Int32,
 	Int64,
-	Uuid,
+	UuidV4,
 	Float32,
 	Float64,
 	Boolean,
@@ -16,23 +18,40 @@ impl Default for LayoutVariant {
 	}
 }
 
+macro_rules! impl_convert_string {
+	($(($code:ident, $str:expr)),*) => {
 impl LayoutVariant {
+	pub fn from_string(s: &str) -> LayoutVariant {
+		match s {
+		$(
+			$str => LayoutVariant::$code,
+		)*
+		_ => unimplemented!(),
+	}
+	}
 	pub fn to_string(&self) -> String {
 		match self {
-			LayoutVariant::String => "String",
-			LayoutVariant::Int32 => "Int32",
-			LayoutVariant::Int64 => "Int64",
-			LayoutVariant::Uuid => "Uuid",
-			LayoutVariant::Float32 => "Float32",
-			LayoutVariant::Float64 => "Float64",
-			LayoutVariant::Boolean => "Boolean",
-			LayoutVariant::Bytes => "Bytes",
-		}
-		.to_string()
+		$(
+				LayoutVariant::$code => $str,
+			)*
+	}.to_string()
 	}
 }
+	};
+}
 
-#[derive(Clone)]
+impl_convert_string!(
+	(String, "String"),
+	(Int32, "Int32"),
+	(Int64, "Int64"),
+	(UuidV4, "UuidV4"),
+	(Float32, "Float32"),
+	(Float64, "Float64"),
+	(Boolean, "Boolean"),
+	(Bytes, "Bytes")
+);
+
+#[derive(Clone, Debug)]
 pub struct ByteLayout {
 	pub variant: LayoutVariant,
 	pub name: String,
@@ -51,7 +70,7 @@ impl Default for ByteLayout {
 	}
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, Default)]
 pub struct LayoutTemplate {
 	pub name: String,
 	pub layout: Vec<ByteLayout>,
@@ -63,6 +82,14 @@ impl LayoutTemplate {
 			name: name.to_string(),
 			layout,
 		}
+	}
+
+	pub fn set_name(&mut self, name: &str) {
+		self.name = name.to_string();
+	}
+
+	pub fn push_layout(&mut self, layout: ByteLayout) {
+		self.layout.push(layout);
 	}
 }
 
@@ -81,7 +108,7 @@ impl ByteLayout {
 		self
 	}
 
-	pub fn range(&mut self, from: usize, to: usize) -> &mut Self {
+	pub fn with_range(&mut self, from: usize, to: usize) -> &mut Self {
 		self.from = from;
 		self.to = to;
 		self
@@ -150,6 +177,12 @@ impl FromLayoutVariant for Vec<u8> {
 					value.push(cmp_byte(*b));
 				}
 				format!("{:?}", value)
+			}
+			LayoutVariant::UuidV4 => {
+				let mut vec: [u8; 16] = Default::default();
+				vec.copy_from_slice(&self[0..16]);
+				let uuid = Uuid::from_bytes(vec);
+				uuid.to_string()
 			}
 			_ => default_value,
 		}

@@ -1,9 +1,27 @@
-use crate::utils::{ByteLayout, LayoutTemplate, LayoutVariant};
+use std::{collections::HashMap, fs, path::Path};
 
-#[derive(Clone)]
+use serde_json::Value;
+use structopt::StructOpt;
+
+use crate::utils::{get_absolute_path_buf, sanitize, ByteLayout, LayoutTemplate, LayoutVariant};
+
+#[derive(Clone, Debug)]
+pub struct DatabaseConfig {
+	pub path: String,
+}
+
+#[derive(StructOpt, Debug)]
+pub struct CliConfig {
+	/// Set the config file
+	#[structopt(long, short, global = true)]
+	config_path: Option<std::path::PathBuf>,
+}
+
+#[derive(Clone, Debug)]
 pub struct Config {
-	pub databases: Vec<String>,
-	pub layouts: Vec<LayoutTemplate>,
+	pub databases: HashMap<String, Vec<DatabaseConfig>>,
+	pub templates: Vec<LayoutTemplate>,
+	pub path: String,
 }
 
 fn build_template(name: &str, variant: LayoutVariant) -> LayoutTemplate {
@@ -14,8 +32,40 @@ fn build_template(name: &str, variant: LayoutVariant) -> LayoutTemplate {
 }
 
 impl Config {
-	pub fn new() -> Self {
-		let layouts = vec![
+	pub fn new(config: &CliConfig) -> Self {
+		let binding = Path::new("../config-example.json").to_path_buf();
+		let path = match &config.config_path {
+			Some(c) => c,
+			None => &binding,
+		};
+		Config {
+			databases: Default::default(),
+			path: get_absolute_path_buf(path.to_path_buf()),
+			templates: Default::default(),
+		}
+	}
+
+	pub fn set_databases(&mut self, databases: HashMap<String, Vec<DatabaseConfig>>) {
+		self.databases = databases;
+	}
+
+	pub fn set_layouts(&mut self, layouts: Vec<LayoutTemplate>) {
+		self.templates = layouts;
+	}
+}
+
+pub fn load_config(cli: &CliConfig) -> Config {
+	let mut config = Config::new(cli);
+	let data = fs::read_to_string(config.clone().path).expect("Unable to read file");
+	let res: serde_json::Value = serde_json::from_str(&data).expect("Unable to parse");
+
+	if let Some(d) = res.get("databases") {
+		let databases = load_databases(d);
+		config.set_databases(databases);
+	}
+
+	if let Some(t) = res.get("templates") {
+		let system_templates = vec![
 			build_template("Bytes", LayoutVariant::Bytes),
 			build_template("String", LayoutVariant::String),
 			build_template("Int32", LayoutVariant::Int32),
@@ -24,9 +74,49 @@ impl Config {
 			build_template("Float64", LayoutVariant::Float64),
 			build_template("Boolean", LayoutVariant::Boolean),
 		];
-		Config {
-			databases: vec!["rocksdb:./temp".to_string(), "rocksdb:./temp/v2".to_string()],
-			layouts,
-		}
+		let templates = load_templates(t);
+		config.set_layouts([system_templates, templates].concat());
 	}
+
+	config
+}
+
+/// Load byte layout template from JSON config file
+fn load_templates(json_templates: &Value) -> Vec<LayoutTemplate> {
+	let templates = json_templates.as_array();
+	let mut layout_templates = Vec::<LayoutTemplate>::new();
+	for template in templates.unwrap().iter() {
+		let mut t = LayoutTemplate::default();
+		let name = sanitize(&template.get("name").unwrap().to_string());
+		t.set_name(&name);
+		let layouts = template.get("layouts").unwrap().as_array();
+		// Load layout from json template
+		for layout in layouts.unwrap().iter() {
+			let mut l = ByteLayout::default();
+			let name = sanitize(&layout.get("name").unwrap().to_string());
+			let variant = sanitize(&layout.get("variant").unwrap().to_string());
+			let from = layout.get("from").unwrap().as_i64().unwrap() as usize;
+			let to = layout.get("to").unwrap().as_i64().unwrap() as usize;
+			let variant = LayoutVariant::from_string(&variant);
+			t.push_layout(l.with_name(name).with_variant(variant).with_range(from, to).build());
+		}
+		layout_templates.push(t);
+	}
+
+	layout_templates
+}
+
+/// Load databases from JSON config file
+fn load_databases(json_database: &Value) -> HashMap<String, Vec<DatabaseConfig>> {
+	let databases = json_database.as_array();
+	let mut databases_config = HashMap::<String, Vec<DatabaseConfig>>::new();
+	for database in databases.unwrap().iter() {
+		let path = sanitize(&database.get("path").unwrap().to_string());
+		let name = sanitize(&database.get("name").unwrap().to_string());
+		databases_config.entry(name).or_default().push(DatabaseConfig {
+			path,
+		});
+	}
+
+	databases_config
 }

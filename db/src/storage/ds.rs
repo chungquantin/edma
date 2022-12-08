@@ -40,7 +40,7 @@ impl Datastore {
 	pub fn new(path: &str) -> Datastore {
 		match path {
 			#[cfg(feature = "kv-rocksdb")]
-			s if s.starts_with("rocksdb:") | s.eq("default") => {
+			s if s.starts_with("default:") | s.starts_with("rocksdb:") | s.eq("default") => {
 				info!(target: LOG, "Starting RocksDB kvs store at {}", path);
 				let db = RocksDBAdapter::new(s, None).unwrap();
 				let v = Datastore {
@@ -120,7 +120,7 @@ mod test {
 
 	#[tokio::test]
 	async fn should_init_db() {
-		let db = Datastore::new("rocksdb:../temp");
+		let db = Datastore::new("redb:../temp/redb");
 		assert!(db.transaction(false).is_ok());
 
 		// Seeding database

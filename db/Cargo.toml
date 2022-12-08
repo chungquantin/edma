@@ -44,6 +44,7 @@ lazy_static = "1.4.0"
 byteorder = "1.4.3"
 serde = { version = "1.0.147", features = ["derive"] }
 log = "0.4.17"
+path-absolutize = "3.0.14"
 
 [dev-dependencies]
 tokio = { version = "1.21.2", features = ["macros", "rt"] }

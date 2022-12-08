@@ -308,10 +308,14 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
-		let cf = &self.get_column_family(cf).unwrap();
 		let suffix: Key = suffix.into();
-
-		let iterator = tx.iterator_cf(cf, IteratorMode::Start);
+		let iterator = match cf {
+			Some(_) => {
+				let cf = &self.get_column_family(cf).unwrap();
+				tx.iterator_cf(cf, IteratorMode::Start)
+			}
+			None => tx.iterator(IteratorMode::Start),
+		};
 		let taken_iterator = take_with_suffix(iterator, suffix);
 
 		Ok(taken_iterator
@@ -337,9 +341,14 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
-		let cf = &self.get_column_family(cf).unwrap();
 		let prefix: Key = prefix.into();
-		let iterator = tx.prefix_iterator_cf(cf, &prefix);
+		let iterator = match cf {
+			Some(_) => {
+				let cf = &self.get_column_family(cf).unwrap();
+				tx.iterator_cf(cf, IteratorMode::Start)
+			}
+			None => tx.iterator(IteratorMode::Start),
+		};
 		let taken_iterator = take_with_prefix(iterator, prefix);
 
 		Ok(taken_iterator

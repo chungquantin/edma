@@ -18,4 +18,4 @@ pub mod tests;
 pub use crate::err::*;
 pub use crate::interface::*;
 pub use crate::model::*;
-pub use crate::storage::{Datastore, DatastoreRef};
+pub use crate::storage::{Datastore, DatastoreRef, Transaction};

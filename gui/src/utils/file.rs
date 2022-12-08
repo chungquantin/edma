@@ -1,5 +1,13 @@
 use path_absolutize::*;
-use std::{env, path::Path};
+use std::{
+	env,
+	path::{Path, PathBuf},
+};
+
+pub fn get_absolute_path_buf(pathbuf: PathBuf) -> String {
+	let cwd = env::current_dir().unwrap();
+	pathbuf.absolutize_from(&cwd).unwrap().to_str().unwrap().to_string()
+}
 
 pub fn get_absolute_path(path: &str) -> String {
 	let p = Path::new(path);
@@ -8,11 +16,7 @@ pub fn get_absolute_path(path: &str) -> String {
 	p.absolutize_from(&cwd).unwrap().to_str().unwrap().to_string()
 }
 
-pub fn get_db_absolute_path(path: &str) -> (String, String) {
-	let separator = ':';
-	let mut split = path.split(separator);
-	let name = split.next().unwrap();
-	let chunk = split.next().unwrap();
-	let path = get_absolute_path(chunk);
-	(name.to_owned(), path)
+pub fn sanitize(s: &str) -> String {
+	let s = s.split('"').nth(1);
+	s.unwrap().to_string()
 }

@@ -32,7 +32,8 @@ fn filter_with_suffix(
 }
 
 fn get_table_name(cf: CF) -> String {
-	String::from_utf8(cf.unwrap()).unwrap()
+	let default = "default".as_bytes().to_vec();
+	String::from_utf8(cf.unwrap_or(default)).unwrap()
 }
 
 #[async_trait(?Send)]

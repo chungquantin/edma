@@ -1,4 +1,8 @@
-use std::{env::temp_dir, path::Path};
+use path_absolutize::*;
+use std::{
+	env::{self, temp_dir},
+	path::Path,
+};
 
 use crate::Error;
 
@@ -9,6 +13,13 @@ pub fn path_to_string(path: &Path) -> Result<String, Error> {
 		Some(p) => Ok(p.to_string()),
 		None => Err(Error::Ds("The DB path is not valid UTF-8".to_string())),
 	}
+}
+
+pub fn get_absolute_path(path: &str) -> String {
+	let p = Path::new(path);
+	let cwd = env::current_dir().unwrap();
+
+	p.absolutize_from(&cwd).unwrap().to_str().unwrap().to_string()
 }
 
 pub fn generate_path(name: &str, id: Option<i32>) -> String {

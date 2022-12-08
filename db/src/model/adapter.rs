@@ -1,4 +1,4 @@
-use crate::{err::Error, SimpleTransaction};
+use crate::{err::Error, util::get_absolute_path, SimpleTransaction};
 use std::{pin::Pin, sync::Arc};
 
 #[derive(Debug, Clone)]
@@ -30,7 +30,7 @@ impl<T> StorageAdapter<T> {
 	) -> Result<Self, Error> {
 		Ok(StorageAdapter {
 			name,
-			path,
+			path: get_absolute_path(&path),
 			db_instance: Arc::pin(db_instance),
 			variant,
 		})

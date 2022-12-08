@@ -10,7 +10,7 @@ use tui::{
 	Frame,
 };
 
-use super::{CommandEditorComponent, LayoutContentComponent, LayoutExplorerComponent};
+use super::{CommandEditorComponent, TemplateExplorerComponent, TemplateLayoutComponent};
 
 enum Focus {
 	Explorer,
@@ -20,8 +20,8 @@ enum Focus {
 
 pub struct LayoutTabComponent<'a> {
 	config: Config,
-	explorer: LayoutExplorerComponent<'a>,
-	layout: LayoutContentComponent,
+	explorer: TemplateExplorerComponent<'a>,
+	layout: TemplateLayoutComponent,
 	editor: CommandEditorComponent,
 	focus: Focus,
 }
@@ -29,8 +29,8 @@ pub struct LayoutTabComponent<'a> {
 impl LayoutTabComponent<'_> {
 	pub fn new(config: Config) -> Self {
 		LayoutTabComponent {
-			explorer: LayoutExplorerComponent::new(config.clone()),
-			layout: LayoutContentComponent::new(config.clone()),
+			explorer: TemplateExplorerComponent::new(config.clone()),
+			layout: TemplateLayoutComponent::new(config.clone()),
 			editor: CommandEditorComponent::new(config.clone()),
 			config,
 			focus: Focus::Explorer,
@@ -47,7 +47,7 @@ impl LayoutTabComponent<'_> {
 
 				if self.explorer.event(key).await?.is_consumed() {
 					if let Some(selected) = self.explorer.list.state.selected() {
-						let template = self.config.layouts[selected].clone();
+						let template = self.config.templates[selected].clone();
 						self.layout.set_layout(Some(template));
 					}
 					return Ok(EventState::Consumed);
@@ -100,10 +100,10 @@ impl RenderAbleComponent for LayoutTabComponent<'_> {
 			.direction(Direction::Horizontal)
 			.constraints([Constraint::Percentage(20), Constraint::Percentage(80)])
 			.split(rect);
-		let stack_chunks = Layout::default()
-			.direction(Direction::Vertical)
-			.constraints([Constraint::Length(3), Constraint::Length(main_chunks[0].height - 3)])
-			.split(main_chunks[1]);
+		// let stack_chunks = Layout::default()
+		// 	.direction(Direction::Vertical)
+		// 	.constraints([Constraint::Length(3), Constraint::Length(main_chunks[0].height - 3)])
+		// 	.split(main_chunks[1]);
 
 		self.explorer.render(
 			f,
@@ -111,8 +111,8 @@ impl RenderAbleComponent for LayoutTabComponent<'_> {
 			focused && matches!(self.focus, Focus::Explorer),
 		)?;
 
-		self.editor.render(f, stack_chunks[0], focused && matches!(self.focus, Focus::Editor))?;
-		self.layout.render(f, stack_chunks[1], focused && matches!(self.focus, Focus::Layout))?;
+		// self.editor.render(f, stack_chunks[0], focused && matches!(self.focus, Focus::Editor))?;
+		self.layout.render(f, main_chunks[1], focused && matches!(self.focus, Focus::Layout))?;
 		Ok(())
 	}
 }

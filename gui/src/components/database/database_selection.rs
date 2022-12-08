@@ -15,71 +15,57 @@ use tui::{
 	Frame,
 };
 
-enum Focus {
-	Container,
-	List,
-}
-
-pub struct LayoutExplorerComponent<'a> {
+pub struct DatabaseSelectionComponent<'a> {
 	config: Config,
 	pub list: StatefulList<'a>,
-	focus: Focus,
 }
 
 fn build_list(config: Config) -> StatefulList<'static> {
-	let items: Vec<_> = config
-		.layouts
+	let databases: Vec<_> = config.databases.keys().collect();
+	let items: Vec<_> = databases
 		.iter()
-		.map(|layout| {
-			ListItem::new(Spans::from(vec![Span::styled(layout.name.clone(), Style::default())]))
+		.map(|database| {
+			let cloned = <&std::string::String>::clone(database).clone();
+			ListItem::new(Spans::from(vec![Span::styled(cloned, Style::default())]))
 		})
 		.collect();
 
 	let mut list_state = ListState::default();
 	list_state.select(Some(0));
-	StatefulList::with_items(items, None)
+	let mut state = ListState::default();
+	state.select(Some(0));
+	StatefulList::with_items(items, Some(state.clone()))
 }
 
-impl<'a> LayoutExplorerComponent<'a> {
+impl<'a> DatabaseSelectionComponent<'a> {
+	pub fn state(&self) -> ListState {
+		self.list.state.clone()
+	}
+
 	pub fn new(config: Config) -> Self {
-		LayoutExplorerComponent {
+		DatabaseSelectionComponent {
 			list: build_list(config.clone()),
 			config,
-			focus: Focus::Container,
 		}
 	}
 
 	pub async fn event(&mut self, key: Key) -> Result<EventState> {
-		match self.focus {
-			Focus::Container => {
-				if key == Key::Enter {
-					self.focus = Focus::List;
-					self.list.first();
-					return Ok(EventState::Consumed);
-				}
+		match key {
+			Key::Char('9') => {
+				self.list.previous();
+				return Ok(EventState::Consumed);
 			}
-			Focus::List => match key {
-				Key::Esc => {
-					self.list.state = ListState::default();
-					self.focus = Focus::Container;
-					return Ok(EventState::Consumed);
-				}
-				Key::Up => {
-					self.list.previous();
-					return Ok(EventState::Consumed);
-				}
-				Key::Down => {
-					self.list.next();
-					return Ok(EventState::Consumed);
-				}
-				_ => {}
-			},
+			Key::Char('0') => {
+				self.list.next();
+				return Ok(EventState::Consumed);
+			}
+			_ => {}
 		}
 		Ok(EventState::NotConsumed)
 	}
 }
 
-impl<'a> RenderAbleComponent for LayoutExplorerComponent<'a> {
+impl<'a> RenderAbleComponent for DatabaseSelectionComponent<'a> {
 	fn render<B: Backend>(
 		&self,
 		f: &mut Frame<B>,
@@ -87,7 +73,7 @@ impl<'a> RenderAbleComponent for LayoutExplorerComponent<'a> {
 		focused: bool,
 	) -> Result<(), anyhow::Error> {
 		let list = List::new(self.list.items.clone())
-			.block(render_container("Templates", focused))
+			.block(render_container("Explorer", focused))
 			.highlight_style(Style::default().fg(HIGHLIGHT_COLOR).add_modifier(Modifier::BOLD));
 
 		f.render_stateful_widget(list, rect, &mut self.list.state.clone());
