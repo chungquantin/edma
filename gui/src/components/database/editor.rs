@@ -30,7 +30,6 @@ pub struct DatabaseEditorComponent<'a> {
 	table: StatefulTable,
 	pairs: Vec<KeyValuePair>,
 	focus: Focus,
-	// scroll: VerticalScroll,
 }
 
 async fn scan_from_path(path: &str) -> Vec<KeyValuePair> {
@@ -77,7 +76,6 @@ impl DatabaseEditorComponent<'_> {
 	pub fn new(config: Config) -> Self {
 		DatabaseEditorComponent {
 			preview: PreviewComponent::new(config.clone()),
-			// scroll: VerticalScroll::new(false, false),
 			pairs: vec![],
 			table: StatefulTable::default(),
 			focus: Focus::Container,
@@ -127,14 +125,22 @@ impl DatabaseEditorComponent<'_> {
 			return Ok(EventState::Consumed);
 		}
 
-		match key {
-			Key::Enter => return self.handle_enter(),
-			Key::Esc => return self.handle_escape(),
-			_ if matches!(key, Key::Up) && matches!(self.focus, Focus::Table) => {
-				return self.handle_prev()
+		match self.focus {
+			Focus::Container => {
+				if key == self.config.key_config.enter && !self.table.items.is_empty() {
+					self.focus = Focus::Table;
+					return self.handle_next();
+				}
 			}
-			Key::Down => return self.handle_next(),
-			_ => {}
+			Focus::Table => match key {
+				k if k == self.config.key_config.enter => return self.handle_enter(),
+				k if k == self.config.key_config.escape => return self.handle_escape(),
+				_ if key == self.config.key_config.up && matches!(self.focus, Focus::Table) => {
+					return self.handle_prev()
+				}
+				k if k == self.config.key_config.down => return self.handle_next(),
+				_ => {}
+			},
 		}
 
 		Ok(EventState::NotConsumed)
@@ -202,7 +208,7 @@ impl RenderAbleComponent for DatabaseEditorComponent<'_> {
 				Spans::from(vec![Span::raw("No data found in this database")]),
 			])
 			.alignment(Alignment::Center)
-			.block(render_container("Home", focused));
+			.block(render_container("Editor", focused));
 			f.render_widget(not_found_widget, chunks[0]);
 		};
 

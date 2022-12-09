@@ -4,6 +4,7 @@ use crate::{
 	constants::HIGHLIGHT_COLOR,
 	events::{EventState, Key},
 	ui::StatefulList,
+	utils::get_key_char,
 };
 use anyhow::Result;
 use tui::{
@@ -51,11 +52,11 @@ impl<'a> DatabaseSelectionComponent<'a> {
 
 	pub async fn event(&mut self, key: Key) -> Result<EventState> {
 		match key {
-			Key::Char('9') => {
+			k if k == self.config.key_config.database_select_up => {
 				self.list.previous();
 				return Ok(EventState::Consumed);
 			}
-			Key::Char('0') => {
+			k if k == self.config.key_config.database_select_down => {
 				self.list.next();
 				return Ok(EventState::Consumed);
 			}
@@ -72,8 +73,11 @@ impl<'a> RenderAbleComponent for DatabaseSelectionComponent<'a> {
 		rect: Rect,
 		focused: bool,
 	) -> Result<(), anyhow::Error> {
+		let up_key = get_key_char(self.config.key_config.database_select_up);
+		let down_key = get_key_char(self.config.key_config.database_select_down);
+		let label = &format!("Databases [{}-{}]", up_key, down_key);
 		let list = List::new(self.list.items.clone())
-			.block(render_container("Databases [9-0]", focused))
+			.block(render_container(label, focused))
 			.highlight_style(Style::default().fg(HIGHLIGHT_COLOR).add_modifier(Modifier::BOLD));
 
 		f.render_stateful_widget(list, rect, &mut self.list.state.clone());

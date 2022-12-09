@@ -15,7 +15,7 @@ use crate::{
 	constants::HIGHLIGHT_COLOR,
 	events::{EventState, Key},
 	ui::StatefulList,
-	utils::FromLayoutVariant,
+	utils::{get_key_char, FromLayoutVariant},
 };
 
 pub struct PreviewComponent<'a> {
@@ -123,7 +123,15 @@ impl PreviewComponent<'_> {
 	}
 
 	fn render_key_layout<B: Backend>(&self, f: &mut Frame<B>, rect: Rect, focused: bool) {
-		self.render_layout(f, rect, focused, "Key Layout [H-J]", &self.key_layout);
+		let up_key = get_key_char(self.config.key_config.key_layout_up);
+		let down_key = get_key_char(self.config.key_config.key_layout_down);
+		self.render_layout(
+			f,
+			rect,
+			focused,
+			&format!("Key Layout [{}-{}]", up_key, down_key),
+			&self.key_layout,
+		);
 	}
 
 	fn render_key_preview<B: Backend>(&self, f: &mut Frame<B>, rect: Rect, focused: bool) {
@@ -138,7 +146,15 @@ impl PreviewComponent<'_> {
 	}
 
 	fn render_value_layout<B: Backend>(&self, f: &mut Frame<B>, rect: Rect, focused: bool) {
-		self.render_layout(f, rect, focused, "Value Layout [K-L]", &self.value_layout);
+		let up_key = get_key_char(self.config.key_config.value_layout_up);
+		let down_key = get_key_char(self.config.key_config.value_layout_down);
+		self.render_layout(
+			f,
+			rect,
+			focused,
+			&format!("Value Layout [{}-{}]", up_key, down_key),
+			&self.value_layout,
+		);
 	}
 
 	fn render_value_preview<B: Backend>(&self, f: &mut Frame<B>, rect: Rect, focused: bool) {
@@ -154,19 +170,19 @@ impl PreviewComponent<'_> {
 
 	pub async fn event(&mut self, key: Key) -> Result<EventState> {
 		match key {
-			Key::Char('h') => {
+			k if k == self.config.key_config.key_layout_up => {
 				self.key_layout.previous();
 				return Ok(EventState::Consumed);
 			}
-			Key::Char('j') => {
+			k if k == self.config.key_config.key_layout_down => {
 				self.key_layout.next();
 				return Ok(EventState::Consumed);
 			}
-			Key::Char('k') => {
+			k if k == self.config.key_config.value_layout_up => {
 				self.value_layout.previous();
 				return Ok(EventState::Consumed);
 			}
-			Key::Char('l') => {
+			k if k == self.config.key_config.value_layout_down => {
 				self.value_layout.next();
 				return Ok(EventState::Consumed);
 			}

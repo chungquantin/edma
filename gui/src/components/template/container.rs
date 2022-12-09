@@ -10,19 +10,17 @@ use tui::{
 	Frame,
 };
 
-use super::{CommandEditorComponent, TemplateExplorerComponent, TemplateLayoutComponent};
+use super::{TemplateExplorerComponent, TemplateLayoutComponent};
 
 enum Focus {
 	Explorer,
 	Layout,
-	Editor,
 }
 
 pub struct LayoutTabComponent<'a> {
 	config: Config,
 	explorer: TemplateExplorerComponent<'a>,
 	layout: TemplateLayoutComponent,
-	editor: CommandEditorComponent,
 	focus: Focus,
 }
 
@@ -31,7 +29,6 @@ impl LayoutTabComponent<'_> {
 		LayoutTabComponent {
 			explorer: TemplateExplorerComponent::new(config.clone()),
 			layout: TemplateLayoutComponent::new(config.clone()),
-			editor: CommandEditorComponent::new(config.clone()),
 			config,
 			focus: Focus::Explorer,
 		}
@@ -41,7 +38,7 @@ impl LayoutTabComponent<'_> {
 		match self.focus {
 			Focus::Explorer => {
 				if key == Key::Right {
-					self.focus = Focus::Editor;
+					self.focus = Focus::Layout;
 					return Ok(EventState::Consumed);
 				}
 
@@ -64,25 +61,6 @@ impl LayoutTabComponent<'_> {
 					return Ok(EventState::Consumed);
 				}
 
-				if key == Key::Up {
-					self.focus = Focus::Editor;
-					return Ok(EventState::Consumed);
-				}
-				Ok(EventState::NotConsumed)
-			}
-			Focus::Editor => {
-				if self.editor.event(key).await?.is_consumed() {
-					return Ok(EventState::Consumed);
-				}
-				if key == Key::Left {
-					self.focus = Focus::Explorer;
-					return Ok(EventState::Consumed);
-				}
-
-				if key == Key::Down {
-					self.focus = Focus::Layout;
-					return Ok(EventState::Consumed);
-				}
 				Ok(EventState::NotConsumed)
 			}
 		}

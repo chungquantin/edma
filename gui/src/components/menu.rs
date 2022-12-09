@@ -61,15 +61,15 @@ impl MenuContainerComponent {
 	}
 
 	pub async fn event(&mut self, key: Key) -> Result<EventState> {
-		if key == Key::Char('h') || key == Key::Char('H') {
+		if key == self.config.key_config.home_tab {
 			self.set_active(MenuItem::Home);
 			return Ok(EventState::Consumed);
 		}
-		if key == Key::Char('d') || key == Key::Char('D') {
+		if key == self.config.key_config.database_tab {
 			self.set_active(MenuItem::Database);
 			return Ok(EventState::Consumed);
 		}
-		if key == Key::Char('l') || key == Key::Char('L') {
+		if key == self.config.key_config.layout_tab {
 			self.set_active(MenuItem::Layout);
 			return Ok(EventState::Consumed);
 		}

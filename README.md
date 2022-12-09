@@ -30,7 +30,7 @@ Embedded Database Management for All
 
 ## What is EDMA?
 
-**EDMA: Embedded Database Management for All** is an open source project made to manage embedded key-value storages. Whenever I work with embedded storage, it is a bit hard to know which keys my data storage is having and make changes to the storage.
+**EDMA: Embedded Database Management for All** is an open source project made to manage embedded key-value storages. EDMA is a TUI (Terminal User Interface) that is easy to install and configure. It allows engineer to traverse the embedded database and deserialize byte data with provided byte layout. This enhances the experience of working with low level database system like RocksDB or Redb.
 
 ## Community
 

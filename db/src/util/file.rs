@@ -39,7 +39,7 @@ fn generate_rocksdb_path(id: Option<i32>) -> String {
 	} else {
 		temp_dir()
 	}
-	.join(format!("solomon-rocksdb-{}", id));
+	.join(format!("edma-rocksdb-{}", id));
 
 	String::from("rocksdb:") + &path_to_string(&path).unwrap()
 }
@@ -53,7 +53,7 @@ fn generate_redb_path(id: Option<i32>) -> String {
 	} else {
 		temp_dir()
 	}
-	.join(format!("solomon-redb-{}", id));
+	.join(format!("edma-redb-{}", id));
 
 	String::from("redb:") + &path_to_string(&path).unwrap()
 }

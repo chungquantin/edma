@@ -3,7 +3,10 @@ use std::{collections::HashMap, fs, path::Path};
 use serde_json::Value;
 use structopt::StructOpt;
 
-use crate::utils::{get_absolute_path_buf, sanitize, ByteLayout, LayoutTemplate, LayoutVariant};
+use crate::{
+	events::Key,
+	utils::{get_absolute_path_buf, sanitize, ByteLayout, LayoutTemplate, LayoutVariant},
+};
 
 #[derive(Clone, Debug)]
 pub struct DatabaseConfig {
@@ -18,10 +21,32 @@ pub struct CliConfig {
 }
 
 #[derive(Clone, Debug)]
+pub struct KeyConfig {
+	pub enter: Key,
+	pub backspace: Key,
+	pub escape: Key,
+	pub up: Key,
+	pub down: Key,
+	pub left: Key,
+	pub right: Key,
+	pub key_layout_up: Key,
+	pub key_layout_down: Key,
+	pub value_layout_up: Key,
+	pub value_layout_down: Key,
+	pub database_select_up: Key,
+	pub database_select_down: Key,
+	pub home_tab: Key,
+	pub database_tab: Key,
+	pub layout_tab: Key,
+	pub quit: Key,
+}
+
+#[derive(Clone, Debug)]
 pub struct Config {
 	pub databases: HashMap<String, Vec<DatabaseConfig>>,
 	pub templates: Vec<LayoutTemplate>,
 	pub path: String,
+	pub key_config: KeyConfig,
 }
 
 fn build_template(name: &str, variant: LayoutVariant) -> LayoutTemplate {
@@ -42,6 +67,25 @@ impl Config {
 			databases: Default::default(),
 			path: get_absolute_path_buf(path.to_path_buf()),
 			templates: Default::default(),
+			key_config: KeyConfig {
+				backspace: Key::Backspace,
+				enter: Key::Enter,
+				escape: Key::Esc,
+				up: Key::Up,
+				down: Key::Down,
+				left: Key::Left,
+				right: Key::Right,
+				key_layout_up: Key::Char('h'),
+				key_layout_down: Key::Char('j'),
+				value_layout_up: Key::Char('k'),
+				value_layout_down: Key::Char('l'),
+				database_select_up: Key::Char('9'),
+				database_select_down: Key::Char('0'),
+				home_tab: Key::Char('h'),
+				database_tab: Key::Char('d'),
+				layout_tab: Key::Char('l'),
+				quit: Key::Char('q'),
+			},
 		}
 	}
 

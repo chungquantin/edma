@@ -50,14 +50,14 @@ impl<'a> DatabaseExplorerComponent<'a> {
 	}
 
 	pub fn set_database(&mut self, database: String) {
-		self.list = build_list(self.config.clone(), database.clone());
+		self.list = build_list(self.config.clone(), database);
 	}
 
 	pub fn new(config: Config) -> Self {
-		let list = if config.databases.len() > 0 {
+		let list = if !config.databases.is_empty() {
 			let databases: Vec<_> = config.databases.keys().collect();
 			let db = databases[0].to_string();
-			build_list(config.clone(), db.clone())
+			build_list(config.clone(), db)
 		} else {
 			StatefulList::default()
 		};
@@ -107,7 +107,7 @@ impl<'a> RenderAbleComponent for DatabaseExplorerComponent<'a> {
 	) -> Result<(), anyhow::Error> {
 		let keycode = match self.focus {
 			Focus::Container => "ENTER",
-			Focus::List => "List",
+			Focus::List => "ESC",
 		};
 		let label = &format!("Explorer [{}]", keycode);
 		let list = List::new(self.list.items.clone())

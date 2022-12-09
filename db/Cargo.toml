@@ -13,9 +13,9 @@ keywords = [
 ]
 categories = ["database-implementations", "data-structures", "embedded"]
 description = "EDMA: Embedded Database Management for All"
-homepage = "https://github.com/nomadiz/solomon-db"
-documentation = "https://nomadiz.github.io/solomon-db/"
-repository = "https://github.com/nomadiz/solomon-db"
+homepage = "https://github.com/nomadiz/edma"
+documentation = "https://nomadiz.github.io/edma/"
+repository = "https://github.com/nomadiz/edma"
 include = ["**/*.rs", "Cargo.toml"]
 license = "MIT"
 

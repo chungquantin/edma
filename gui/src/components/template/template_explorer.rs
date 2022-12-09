@@ -52,23 +52,23 @@ impl<'a> TemplateExplorerComponent<'a> {
 	pub async fn event(&mut self, key: Key) -> Result<EventState> {
 		match self.focus {
 			Focus::Container => {
-				if key == Key::Enter {
+				if key == self.config.key_config.enter {
 					self.focus = Focus::List;
 					self.list.first();
 					return Ok(EventState::Consumed);
 				}
 			}
 			Focus::List => match key {
-				Key::Esc => {
+				k if k == self.config.key_config.escape => {
 					self.list.state = ListState::default();
 					self.focus = Focus::Container;
 					return Ok(EventState::Consumed);
 				}
-				Key::Up => {
+				k if k == self.config.key_config.up => {
 					self.list.previous();
 					return Ok(EventState::Consumed);
 				}
-				Key::Down => {
+				k if k == self.config.key_config.down => {
 					self.list.next();
 					return Ok(EventState::Consumed);
 				}

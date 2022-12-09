@@ -22,7 +22,6 @@ crate::full_adapter_test_impl!(RocksDBAdapter::default());
 impl RocksDBAdapter {
 	impl_new_type_adapter!(DBType);
 
-	// Path example: rocksdb://dev/smh/solomon-db
 	pub fn new(path: &str, max_open_files: Option<i32>) -> Result<RocksDBAdapter, Error> {
 		let path = &path["rocksdb:".len()..];
 		let opts = get_options(max_open_files);

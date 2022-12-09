@@ -3,7 +3,7 @@ use tui::{
 	backend::Backend,
 	layout::{Alignment, Constraint, Direction, Layout, Rect},
 	style::{Color, Style},
-	text::Text,
+	text::{Span, Spans, Text},
 	widgets::{Block, Paragraph, Wrap},
 	Frame,
 };
@@ -40,21 +40,21 @@ impl HomeTabComponent {
 	pub async fn event(&mut self, key: Key) -> Result<EventState> {
 		match self.focus {
 			Focus::Container => {
-				if key == Key::Enter {
+				if key == self.config.key_config.enter {
 					self.focus = Focus::Inner;
 					return Ok(EventState::Consumed);
 				}
 			}
 			Focus::Inner => match key {
-				Key::Up => {
+				k if k == self.config.key_config.up => {
 					self.scroll_position = self.scroll_position.saturating_sub(SMALL_SCROLL);
 					return Ok(EventState::Consumed);
 				}
-				Key::Down => {
+				k if k == self.config.key_config.down => {
 					self.scroll_position = self.scroll_position.saturating_add(SMALL_SCROLL);
 					return Ok(EventState::Consumed);
 				}
-				Key::Esc => {
+				k if k == self.config.key_config.escape => {
 					self.focus = Focus::Container;
 					return Ok(EventState::Consumed);
 				}
@@ -84,7 +84,12 @@ impl RenderAbleComponent for HomeTabComponent {
 			.margin(2)
 			.split(chunks[0]);
 
-		let welcome = render_container("Welcome!", focused);
+		let keycode = match self.focus {
+			Focus::Container => "ENTER",
+			Focus::Inner => "ESC",
+		};
+		let label = format!("Welcome! [{}]", keycode);
+		let welcome = render_container(&label, focused);
 		f.render_widget(welcome, rect);
 
 		let changelog = include_str!("../../../../CHANGELOG.md").to_string();
@@ -106,12 +111,19 @@ impl RenderAbleComponent for HomeTabComponent {
 			.block(Block::default());
 		f.render_widget(top_text, vstack[0]);
 
-		let mut top_text = Text::from("Embedded Database Management for All");
-		top_text.patch_style(Style::default().fg(Color::White));
-		let subtitle_text = Paragraph::new(top_text)
+		let description = vec![
+			Spans::from(vec![Span::raw(">---------------------------------------<")]),
+			Spans::from(vec![Span::raw("Embedded Databases Management for All")]),
+			Spans::from(vec![Span::raw("")]),
+			Spans::from(vec![Span::raw("Built by @nomadiz")]),
+		];
+		let subtitle_text = Paragraph::new(description)
 			.style(Style::default().fg(Color::White))
 			.alignment(Alignment::Center)
-			.block(Block::default());
+			.block(Block::default())
+			.wrap(Wrap {
+				trim: true,
+			});
 		f.render_widget(subtitle_text, vstack[1]);
 
 		let bottom_text = Paragraph::new(bottom_text)

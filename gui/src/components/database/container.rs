@@ -14,17 +14,19 @@ use tui::{
 
 use super::{
 	database_explorer::DatabaseExplorerComponent, DatabaseEditorComponent,
-	DatabaseSelectionComponent, StatusComponent,
+	DatabaseSelectionComponent, StatusComponent, TextareaComponent,
 };
 
 enum Focus {
 	Explorer,
 	Editor,
+	Textarea,
 }
 
 pub struct DatabaseTabComponent<'a> {
 	focus: Focus,
 	config: Config,
+	textarea: TextareaComponent,
 	databases: DatabaseSelectionComponent<'a>,
 	explorer: DatabaseExplorerComponent<'a>,
 	editor: DatabaseEditorComponent<'a>,
@@ -38,6 +40,7 @@ impl<'a> DatabaseTabComponent<'a> {
 			editor: DatabaseEditorComponent::new(config.clone()),
 			status: StatusComponent::new(config.clone()),
 			databases: DatabaseSelectionComponent::new(config.clone()),
+			textarea: TextareaComponent::new(config.clone()),
 			focus: Focus::Explorer,
 			config,
 		}
@@ -69,7 +72,7 @@ impl<'a> DatabaseTabComponent<'a> {
 		match self.focus {
 			Focus::Explorer => {
 				if key == Key::Right {
-					self.focus = Focus::Editor;
+					self.focus = Focus::Textarea;
 					return Ok(EventState::Consumed);
 				}
 				if self.databases.event(key).await?.is_consumed() {
@@ -86,15 +89,35 @@ impl<'a> DatabaseTabComponent<'a> {
 				}
 				Ok(EventState::NotConsumed)
 			}
-			Focus::Editor => {
+			Focus::Textarea => {
+				if self.textarea.event(key).await?.is_consumed() {
+					return Ok(EventState::Consumed);
+				}
 				if key == Key::Left {
 					self.focus = Focus::Explorer;
 					return Ok(EventState::Consumed);
 				}
 
+				if key == Key::Down {
+					self.focus = Focus::Editor;
+					return Ok(EventState::Consumed);
+				}
+				Ok(EventState::NotConsumed)
+			}
+			Focus::Editor => {
 				if self.editor.event(key).await?.is_consumed() {
 					return Ok(EventState::Consumed);
 				}
+				if key == Key::Left {
+					self.focus = Focus::Explorer;
+					return Ok(EventState::Consumed);
+				}
+
+				if key == Key::Up {
+					self.focus = Focus::Textarea;
+					return Ok(EventState::Consumed);
+				}
+
 				Ok(EventState::NotConsumed)
 			}
 		}
@@ -120,7 +143,11 @@ impl<'a> RenderAbleComponent for DatabaseTabComponent<'a> {
 
 		let right_stack_chunks = Layout::default()
 			.direction(Direction::Vertical)
-			.constraints([Constraint::Length(main_chunks[0].height - 3), Constraint::Length(2)])
+			.constraints([
+				Constraint::Length(3),
+				Constraint::Length(main_chunks[0].height - 6),
+				Constraint::Length(2),
+			])
 			.split(main_chunks[1]);
 
 		self.databases.render(
@@ -133,12 +160,17 @@ impl<'a> RenderAbleComponent for DatabaseTabComponent<'a> {
 			left_stack_chunks[1],
 			focused && matches!(self.focus, Focus::Explorer),
 		)?;
-		self.editor.render(
+		self.textarea.render(
 			f,
 			right_stack_chunks[0],
+			focused && matches!(self.focus, Focus::Textarea),
+		)?;
+		self.editor.render(
+			f,
+			right_stack_chunks[1],
 			focused && matches!(self.focus, Focus::Editor),
 		)?;
-		self.status.render(f, right_stack_chunks[1], false)?;
+		self.status.render(f, right_stack_chunks[2], false)?;
 
 		Ok(())
 	}
