@@ -100,14 +100,14 @@ Database path should be `String` type
 
 Byte template is an instruction combined by one or multiple byte layouts. It provides EDMA deserializer information about bytes data. To explain the use of byte template and byte layout, we have this example:
 
-```toml
+```
 Original= edma2022github
 Bytes= [65 64 6d 61 32 30 32 32 67 69 74 68 75 62]
 ```
 
 Slicing data and labelling data as EDMA byte template, we have
 
-```toml
+```
 [1]
 original=edma
 from=0
