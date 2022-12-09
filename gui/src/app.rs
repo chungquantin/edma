@@ -42,7 +42,7 @@ impl<'a> AppComponent<'a> {
 	pub fn render<B: Backend>(&self, f: &mut tui::Frame<B>) -> Result<()> {
 		let window = f.size();
 
-		if self.config.databases.len() == 0 {
+		if self.config.databases.is_empty() {
 			let chunks = Layout::default()
 				.direction(Direction::Vertical)
 				.constraints([Constraint::Length(7), Constraint::Length(93)].as_ref())
