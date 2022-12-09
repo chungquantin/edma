@@ -184,7 +184,12 @@ impl RenderAbleComponent for DatabaseEditorComponent<'_> {
 			let table = Table::new(rows)
 				.header(header)
 				.block(render_container(&label, focused))
-				.highlight_style(Style::default().fg(HIGHLIGHT_COLOR).add_modifier(Modifier::BOLD))
+				.highlight_style(
+					Style::default()
+						.bg(HIGHLIGHT_COLOR)
+						.fg(Color::Black)
+						.add_modifier(Modifier::BOLD),
+				)
 				.widths(&[
 					Constraint::Percentage(5),
 					Constraint::Percentage(35),

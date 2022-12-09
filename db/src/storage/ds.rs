@@ -119,8 +119,8 @@ mod test {
 	use super::Datastore;
 
 	#[tokio::test]
-	async fn should_init_db() {
-		let db = Datastore::new("redb:../temp/redb");
+	async fn should_create() {
+		let db = Datastore::new("rocksdb:../temp/redb");
 		assert!(db.transaction(false).is_ok());
 
 		// Seeding database

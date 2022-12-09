@@ -1,13 +1,16 @@
 use crate::{
-	components::{LayoutTabComponent, MenuItem, RenderAbleComponent},
+	components::{render_container, LayoutTabComponent, MenuItem, RenderAbleComponent},
 	config::Config,
-	constants::Focus,
+	constants::{Focus, NO_DATABASES_BANNER},
 	events::EventState,
 };
 use anyhow::Result;
 use tui::{
 	backend::Backend,
-	layout::{Constraint, Direction, Layout},
+	layout::{Alignment, Constraint, Direction, Layout},
+	style::{Color, Style},
+	text::{Span, Spans, Text},
+	widgets::{Block, Paragraph},
 };
 
 use crate::{
@@ -38,28 +41,59 @@ impl<'a> AppComponent<'a> {
 
 	pub fn render<B: Backend>(&self, f: &mut tui::Frame<B>) -> Result<()> {
 		let window = f.size();
-		let main_chunks = Layout::default()
-			.direction(Direction::Vertical)
-			.constraints(
-				[Constraint::Length(3), Constraint::Percentage(80), Constraint::Length(3)].as_ref(),
-			)
-			.split(window);
-		let (top, mid) = (main_chunks[0], main_chunks[1]);
 
-		self.menu.render(f, top, matches!(self.focus(), Focus::MenuContainer))?;
+		if self.config.databases.len() == 0 {
+			let chunks = Layout::default()
+				.direction(Direction::Vertical)
+				.constraints([Constraint::Length(7), Constraint::Length(93)].as_ref())
+				.margin(2)
+				.split(window);
 
-		match self.menu.active_menu_item {
-			MenuItem::Home => {
-				self.home.render(f, mid, matches!(self.focus(), Focus::HomeTabBody))?
-			}
-			MenuItem::Database => {
-				self.database.render(f, mid, matches!(self.focus(), Focus::DatabaseTabBody))?
-			}
-			MenuItem::Layout => {
-				self.layout.render(f, mid, matches!(self.focus(), Focus::LayoutTabBody))?
-			}
-		};
+			let welcome = render_container("No databases found in config file!", true);
+			f.render_widget(welcome, window);
 
+			// Banner text with correct styling
+			let mut top_text = Text::from(NO_DATABASES_BANNER);
+			top_text.patch_style(Style::default().fg(Color::White));
+			// Contains the banner
+			let top_text = Paragraph::new(top_text)
+				.style(Style::default().fg(Color::White))
+				.alignment(Alignment::Center)
+				.block(Block::default());
+			f.render_widget(top_text, chunks[0]);
+
+			let title_text = Paragraph::new(vec![
+				Spans::from(vec![Span::raw("------------------------------------")]),
+				Spans::from(vec![Span::raw(format!("Config path: {}", self.config.path))]),
+			])
+			.style(Style::default().fg(Color::White))
+			.block(Block::default())
+			.alignment(Alignment::Center);
+			f.render_widget(title_text, chunks[1]);
+		} else {
+			let main_chunks = Layout::default()
+				.direction(Direction::Vertical)
+				.constraints(
+					[Constraint::Length(3), Constraint::Percentage(80), Constraint::Length(3)]
+						.as_ref(),
+				)
+				.split(window);
+			let (top, mid) = (main_chunks[0], main_chunks[1]);
+
+			self.menu.render(f, top, matches!(self.focus(), Focus::MenuContainer))?;
+
+			match self.menu.active_menu_item {
+				MenuItem::Home => {
+					self.home.render(f, mid, matches!(self.focus(), Focus::HomeTabBody))?
+				}
+				MenuItem::Database => {
+					self.database.render(f, mid, matches!(self.focus(), Focus::DatabaseTabBody))?
+				}
+				MenuItem::Layout => {
+					self.layout.render(f, mid, matches!(self.focus(), Focus::LayoutTabBody))?
+				}
+			};
+		}
 		Ok(())
 	}
 
@@ -83,6 +117,11 @@ impl<'a> AppComponent<'a> {
 		match self.focus {
 			Focus::MenuContainer => {
 				if self.menu.event(key).await?.is_consumed() {
+					return Ok(EventState::Consumed);
+				}
+			}
+			Focus::HomeTabBody => {
+				if self.home.event(key).await?.is_consumed() {
 					return Ok(EventState::Consumed);
 				}
 			}

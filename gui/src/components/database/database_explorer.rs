@@ -24,7 +24,6 @@ enum Focus {
 pub struct DatabaseExplorerComponent<'a> {
 	config: Config,
 	pub list: StatefulList<'a>,
-	database: String,
 	focus: Focus,
 }
 
@@ -51,18 +50,21 @@ impl<'a> DatabaseExplorerComponent<'a> {
 	}
 
 	pub fn set_database(&mut self, database: String) {
-		self.database = database;
-		self.list = build_list(self.config.clone(), self.database.clone());
+		self.list = build_list(self.config.clone(), database.clone());
 	}
 
 	pub fn new(config: Config) -> Self {
-		let databases: Vec<_> = config.databases.keys().collect();
-		let db = databases[0].to_string();
+		let list = if config.databases.len() > 0 {
+			let databases: Vec<_> = config.databases.keys().collect();
+			let db = databases[0].to_string();
+			build_list(config.clone(), db.clone())
+		} else {
+			StatefulList::default()
+		};
 		DatabaseExplorerComponent {
-			list: build_list(config.clone(), db.clone()),
+			list,
 			config,
 			focus: Focus::Container,
-			database: db,
 		}
 	}
 
@@ -103,8 +105,13 @@ impl<'a> RenderAbleComponent for DatabaseExplorerComponent<'a> {
 		rect: Rect,
 		focused: bool,
 	) -> Result<(), anyhow::Error> {
+		let keycode = match self.focus {
+			Focus::Container => "ENTER",
+			Focus::List => "List",
+		};
+		let label = &format!("Explorer [{}]", keycode);
 		let list = List::new(self.list.items.clone())
-			.block(render_container("Databases", focused))
+			.block(render_container(label, focused))
 			.highlight_style(Style::default().fg(HIGHLIGHT_COLOR).add_modifier(Modifier::BOLD));
 
 		f.render_stateful_widget(list, rect, &mut self.list.state.clone());

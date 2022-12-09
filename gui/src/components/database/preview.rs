@@ -66,9 +66,14 @@ impl PreviewComponent<'_> {
 			let l = &self.config.templates[index];
 			let mut items: Vec<(String, String)> = vec![];
 			for item in l.layout.iter() {
-				let slice = raw[item.from..std::cmp::min(item.to, raw.len())].to_vec();
-				let converted = slice.from_variant(item.variant.clone());
-				items.push((item.name.clone(), converted));
+				let (start, end) = (item.from, std::cmp::min(item.to, raw.len()));
+				if start > end {
+					items.push((item.name.clone(), "OVERFLOW".to_string()));
+				} else {
+					let slice = raw[start..end].to_vec();
+					let converted = slice.from_variant(item.variant.clone());
+					items.push((item.name.clone(), converted));
+				}
 			}
 			data = items;
 		}
@@ -102,11 +107,13 @@ impl PreviewComponent<'_> {
 		let values = self.deserialize_key(layout, bytes);
 		let mut spans = vec![];
 		for (name, item) in values.iter() {
-			spans.push(Span::styled(name, Style::default().fg(HIGHLIGHT_COLOR)));
-			spans.push(Span::raw(":"));
-			spans.push(Span::raw(item));
+			spans.push(Spans::from(vec![
+				Span::styled(name, Style::default().fg(HIGHLIGHT_COLOR)),
+				Span::raw(":"),
+				Span::raw(item),
+			]));
 		}
-		let content = Paragraph::new(vec![Spans::from(spans)])
+		let content = Paragraph::new(spans)
 			.wrap(Wrap {
 				trim: true,
 			})
@@ -116,7 +123,7 @@ impl PreviewComponent<'_> {
 	}
 
 	fn render_key_layout<B: Backend>(&self, f: &mut Frame<B>, rect: Rect, focused: bool) {
-		self.render_layout(f, rect, focused, "Key Layout", &self.key_layout);
+		self.render_layout(f, rect, focused, "Key Layout [H-J]", &self.key_layout);
 	}
 
 	fn render_key_preview<B: Backend>(&self, f: &mut Frame<B>, rect: Rect, focused: bool) {
@@ -131,7 +138,7 @@ impl PreviewComponent<'_> {
 	}
 
 	fn render_value_layout<B: Backend>(&self, f: &mut Frame<B>, rect: Rect, focused: bool) {
-		self.render_layout(f, rect, focused, "Value Layout", &self.value_layout);
+		self.render_layout(f, rect, focused, "Value Layout [K-L]", &self.value_layout);
 	}
 
 	fn render_value_preview<B: Backend>(&self, f: &mut Frame<B>, rect: Rect, focused: bool) {

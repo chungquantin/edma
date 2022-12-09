@@ -73,7 +73,7 @@ impl<'a> RenderAbleComponent for DatabaseSelectionComponent<'a> {
 		focused: bool,
 	) -> Result<(), anyhow::Error> {
 		let list = List::new(self.list.items.clone())
-			.block(render_container("Explorer", focused))
+			.block(render_container("Databases [9-0]", focused))
 			.highlight_style(Style::default().fg(HIGHLIGHT_COLOR).add_modifier(Modifier::BOLD));
 
 		f.render_stateful_widget(list, rect, &mut self.list.state.clone());
