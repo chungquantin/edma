@@ -26,6 +26,7 @@ Embedded Database Management for All
 <p align="center">
 <a href="https://www.producthunt.com/posts/edma?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-edma" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=370554&theme=dark" alt="EDMA - A&#0032;terminal&#0032;app&#0032;for&#0032;embedded&#0032;database&#0032;management&#0046; | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
 </p>
+
 ## What is EDMA?
 
 <p align="center">
