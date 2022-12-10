@@ -12,7 +12,7 @@ Embedded Database Management for All
 </pre>
 <br/>
 
-<p>
+<p align="center">
  <a href="https://github.com/nomadiz/edma"><img src="https://img.shields.io/badge/built_with-Rust-dca282.svg?style=flat-square"></a>
 <a href="https://crates.io/crates/edma"><img src="https://img.shields.io/crates/v/edma.svg?logo=rust"/></a>
 <a href="https://github.com/nomadiz/edma"><img src="https://img.shields.io/github/v/release/nomadiz/edma?color=%23ff00a0&include_releases&label=version&sort=semver&style=flat-square"></a>
@@ -23,7 +23,9 @@ Embedded Database Management for All
 <a href="https://github.com/nomadiz/edma/pulse" alt="Activity">
 	</a>
 </p>
-
+<p align="center">
+<a href="https://www.producthunt.com/posts/edma?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-edma" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=370554&theme=dark" alt="EDMA - A&#0032;terminal&#0032;app&#0032;for&#0032;embedded&#0032;database&#0032;management&#0046; | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+</p>
 ## What is EDMA?
 
 <p align="center">
