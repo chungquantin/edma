@@ -29,6 +29,9 @@ Embedded Database Management for All
 </p>
 
 ## What is EDMA?
+<p align="center">
+<img width="80%" src="https://user-images.githubusercontent.com/56880684/206833658-97091acd-11c7-4b78-b08b-9ce2aeb365a8.gif"/>
+</p>
 
 **EDMA: Embedded Database Management for All** is an open source project made to manage embedded key-value storages. EDMA is a TUI (Terminal User Interface) that is easy to install and configure. It allows engineer to traverse the embedded database and deserialize byte data with provided byte layout. This enhances the experience of working with low level database system like RocksDB or Redb.
 
@@ -39,6 +42,7 @@ Embedded Database Management for All
 -   Custom byte layout deserialization
 -   Execute database command directly in terminal
 -   Interactive terminal interface with keyboard only control
+-  	Iterate key-value pairs from column family and table
 
 ## Usage
 
@@ -86,6 +90,11 @@ OPTIONS:
 | <kbd>h</kbd>, <kbd>d</kbd>, <kbd>l</kbd>               | Switch to home/databases/layouts |
 | <kbd>q</kbd>                                           | Quit                             |
 
+## EDMA Command
+EDMA supports inline command to interact with embedded databases. The list of supported commands are
+### `COLUMN` or `TABLE`: Iterate with defined column famility or table
+#### Arguments
+- `String`: Column family name
 ## Configuration
 
 ### Databases
