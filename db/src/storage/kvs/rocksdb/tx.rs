@@ -278,20 +278,26 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
 
-		let iterator = match cf {
+		let get_iterator = match cf {
 			Some(_) => {
-				let cf = &self.get_column_family(cf).unwrap();
-				tx.iterator_cf(cf, IteratorMode::Start)
+				let get_cf = self.get_column_family(cf);
+				match get_cf {
+					Ok(cf) => Ok(tx.iterator_cf(&cf, IteratorMode::Start)),
+					Err(err) => Err(err),
+				}
 			}
-			None => tx.iterator(IteratorMode::Start),
+			None => Ok(tx.iterator(IteratorMode::Start)),
 		};
 
-		Ok(iterator
-			.map(|pair| {
-				let (k, v) = pair.unwrap();
-				Ok((k.to_vec(), v.to_vec()))
-			})
-			.collect())
+		match get_iterator {
+			Ok(iterator) => Ok(iterator
+				.map(|pair| {
+					let (k, v) = pair.unwrap();
+					Ok((k.to_vec(), v.to_vec()))
+				})
+				.collect()),
+			Err(err) => Err(err),
+		}
 	}
 
 	async fn suffix_iterate<S>(

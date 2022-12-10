@@ -1,5 +1,5 @@
 use anyhow::Result;
-use db::{Datastore, KeyValuePair, SimpleTransaction};
+use db::{Datastore, KeyValuePair, SimpleTransaction, CF};
 use tui::{
 	backend::Backend,
 	layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -28,19 +28,9 @@ pub struct DatabaseEditorComponent<'a> {
 	config: Config,
 	preview: PreviewComponent<'a>,
 	table: StatefulTable,
+	err: Option<String>,
 	pairs: Vec<KeyValuePair>,
 	focus: Focus,
-}
-
-async fn scan_from_path(path: &str) -> Vec<KeyValuePair> {
-	let mut result = vec![];
-	let ds = Datastore::new(path);
-	let tx = ds.transaction(false).unwrap();
-	let data = tx.iterate(None).await.unwrap();
-	for pair in data {
-		result.push(pair.unwrap());
-	}
-	result
 }
 
 fn build_table(pairs: Vec<KeyValuePair>) -> StatefulTable {
@@ -58,9 +48,28 @@ fn build_table(pairs: Vec<KeyValuePair>) -> StatefulTable {
 }
 
 impl DatabaseEditorComponent<'_> {
-	pub async fn scan_database(&mut self, name: &str, path: &str) {
+	async fn scan_from_path(&mut self, cf: CF, path: &str) -> Vec<KeyValuePair> {
+		let mut result = vec![];
+		let ds = Datastore::new(path);
+		let tx = ds.transaction(false).unwrap();
+		let data = tx.iterate(cf).await;
+		self.clear_err();
+		match data {
+			Ok(pairs) => {
+				for pair in pairs {
+					result.push(pair.unwrap());
+				}
+			}
+			Err(err) => {
+				self.set_err(err.to_string());
+			}
+		}
+
+		result
+	}
+	pub async fn scan_database(&mut self, cf: CF, name: &str, path: &str) {
 		let db_path = format!("{}:{}", name, path);
-		let pairs = scan_from_path(&db_path).await;
+		let pairs = self.scan_from_path(cf, &db_path).await;
 		self.table = build_table(pairs.to_vec());
 		self.pairs = pairs;
 	}
@@ -79,8 +88,17 @@ impl DatabaseEditorComponent<'_> {
 			pairs: vec![],
 			table: StatefulTable::default(),
 			focus: Focus::Container,
+			err: None,
 			config,
 		}
+	}
+
+	pub fn clear_err(&mut self) {
+		self.err = None;
+	}
+
+	pub fn set_err(&mut self, err: String) {
+		self.err = Some(err);
 	}
 
 	fn update_preview(&mut self) {
@@ -159,7 +177,7 @@ impl RenderAbleComponent for DatabaseEditorComponent<'_> {
 			.constraints([Constraint::Percentage(100), Constraint::Percentage(0)])
 			.split(rect);
 
-		if !self.pairs_empty() {
+		if !self.pairs_empty() && self.err.is_none() {
 			if self.table.state.selected().is_some() && self.preview.pair().is_some() {
 				chunks = Layout::default()
 					.direction(Direction::Vertical)
@@ -203,9 +221,11 @@ impl RenderAbleComponent for DatabaseEditorComponent<'_> {
 				]);
 			f.render_stateful_widget(table, chunks[0], &mut self.table.state.clone());
 		} else {
+			let text =
+				self.err.clone().unwrap_or_else(|| "No data found in this database".to_string());
 			let not_found_widget = Paragraph::new(vec![
 				Spans::from(vec![Span::raw("")]),
-				Spans::from(vec![Span::raw("No data found in this database")]),
+				Spans::from(vec![Span::raw(text)]),
 			])
 			.alignment(Alignment::Center)
 			.block(render_container("Editor", focused));

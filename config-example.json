@@ -6,7 +6,7 @@
     },
     {
       "name": "rocksdb",
-      "path": "../temp/v2"
+      "path": "../temp/cf"
     },
     {
       "name": "redb",

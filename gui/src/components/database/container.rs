@@ -13,20 +13,20 @@ use tui::{
 };
 
 use super::{
-	database_explorer::DatabaseExplorerComponent, DatabaseEditorComponent,
-	DatabaseSelectionComponent, StatusComponent, TextareaComponent,
+	database_explorer::DatabaseExplorerComponent, CommandComponent, DatabaseEditorComponent,
+	DatabaseSelectionComponent, StatusComponent,
 };
 
 enum Focus {
 	Explorer,
 	Editor,
-	Textarea,
+	Command,
 }
 
 pub struct DatabaseTabComponent<'a> {
 	focus: Focus,
 	config: Config,
-	textarea: TextareaComponent,
+	command: CommandComponent,
 	databases: DatabaseSelectionComponent<'a>,
 	explorer: DatabaseExplorerComponent<'a>,
 	editor: DatabaseEditorComponent<'a>,
@@ -40,7 +40,7 @@ impl<'a> DatabaseTabComponent<'a> {
 			editor: DatabaseEditorComponent::new(config.clone()),
 			status: StatusComponent::new(config.clone()),
 			databases: DatabaseSelectionComponent::new(config.clone()),
-			textarea: TextareaComponent::new(config.clone()),
+			command: CommandComponent::new(config.clone()),
 			focus: Focus::Explorer,
 			config,
 		}
@@ -53,16 +53,34 @@ impl<'a> DatabaseTabComponent<'a> {
 		selected_database.clone()
 	}
 
+	fn get_database_info(&self) -> (String, String, String) {
+		let selected_file = self.explorer.state().selected().unwrap_or(0);
+		let selected_db = self.get_selected_database();
+		let databases = self.config.databases.get(&selected_db).unwrap();
+		let database = &databases[selected_file];
+		let (name, path) = (selected_db, database.path.clone());
+		let abs_p = get_absolute_path(&path);
+		(name, path, abs_p)
+	}
+
+	async fn handle_command_event(&mut self) {
+		let commands = self.command.commands.to_vec();
+		for command in commands {
+			if command.token.as_str() == "COLUMN" {
+				let cf = &command.value;
+				let cf_handle = Some(cf.as_bytes().to_vec());
+				let (name, path, abs_p) = self.get_database_info();
+				self.status.set_text(Span::raw(format!("{} - COLUMN: {}", abs_p, cf)));
+				self.editor.scan_database(cf_handle, &name, &path).await;
+			}
+		}
+	}
+
 	async fn handle_explorer_event(&mut self) {
 		if self.explorer.state().selected().is_some() {
-			let selected_file = self.explorer.state().selected().unwrap_or(0);
-			let selected_db = self.get_selected_database();
-			let databases = self.config.databases.get(&selected_db).unwrap();
-			let database = &databases[selected_file];
-			let (name, path) = (selected_db, database.path.clone());
-			let abs_p = get_absolute_path(&path.to_string());
+			let (name, path, abs_p) = self.get_database_info();
 			self.status.set_text(Span::raw(abs_p));
-			self.editor.scan_database(&name, &path).await;
+			self.editor.scan_database(None, &name, &path).await;
 		} else {
 			self.status.reset();
 		}
@@ -72,7 +90,7 @@ impl<'a> DatabaseTabComponent<'a> {
 		match self.focus {
 			Focus::Explorer => {
 				if key == Key::Right {
-					self.focus = Focus::Textarea;
+					self.focus = Focus::Command;
 					return Ok(EventState::Consumed);
 				}
 				if self.databases.event(key).await?.is_consumed() {
@@ -82,22 +100,21 @@ impl<'a> DatabaseTabComponent<'a> {
 					self.explorer.set_database(db);
 					return Ok(EventState::Consumed);
 				}
-
 				if self.explorer.event(key).await?.is_consumed() {
 					self.handle_explorer_event().await;
 					return Ok(EventState::Consumed);
 				}
 				Ok(EventState::NotConsumed)
 			}
-			Focus::Textarea => {
-				if self.textarea.event(key).await?.is_consumed() {
+			Focus::Command => {
+				if self.command.event(key).await?.is_consumed() {
+					self.handle_command_event().await;
 					return Ok(EventState::Consumed);
 				}
 				if key == Key::Left {
 					self.focus = Focus::Explorer;
 					return Ok(EventState::Consumed);
 				}
-
 				if key == Key::Down {
 					self.focus = Focus::Editor;
 					return Ok(EventState::Consumed);
@@ -112,12 +129,10 @@ impl<'a> DatabaseTabComponent<'a> {
 					self.focus = Focus::Explorer;
 					return Ok(EventState::Consumed);
 				}
-
 				if key == Key::Up {
-					self.focus = Focus::Textarea;
+					self.focus = Focus::Command;
 					return Ok(EventState::Consumed);
 				}
-
 				Ok(EventState::NotConsumed)
 			}
 		}
@@ -145,7 +160,7 @@ impl<'a> RenderAbleComponent for DatabaseTabComponent<'a> {
 			.direction(Direction::Vertical)
 			.constraints([
 				Constraint::Length(3),
-				Constraint::Length(main_chunks[0].height - 6),
+				Constraint::Length(main_chunks[0].height.saturating_sub(6)),
 				Constraint::Length(2),
 			])
 			.split(main_chunks[1]);
@@ -160,10 +175,10 @@ impl<'a> RenderAbleComponent for DatabaseTabComponent<'a> {
 			left_stack_chunks[1],
 			focused && matches!(self.focus, Focus::Explorer),
 		)?;
-		self.textarea.render(
+		self.command.render(
 			f,
 			right_stack_chunks[0],
-			focused && matches!(self.focus, Focus::Textarea),
+			focused && matches!(self.focus, Focus::Command),
 		)?;
 		self.editor.render(
 			f,

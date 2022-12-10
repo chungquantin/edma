@@ -15,7 +15,6 @@ tokio = { version = "1.11.0", features = ["full"] }
 edma_storage = { path = "../db", version = "*" }
 path-absolutize = "3.0.14"
 unicode-width = "0.1.10"
-easy-cast = "0.5.1"
 uuid = "1.2.2"
 tui-textarea = "0.2.0"
 structopt = "0.3.26"

@@ -79,6 +79,7 @@ OPTIONS:
 | ------------------------------------------------------ | -------------------------------- |
 | <kbd>ENTER</kbd>                                       | Enter focused section            |
 | <kbd>ESC</kbd>                                         | Escape from focused section      |
+| <kbd>9</kbd>, <kbd>0</kbd>                             | Scroll up/down databases         |
 | <kbd>h</kbd>, <kbd>j</kbd>                             | Scroll up/down key byte layout   |
 | <kbd>k</kbd>, <kbd>l</kbd>                             | Scroll up/down value byte layout |
 | <kbd>←</kbd>, <kbd>→</kbd>, <kbd>↑</kbd>, <kbd>↓</kbd> | Move focus to left/right/up/down |

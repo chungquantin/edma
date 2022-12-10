@@ -120,20 +120,18 @@ mod test {
 
 	#[tokio::test]
 	async fn should_create() {
-		let db = Datastore::new("rocksdb:../temp/redb");
+		let db = Datastore::new("redb:../temp/redb");
 		assert!(db.transaction(false).is_ok());
 
 		// Seeding database
-		// let cf_name = COLUMN_FAMILIES.get(&ColumnFamily::TestSuite).unwrap();
-		// let cf = Some(cf_name.to_string().into());
 		let cf = None;
 
 		let key1 = i32::to_be_bytes(2001);
-		let key2 = "hello world";
+		let key2 = "new key new data hehe";
 		let key3 = "this is a key";
 
 		let val1 = "mock value";
-		let val2 = "mock value 2";
+		let val2 = "mock value mock data hehe";
 		let val3 = "this is a new value";
 
 		let mut tx = db.transaction(true).unwrap();
