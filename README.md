@@ -15,7 +15,7 @@ Embedded Database Management for All
 <p>
  <a href="https://github.com/nomadiz/edma"><img src="https://img.shields.io/badge/built_with-Rust-dca282.svg?style=flat-square"></a>
 <a href="https://crates.io/crates/edma"><img src="https://img.shields.io/crates/v/edma.svg?logo=rust"/></a>
-<a href="https://github.com/nomadiz/edma"><img src="https://img.shields.io/github/v/release/nomadiz/edma?color=%23ff00a0&include_prereleases&label=version&sort=semver&style=flat-square"></a>
+<a href="https://github.com/nomadiz/edma"><img src="https://img.shields.io/github/v/release/nomadiz/edma?color=%23ff00a0&include_releases&label=version&sort=semver&style=flat-square"></a>
 <a href="https://github.com/nomadiz/edma/blob/master/LICENSE">
 <img src="https://img.shields.io/badge/license-MIT License-00bfff.svg?style=flat-square"></a>
 <a href="https://github.com/nomadiz/edma/graphs/contributors" alt="Contributors">
