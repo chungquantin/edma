@@ -47,14 +47,6 @@ border-radius: 10px;" src="https://user-images.githubusercontent.com/56880684/20
 
 ### Installation
 
-#### With Homebrew (Linux, macOS)
-
-If you’re using Homebrew or Linuxbrew, install the edma formula:
-
-```
-brew install nomadiz/tap/edma
-```
-
 #### With Cargo (Linux, macOS, Windows)
 
 If you already have a Rust environment set up, you can use the `cargo install` command:
