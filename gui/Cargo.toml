@@ -1,7 +1,22 @@
 [package]
-name = "gui"
-version = "0.1.0"
+name = "edma"
+version = "0.1.0-beta.3"
+publish = true
 edition = "2021"
+readme = "CARGO.md"
+keywords = [
+ "database",
+ "embedded-database",
+ "tui",
+ "database-management",
+ "kv-store",
+]
+categories = ["command-line-utilities", "embedded", "command-line-interface"]
+description = "EDMA: Embedded Database Management for All"
+homepage = "https://github.com/nomadiz/edma"
+documentation = "https://nomadiz.github.io/edma/"
+repository = "https://github.com/nomadiz/edma"
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -12,7 +27,7 @@ tui = { version = "0.19", default-features = false, features = ['crossterm'] }
 thiserror = "1.0"
 anyhow = "1.0.66"
 tokio = { version = "1.11.0", features = ["full"] }
-edma_storage = { path = "../db", version = "*" }
+edma_storage = { path = "../db", version = "0.0.1" }
 path-absolutize = "3.0.14"
 unicode-width = "0.1.10"
 uuid = "1.2.2"

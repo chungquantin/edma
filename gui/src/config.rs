@@ -58,7 +58,7 @@ fn build_template(name: &str, variant: LayoutVariant) -> LayoutTemplate {
 
 impl Config {
 	pub fn new(config: &CliConfig) -> Self {
-		let binding = Path::new("../config-example.json").to_path_buf();
+		let binding = Path::new("./config-example.json").to_path_buf();
 		let path = match &config.config_path {
 			Some(c) => c,
 			None => &binding,

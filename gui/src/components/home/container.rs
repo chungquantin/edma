@@ -92,7 +92,7 @@ impl RenderAbleComponent for HomeTabComponent {
 		let welcome = render_container(&label, focused);
 		f.render_widget(welcome, rect);
 
-		let changelog = include_str!("../../../../CHANGELOG.md").to_string();
+		let changelog = include_str!("../../../CHANGELOG.md").to_string();
 
 		let bottom_text_raw = format!(
 			"{}{}",
