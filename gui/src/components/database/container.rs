@@ -65,15 +65,31 @@ impl<'a> DatabaseTabComponent<'a> {
 
 	async fn handle_command_event(&mut self) {
 		let commands = self.command.commands.to_vec();
+		let mut cf_handle = None;
+		let (name, path, _) = self.get_database_info();
 		for command in commands {
-			if command.token.as_str() == "COLUMN" {
-				let cf = &command.value;
-				let cf_handle = Some(cf.as_bytes().to_vec());
-				let (name, path, abs_p) = self.get_database_info();
-				self.status.set_text(Span::raw(format!("{} - COLUMN: {}", abs_p, cf)));
-				self.editor.scan_database(cf_handle, &name, &path).await;
+			match command.token.as_str() {
+				// COLUMN is specified for RocksDB, Redb should be TABLE
+				"COLUMN" => {
+					let cf = Some(&command.value);
+					cf_handle = Some(cf.unwrap().as_bytes().to_vec());
+					self.editor.scan_database(cf_handle.clone(), &name, &path).await;
+				}
+				// PREFIX and SUFFIX scan only support key traversal not value traversal
+				"PREFIX" => {
+					let prefix = &command.value;
+					let bytes = prefix.as_bytes().to_vec();
+					self.editor.prefix_scan_database(cf_handle.clone(), &name, &path, bytes).await;
+				}
+				"SUFFIX" => {
+					let suffix = &command.value;
+					let bytes = suffix.as_bytes().to_vec();
+					self.editor.suffix_scan_database(cf_handle.clone(), &name, &path, bytes).await;
+				}
+				_ => {}
 			}
 		}
+		self.command.reset_command();
 	}
 
 	async fn handle_explorer_event(&mut self) {

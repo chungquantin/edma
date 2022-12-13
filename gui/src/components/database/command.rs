@@ -71,11 +71,39 @@ impl CommandComponent {
 						}
 					}
 				}
+				t if token.starts_with("PREFIX") => {
+					let value = t.split('=').nth(1);
+					match value {
+						Some(v) => self.add_command(Command {
+							token: "PREFIX".to_string(),
+							value: v.replace('"', "").to_string(),
+						}),
+						None => {
+							return self.set_invalid(true, "No PREFIX value found");
+						}
+					}
+				}
+				t if token.starts_with("SUFFIX") => {
+					let value = t.split('=').nth(1);
+					match value {
+						Some(v) => self.add_command(Command {
+							token: "SUFFIX".to_string(),
+							value: v.replace('"', "").to_string(),
+						}),
+						None => {
+							return self.set_invalid(true, "No SUFFIX value found");
+						}
+					}
+				}
 				_ => return self.set_invalid(true, "Mismatch command"),
 			}
 		}
 
 		self.set_invalid(false, "");
+	}
+
+	pub fn reset_command(&mut self) {
+		self.commands = vec![];
 	}
 
 	pub async fn event(&mut self, key: Key) -> Result<EventState> {

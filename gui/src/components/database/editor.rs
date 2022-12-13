@@ -48,6 +48,54 @@ fn build_table(pairs: Vec<KeyValuePair>) -> StatefulTable {
 }
 
 impl DatabaseEditorComponent<'_> {
+	async fn suffix_scan_from_path(
+		&mut self,
+		cf: CF,
+		path: &str,
+		prefix: Vec<u8>,
+	) -> Vec<KeyValuePair> {
+		let mut result = vec![];
+		let ds = Datastore::new(path);
+		let tx = ds.transaction(false).unwrap();
+		let data = tx.suffix_iterate(cf, prefix).await;
+		self.clear_err();
+		match data {
+			Ok(pairs) => {
+				for pair in pairs {
+					result.push(pair.unwrap());
+				}
+			}
+			Err(err) => {
+				self.set_err(err.to_string());
+			}
+		}
+		result
+	}
+
+	async fn prefix_scan_from_path(
+		&mut self,
+		cf: CF,
+		path: &str,
+		prefix: Vec<u8>,
+	) -> Vec<KeyValuePair> {
+		let mut result = vec![];
+		let ds = Datastore::new(path);
+		let tx = ds.transaction(false).unwrap();
+		let data = tx.prefix_iterate(cf, prefix).await;
+		self.clear_err();
+		match data {
+			Ok(pairs) => {
+				for pair in pairs {
+					result.push(pair.unwrap());
+				}
+			}
+			Err(err) => {
+				self.set_err(err.to_string());
+			}
+		}
+		result
+	}
+
 	async fn scan_from_path(&mut self, cf: CF, path: &str) -> Vec<KeyValuePair> {
 		let mut result = vec![];
 		let ds = Datastore::new(path);
@@ -67,6 +115,21 @@ impl DatabaseEditorComponent<'_> {
 
 		result
 	}
+
+	pub async fn prefix_scan_database(&mut self, cf: CF, name: &str, path: &str, prefix: Vec<u8>) {
+		let db_path = format!("{}:{}", name, path);
+		let pairs = self.prefix_scan_from_path(cf, &db_path, prefix).await;
+		self.table = build_table(pairs.to_vec());
+		self.pairs = pairs;
+	}
+
+	pub async fn suffix_scan_database(&mut self, cf: CF, name: &str, path: &str, suffix: Vec<u8>) {
+		let db_path = format!("{}:{}", name, path);
+		let pairs = self.suffix_scan_from_path(cf, &db_path, suffix).await;
+		self.table = build_table(pairs.to_vec());
+		self.pairs = pairs;
+	}
+
 	pub async fn scan_database(&mut self, cf: CF, name: &str, path: &str) {
 		let db_path = format!("{}:{}", name, path);
 		let pairs = self.scan_from_path(cf, &db_path).await;
