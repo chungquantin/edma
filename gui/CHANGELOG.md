@@ -1,18 +1,12 @@
 # CHANGELOG
 
-## [0.1.0] - 2022-12-09
+## [0.1.0-beta.4] - 2022-12-13
 
 ### Added
 
--   General navigation improvements
--   Config file management
--   EDMA cli to set config file
--   Add byte layout deserialization
--   Configure custom layout feature
--   View and select byte layout
--   Minor theme improvements
+-   Support PREFIX and SUFFIX iteration
 
-## [0.1.0] - 2022-12-09
+## [0.1.0-beta.3] - 2022-12-09
 
 ### Added
 

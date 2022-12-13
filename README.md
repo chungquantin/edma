@@ -169,11 +169,23 @@ border-radius: 10px;" src="https://user-images.githubusercontent.com/56880684/20
 
 EDMA supports inline command to interact with embedded databases. The list of supported commands are
 
-### `COLUMN` or `TABLE`: Iterate with defined column famility or table
+### - `COLUMN` or `TABLE`
+
+Iterate with defined column famility or table
 
 #### Arguments
 
 -   `String`: Column family name
+
+### - `PREFIX` or `SUFFIX`
+
+Iterate filtered by prefix or suffix.
+
+Note: This command is for key iteration not value iteration.
+
+#### Arguments
+
+-   `String`: Prefix value or suffix value
 
 ## Configuration
 
