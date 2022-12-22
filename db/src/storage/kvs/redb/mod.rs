@@ -1,6 +1,7 @@
 pub mod tx;
 pub mod ty;
 
+use async_trait::async_trait;
 use redb::Database;
 pub use tx::*;
 pub use ty::*;
@@ -22,7 +23,7 @@ impl ReDBAdapter {
 		let db_instance = unsafe { Database::create(path).unwrap() };
 
 		Ok(ReDBAdapter(StorageAdapter::<DBType>::new(
-			StorageAdapterName::CassandraDB,
+			StorageAdapterName::ReDB,
 			path.to_string(),
 			db_instance,
 			StorageVariant::KeyValueStore,
@@ -30,6 +31,7 @@ impl ReDBAdapter {
 	}
 }
 
+#[async_trait]
 impl DatastoreAdapter for ReDBAdapter {
 	type Transaction = ReDBTransaction;
 
@@ -46,7 +48,7 @@ impl DatastoreAdapter for ReDBAdapter {
 		&self.0.path
 	}
 
-	fn transaction(&self, w: bool) -> Result<Self::Transaction, Error> {
+	async fn transaction(&self, w: bool) -> Result<Self::Transaction, Error> {
 		let inner = self.get_initialized_inner().unwrap();
 		let db = &inner.db_instance;
 		let tx = db.begin_write().unwrap();

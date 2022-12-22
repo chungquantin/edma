@@ -1,11 +1,12 @@
 macro_rules! impl_global_transaction {
-	($($x: ident), *) => {
+	($($x: ident; feat $feat: expr), *) => {
 		#[async_trait(?Send)]
 		impl SimpleTransaction for Transaction {
 			// Check if closed
 			fn closed(&self) -> bool {
 				match self {
 					$(
+						#[cfg(feature = $feat)]
 						Transaction {
 							inner: Inner::$x(ds),
 							..
@@ -18,6 +19,7 @@ macro_rules! impl_global_transaction {
 			async fn cancel(&mut self) -> Result<(), Error> {
 				match self {
 					$(
+						#[cfg(feature = $feat)]
 						Transaction {
 							inner: Inner::$x(ds),
 							..
@@ -30,6 +32,7 @@ macro_rules! impl_global_transaction {
 			async fn count(&mut self, cf: CF) -> Result<usize, Error> {
 				match self {
 					$(
+						#[cfg(feature = $feat)]
 						Transaction {
 							inner: Inner::$x(ds),
 							..
@@ -42,6 +45,7 @@ macro_rules! impl_global_transaction {
 			async fn commit(&mut self) -> Result<(), Error> {
 				match self {
 					$(
+						#[cfg(feature = $feat)]
 						Transaction {
 							inner: Inner::$x(ds),
 							..
@@ -54,6 +58,7 @@ macro_rules! impl_global_transaction {
 			async fn exi<K: Into<Key> + Send>(&self, cf: CF, key: K) -> Result<bool, Error> {
 				match self {
 					$(
+						#[cfg(feature = $feat)]
 						Transaction {
 							inner: Inner::$x(ds),
 							..
@@ -66,6 +71,7 @@ macro_rules! impl_global_transaction {
 			async fn get<K: Into<Key> + Send>(&self, cf: CF, key: K) -> Result<Option<Val>, Error> {
 				match self {
 					$(
+						#[cfg(feature = $feat)]
 						Transaction {
 							inner: Inner::$x(ds),
 							..
@@ -82,6 +88,7 @@ macro_rules! impl_global_transaction {
 			) -> Result<Vec<Option<Val>>, Error> {
 				match self {
 					$(
+						#[cfg(feature = $feat)]
 						Transaction {
 							inner: Inner::$x(ds),
 							..
@@ -99,6 +106,7 @@ macro_rules! impl_global_transaction {
 			) -> Result<(), Error> {
 				match self {
 					$(
+						#[cfg(feature = $feat)]
 						Transaction {
 							inner: Inner::$x(ds),
 							..
@@ -116,6 +124,7 @@ macro_rules! impl_global_transaction {
 			) -> Result<(), Error> {
 				match self {
 					$(
+						#[cfg(feature = $feat)]
 						Transaction {
 							inner: Inner::$x(ds),
 							..
@@ -128,6 +137,7 @@ macro_rules! impl_global_transaction {
 			async fn del<K: Into<Key> + Send>(&mut self, cf: CF, key: K) -> Result<(), Error> {
 				match self {
 					$(
+						#[cfg(feature = $feat)]
 						Transaction {
 							inner: Inner::$x(ds),
 							..
@@ -146,6 +156,7 @@ macro_rules! impl_global_transaction {
 			{
 				match self {
 					$(
+						#[cfg(feature = $feat)]
 						Transaction {
 							inner: Inner::$x(ds),
 							..
@@ -164,6 +175,7 @@ macro_rules! impl_global_transaction {
 			{
 				match self {
 					$(
+						#[cfg(feature = $feat)]
 						Transaction {
 							inner: Inner::$x(ds),
 							..

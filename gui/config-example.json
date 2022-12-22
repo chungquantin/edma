@@ -5,10 +5,6 @@
       "path": "../temp"
     },
     {
-      "name": "rocksdb",
-      "path": "../temp/cf"
-    },
-    {
       "name": "redb",
       "path": "../temp/redb"
     }

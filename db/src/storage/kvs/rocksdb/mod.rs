@@ -1,6 +1,7 @@
 pub mod tx;
 pub mod ty;
 
+use async_trait::async_trait;
 pub use tx::*;
 pub use ty::*;
 
@@ -36,6 +37,7 @@ impl RocksDBAdapter {
 	}
 }
 
+#[async_trait]
 impl DatastoreAdapter for RocksDBAdapter {
 	type Transaction = RocksDBTransaction;
 
@@ -52,7 +54,7 @@ impl DatastoreAdapter for RocksDBAdapter {
 		&self.0.path
 	}
 
-	fn transaction(&self, rw: bool) -> Result<RocksDBTransaction, Error> {
+	async fn transaction(&self, rw: bool) -> Result<RocksDBTransaction, Error> {
 		let inner = self.get_initialized_inner().unwrap();
 		let db = &inner.db_instance;
 		let tx = db.transaction();

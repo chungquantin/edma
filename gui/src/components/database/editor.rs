@@ -56,7 +56,7 @@ impl DatabaseEditorComponent<'_> {
 	) -> Vec<KeyValuePair> {
 		let mut result = vec![];
 		let ds = Datastore::new(path);
-		let tx = ds.transaction(false).unwrap();
+		let tx = ds.transaction(false).await.unwrap();
 		let data = tx.suffix_iterate(cf, prefix).await;
 		self.clear_err();
 		match data {
@@ -80,7 +80,7 @@ impl DatabaseEditorComponent<'_> {
 	) -> Vec<KeyValuePair> {
 		let mut result = vec![];
 		let ds = Datastore::new(path);
-		let tx = ds.transaction(false).unwrap();
+		let tx = ds.transaction(false).await.unwrap();
 		let data = tx.prefix_iterate(cf, prefix).await;
 		self.clear_err();
 		match data {
@@ -99,7 +99,7 @@ impl DatabaseEditorComponent<'_> {
 	async fn scan_from_path(&mut self, cf: CF, path: &str) -> Vec<KeyValuePair> {
 		let mut result = vec![];
 		let ds = Datastore::new(path);
-		let tx = ds.transaction(false).unwrap();
+		let tx = ds.transaction(false).await.unwrap();
 		let data = tx.iterate(cf).await;
 		self.clear_err();
 		match data {

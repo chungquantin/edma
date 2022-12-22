@@ -1,9 +1,12 @@
-use log::info;
-
 use crate::model::DatastoreAdapter;
-use crate::{storage::LOG, Error};
+use crate::Error;
+use crate::Transaction;
 
-use super::{ReDBAdapter, RocksDBAdapter, Transaction};
+#[cfg(feature = "kv-redb")]
+use super::ReDBAdapter;
+
+#[cfg(feature = "kv-rocksdb")]
+use super::RocksDBAdapter;
 
 #[derive(Copy, Clone)]
 pub struct DatastoreRef<'a> {
@@ -41,23 +44,19 @@ impl Datastore {
 		match path {
 			#[cfg(feature = "kv-rocksdb")]
 			s if s.starts_with("default:") | s.starts_with("rocksdb:") | s.eq("default") => {
-				info!(target: LOG, "Starting RocksDB kvs store at {}", path);
 				let db = RocksDBAdapter::new(s, None).unwrap();
-				let v = Datastore {
+
+				Datastore {
 					inner: Inner::RocksDB(db),
-				};
-				info!(target: LOG, "Started RocksDB kvs store at {}", path);
-				v
+				}
 			}
 			#[cfg(feature = "kv-redb")]
 			s if s.starts_with("redb:") => {
-				info!(target: LOG, "Starting Redb kvs store at {}", path);
 				let db = ReDBAdapter::new(s).unwrap();
-				let v = Datastore {
+
+				Datastore {
 					inner: Inner::ReDB(db),
-				};
-				info!(target: LOG, "Started Redb kvs store at {}", path);
-				v
+				}
 			}
 			_ => unimplemented!(),
 		}
@@ -86,14 +85,14 @@ impl Datastore {
 		)
 	}
 
-	pub fn transaction(&self, write: bool) -> Result<Transaction, Error> {
+	pub async fn transaction(&self, write: bool) -> Result<Transaction, Error> {
 		macro_rules! impl_transaction_method {
 			($($x: ident feat $f: expr),*) => {
 				match &self.inner {
 					$(
 						#[cfg(feature = $f)]
 						Inner::$x(v) => {
-							let tx = v.transaction(write)?;
+							let tx = v.transaction(write).await?;
 							Ok(Transaction {
 								inner: super::tx::Inner::$x(tx),
 							})
@@ -120,8 +119,8 @@ mod test {
 
 	#[tokio::test]
 	async fn should_create() {
-		let db = Datastore::new("redb:../temp/redb");
-		assert!(db.transaction(false).is_ok());
+		let db = Datastore::new("redb:../temp/v1.redb");
+		assert!(db.transaction(false).await.is_ok());
 
 		// Seeding database
 		let cf = None;
@@ -134,7 +133,7 @@ mod test {
 		let val2 = "mock value mock data hehe";
 		let val3 = "this is a new value";
 
-		let mut tx = db.transaction(true).unwrap();
+		let mut tx = db.transaction(true).await.unwrap();
 		tx.set(cf.clone(), key1, val1).await.unwrap();
 		tx.set(cf.clone(), key2, val2).await.unwrap();
 		tx.set(cf.clone(), key3, val3).await.unwrap();
@@ -144,7 +143,7 @@ mod test {
 	#[tokio::test]
 	async fn should_create_with_cf() {
 		let db = Datastore::new("rocksdb:../temp/cf");
-		assert!(db.transaction(false).is_ok());
+		assert!(db.transaction(false).await.is_ok());
 
 		// Seeding database
 		let cf_name = COLUMN_FAMILIES.get(&ColumnFamily::TestSuite).unwrap();
@@ -158,7 +157,7 @@ mod test {
 		let val2 = "cf => mock value 2";
 		let val3 = "cf => this is a new value";
 
-		let mut tx = db.transaction(true).unwrap();
+		let mut tx = db.transaction(true).await.unwrap();
 		tx.set(cf.clone(), key1, val1).await.unwrap();
 		tx.set(cf.clone(), key2, val2).await.unwrap();
 		tx.set(cf.clone(), key3, val3).await.unwrap();

@@ -9,7 +9,7 @@ pub async fn should_set_key(adapter: impl DatastoreAdapter) {
 	let adapter = adapter.spawn();
 	let cf_name = COLUMN_FAMILIES.get(&ColumnFamily::TestSuite).unwrap();
 	let cf = Some(cf_name.to_string().into());
-	let mut tx = adapter.transaction(true).unwrap();
+	let mut tx = adapter.transaction(true).await.unwrap();
 
 	let key = "mock key";
 	let val = "mock value";
@@ -35,7 +35,7 @@ pub async fn should_set_key(adapter: impl DatastoreAdapter) {
 pub async fn should_delete_key(adapter: impl DatastoreAdapter) {
 	let adapter = adapter.spawn();
 	let cf = Some("test_suite:v1".into());
-	let mut tx = adapter.transaction(true).unwrap();
+	let mut tx = adapter.transaction(true).await.unwrap();
 
 	let key = "mock key";
 	let val = "mock value";
@@ -50,7 +50,7 @@ pub async fn should_delete_key(adapter: impl DatastoreAdapter) {
 pub async fn should_put_key(adapter: impl DatastoreAdapter) {
 	let adapter = adapter.spawn();
 	let cf = Some("test_suite:v1".into());
-	let mut tx = adapter.transaction(true).unwrap();
+	let mut tx = adapter.transaction(true).await.unwrap();
 
 	let key = "mock key";
 	let val = "mock value";

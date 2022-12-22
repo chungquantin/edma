@@ -26,8 +26,23 @@ pub fn generate_path(name: &str, id: Option<i32>) -> String {
 	match name {
 		"rocksdb" => generate_rocksdb_path(id),
 		"redb" => generate_redb_path(id),
+		"indxdb" => generate_indxdb_path(id),
 		_ => unimplemented!(),
 	}
+}
+
+/// Generate a path to store data for Indxdb
+fn generate_indxdb_path(id: Option<i32>) -> String {
+	let random_id: i32 = generate_random_i32();
+	let id = &id.unwrap_or(random_id).to_string();
+	let path = if cfg!(target_os = "linux") {
+		"/dev/shm/".into()
+	} else {
+		temp_dir()
+	}
+	.join(format!("edma-indxdb-{}", id));
+
+	String::from("echodb:") + &path_to_string(&path).unwrap()
 }
 
 /// Generate a path to store data for RocksDB

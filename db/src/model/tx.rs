@@ -20,7 +20,6 @@ pub type CF = Option<Vec<u8>>;
 ///
 /// because it tries to borrow arc as mutable. For it to happen, DerefMut would have
 /// to be implemented for Arc but it's not because Arc is not meant to be mutable.
-#[derive(Debug)]
 pub struct DBTransaction<D, T>
 where
 	D: 'static,

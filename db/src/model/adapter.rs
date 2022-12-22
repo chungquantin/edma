@@ -1,3 +1,5 @@
+use async_trait::async_trait;
+
 use crate::{err::Error, util::get_absolute_path, SimpleTransaction};
 use std::{pin::Pin, sync::Arc};
 
@@ -10,7 +12,8 @@ pub enum StorageVariant {
 #[derive(Debug, Clone)]
 pub enum StorageAdapterName {
 	RocksDB,
-	CassandraDB,
+	ReDB,
+	EchoDB,
 }
 
 #[derive(Debug, Clone)]
@@ -37,15 +40,26 @@ impl<T> StorageAdapter<T> {
 	}
 }
 
+#[async_trait]
 pub trait DatastoreAdapter {
 	type Transaction: SimpleTransaction;
 	// # Create new database transaction
 	// Set `rw` default to false means readable but not readable
-	fn transaction(&self, rw: bool) -> Result<Self::Transaction, Error>;
+	async fn transaction(&self, rw: bool) -> Result<Self::Transaction, Error>;
 
-	fn default() -> Self;
+	fn default() -> Self
+	where
+		Self: Sized,
+	{
+		todo!();
+	}
 
-	fn spawn(&self) -> Self;
+	fn spawn(&self) -> Self
+	where
+		Self: Sized,
+	{
+		todo!()
+	}
 
 	fn path(&self) -> &str;
 }
