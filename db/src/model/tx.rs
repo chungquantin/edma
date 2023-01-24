@@ -5,6 +5,7 @@ use crate::{
 		KeyValuePair,
 	},
 	util::now,
+	TagBucket,
 };
 use async_trait::async_trait;
 use futures::lock::Mutex;
@@ -59,59 +60,51 @@ pub trait SimpleTransaction {
 	async fn cancel(&mut self) -> Result<(), Error>;
 
 	// Count number of items
-	async fn count(&mut self, cf: CF) -> Result<usize, Error>;
+	async fn count(&mut self, tags: TagBucket) -> Result<usize, Error>;
 
 	// Commit a transaction
 	async fn commit(&mut self) -> Result<(), Error>;
 
 	// Check if a key exists
-	async fn exi<K: Into<Key> + Send>(&self, cf: CF, key: K) -> Result<bool, Error>;
+	async fn exi<K: Into<Key> + Send>(&self, key: K, tags: TagBucket) -> Result<bool, Error>;
 
 	/// Fetch a key from the database
-	async fn get<K: Into<Key> + Send>(&self, cf: CF, key: K) -> Result<Option<Val>, Error>;
+	async fn get<K: Into<Key> + Send>(&self, key: K, tags: TagBucket)
+		-> Result<Option<Val>, Error>;
 
 	/// Insert or update a key in the database
 	async fn set<K: Into<Key> + Send, V: Into<Key> + Send>(
 		&mut self,
-		cf: CF,
 		key: K,
 		val: V,
+		tags: TagBucket,
 	) -> Result<(), Error>;
 
 	/// Insert a key if it doesn't exist in the database
 	async fn put<K: Into<Key> + Send, V: Into<Key> + Send>(
 		&mut self,
-		cf: CF,
 		key: K,
 		val: V,
+		tags: TagBucket,
 	) -> Result<(), Error>;
 
 	/// Delete a key
-	async fn del<K: Into<Key> + Send>(&mut self, cf: CF, key: K) -> Result<(), Error>;
-
-	// OPTIONAL Fetch multiple keys from the database
-	async fn multi_get<K: Into<Key> + Send + AsRef<[u8]>>(
-		&self,
-		_cf: CF,
-		_keys: Vec<K>,
-	) -> Result<Vec<Option<Val>>, Error> {
-		todo!();
-	}
+	async fn del<K: Into<Key> + Send>(&mut self, key: K, tags: TagBucket) -> Result<(), Error>;
 
 	// Iterate elements in key value store
-	async fn iterate(&self, cf: CF) -> Result<Vec<Result<KeyValuePair, Error>>, Error>;
+	async fn iterate(&self, tags: TagBucket) -> Result<Vec<Result<KeyValuePair, Error>>, Error>;
 
 	// Iterate elements with prefixx in key value store
 	async fn prefix_iterate<P: Into<Key> + Send>(
 		&self,
-		cf: CF,
 		prefix: P,
+		tags: TagBucket,
 	) -> Result<Vec<Result<KeyValuePair, Error>>, Error>;
 
 	// Iterate elements with prefixx in key value store
 	async fn suffix_iterate<S: Into<Key> + Send>(
 		&self,
-		cf: CF,
 		suffix: S,
+		tags: TagBucket,
 	) -> Result<Vec<Result<KeyValuePair, Error>>, Error>;
 }

@@ -1,8 +1,9 @@
+use crate::TagBucket;
 use async_trait::async_trait;
 
 use crate::{
 	interface::{Key, Val},
-	Error, SimpleTransaction, CF,
+	Error, SimpleTransaction,
 };
 
 #[cfg(feature = "kv-redb")]

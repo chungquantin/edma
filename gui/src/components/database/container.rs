@@ -65,14 +65,13 @@ impl<'a> DatabaseTabComponent<'a> {
 
 	async fn handle_command_event(&mut self) {
 		let commands = self.command.commands.to_vec();
-		let mut cf_handle = None;
+		let cf_handle = None;
 		let (name, path, _) = self.get_database_info();
 		for command in commands {
 			match command.token.as_str() {
 				// COLUMN is specified for RocksDB, Redb should be TABLE
 				"COLUMN" => {
-					let cf = Some(&command.value);
-					cf_handle = Some(cf.unwrap().as_bytes().to_vec());
+					let cf_handle = Some(command.value);
 					self.editor.scan_database(cf_handle.clone(), &name, &path).await;
 				}
 				// PREFIX and SUFFIX scan only support key traversal not value traversal

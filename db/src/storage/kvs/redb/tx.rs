@@ -3,7 +3,7 @@ use redb::{RangeIter, ReadableTable, TableDefinition};
 
 use crate::{
 	interface::{Key, KeyValuePair, Val},
-	DBTransaction, Error, SimpleTransaction, CF,
+	DBTransaction, Error, SimpleTransaction, TagBucket, CF,
 };
 
 use super::ty::{DBType, TxType};
@@ -42,14 +42,14 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		self.ok
 	}
 
-	async fn count(&mut self, cf: CF) -> Result<usize, Error> {
+	async fn count(&mut self, tags: TagBucket) -> Result<usize, Error> {
 		if self.closed() {
 			return Err(Error::TxFinished);
 		}
 
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
-
+		let cf = tags.get_bytes("column_family");
 		let name = get_table_name(cf);
 		let def = TableDefinition::<TableKey, TableValue>::new(&name);
 		let table = &tx.open_table(def);
@@ -99,7 +99,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		Ok(())
 	}
 
-	async fn exi<K>(&self, cf: CF, key: K) -> Result<bool, Error>
+	async fn exi<K>(&self, key: K, tags: TagBucket) -> Result<bool, Error>
 	where
 		K: Into<Key> + Send,
 	{
@@ -110,6 +110,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
 
+		let cf = tags.get_bytes("column_family");
 		let name = get_table_name(cf);
 		let def = TableDefinition::<TableKey, TableValue>::new(&name);
 		let table = &tx.open_table(def);
@@ -121,7 +122,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		}
 	}
 	// Fetch a key from the database [column family]
-	async fn get<K>(&self, cf: CF, key: K) -> Result<Option<Val>, Error>
+	async fn get<K>(&self, key: K, tags: TagBucket) -> Result<Option<Val>, Error>
 	where
 		K: Into<Key> + Send,
 	{
@@ -132,6 +133,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
 
+		let cf = tags.get_bytes("column_family");
 		let name = get_table_name(cf);
 		let def = TableDefinition::<TableKey, TableValue>::new(&name);
 		let table = &tx.open_table(def).unwrap();
@@ -141,7 +143,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		Ok(result.map(|v| v.to_vec()))
 	}
 	// Insert or update a key in the database
-	async fn set<K, V>(&mut self, cf: CF, key: K, val: V) -> Result<(), Error>
+	async fn set<K, V>(&mut self, key: K, val: V, tags: TagBucket) -> Result<(), Error>
 	where
 		K: Into<Key> + Send,
 		V: Into<Key> + Send,
@@ -158,6 +160,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
 
+		let cf = tags.get_bytes("column_family");
 		let name = get_table_name(cf);
 		let def = TableDefinition::<TableKey, TableValue>::new(&name);
 		let (key, val) = (key.into(), val.into());
@@ -172,7 +175,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 	}
 
 	// Insert a key if it doesn't exist in the database
-	async fn put<K, V>(&mut self, cf: CF, key: K, val: V) -> Result<(), Error>
+	async fn put<K, V>(&mut self, key: K, val: V, tags: TagBucket) -> Result<(), Error>
 	where
 		K: Into<Key> + Send,
 		V: Into<Key> + Send,
@@ -189,6 +192,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
 
+		let cf = tags.get_bytes("column_family");
 		let name = get_table_name(cf);
 		let def = TableDefinition::<TableKey, TableValue>::new(&name);
 		let mut table = tx.open_table(def)?;
@@ -204,7 +208,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 	}
 
 	// Delete a key
-	async fn del<K>(&mut self, cf: CF, key: K) -> Result<(), Error>
+	async fn del<K>(&mut self, key: K, tags: TagBucket) -> Result<(), Error>
 	where
 		K: Into<Key> + Send,
 	{
@@ -220,6 +224,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
 
+		let cf = tags.get_bytes("column_family");
 		let name = get_table_name(cf);
 		let def = TableDefinition::<TableKey, TableValue>::new(&name);
 		let mut table = tx.open_table(def);
@@ -234,7 +239,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		Ok(())
 	}
 
-	async fn iterate(&self, cf: CF) -> Result<Vec<Result<KeyValuePair, Error>>, Error> {
+	async fn iterate(&self, tags: TagBucket) -> Result<Vec<Result<KeyValuePair, Error>>, Error> {
 		if self.closed() {
 			return Err(Error::TxFinished);
 		}
@@ -242,6 +247,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
 
+		let cf = tags.get_bytes("column_family");
 		let name = get_table_name(cf);
 		let def = TableDefinition::<TableKey, TableValue>::new(&name);
 		let table = tx.open_table(def);
@@ -261,8 +267,8 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 
 	async fn prefix_iterate<P>(
 		&self,
-		cf: CF,
 		prefix: P,
+		tags: TagBucket,
 	) -> Result<Vec<Result<KeyValuePair, Error>>, Error>
 	where
 		P: Into<Key> + Send,
@@ -274,6 +280,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
 
+		let cf = tags.get_bytes("column_family");
 		let name = get_table_name(cf);
 		let def = TableDefinition::<TableKey, TableValue>::new(&name);
 		let table = tx.open_table(def);
@@ -293,8 +300,8 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 
 	async fn suffix_iterate<S>(
 		&self,
-		cf: CF,
 		suffix: S,
+		tags: TagBucket,
 	) -> Result<Vec<Result<KeyValuePair, Error>>, Error>
 	where
 		S: Into<Key> + Send,
@@ -306,6 +313,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
 
+		let cf = tags.get_bytes("column_family");
 		let name = get_table_name(cf);
 		let def = TableDefinition::<TableKey, TableValue>::new(&name);
 		let table = tx.open_table(def);

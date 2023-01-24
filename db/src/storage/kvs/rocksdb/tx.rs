@@ -11,7 +11,7 @@ use crate::{
 		KeyValuePair,
 	},
 	model::{DBTransaction, SimpleTransaction},
-	CF,
+	TagBucket, CF,
 };
 
 fn take_with_prefix<T: DBAccess>(
@@ -61,13 +61,14 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		self.ok
 	}
 
-	async fn count(&mut self, cf: CF) -> Result<usize, Error> {
+	async fn count(&mut self, tags: TagBucket) -> Result<usize, Error> {
 		if self.closed() {
 			return Err(Error::TxFinished);
 		}
 
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
+		let cf = tags.get_bytes("column_family");
 		let cf = &self.get_column_family(cf).unwrap();
 		Ok(tx.iterator_cf(cf, IteratorMode::Start).count())
 	}
@@ -111,7 +112,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		Ok(())
 	}
 
-	async fn exi<K>(&self, cf: CF, key: K) -> Result<bool, Error>
+	async fn exi<K>(&self, key: K, tags: TagBucket) -> Result<bool, Error>
 	where
 		K: Into<Key> + Send,
 	{
@@ -120,6 +121,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		}
 
 		let tx = self.tx.lock().await;
+		let cf = tags.get_bytes("column_family");
 		match cf {
 			Some(_) => {
 				let cf = &self.get_column_family(cf).unwrap();
@@ -133,7 +135,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		}
 	}
 	// Fetch a key from the database [column family]
-	async fn get<K>(&self, cf: CF, key: K) -> Result<Option<Val>, Error>
+	async fn get<K>(&self, key: K, tags: TagBucket) -> Result<Option<Val>, Error>
 	where
 		K: Into<Key> + Send,
 	{
@@ -143,6 +145,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
+		let cf = tags.get_bytes("column_family");
 		Ok(match cf {
 			Some(_) => {
 				let cf = &self.get_column_family(cf).unwrap();
@@ -152,31 +155,8 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		})
 	}
 
-	async fn multi_get<K>(&self, cf: CF, keys: Vec<K>) -> Result<Vec<Option<Val>>, Error>
-	where
-		K: Into<Key> + Send + AsRef<[u8]>,
-	{
-		if self.closed() {
-			return Err(Error::TxFinished);
-		}
-
-		let guarded_tx = self.tx.lock().await;
-		let tx = guarded_tx.as_ref().unwrap();
-		let mut values = vec![];
-		for key in keys.iter() {
-			let value = match cf {
-				Some(_) => {
-					let cf = &self.get_column_family(cf.clone()).unwrap();
-					tx.get_cf(cf, key).unwrap()
-				}
-				None => tx.get(key).unwrap(),
-			};
-			values.push(value);
-		}
-		Ok(values)
-	}
 	// Insert or update a key in the database
-	async fn set<K, V>(&mut self, cf: CF, key: K, val: V) -> Result<(), Error>
+	async fn set<K, V>(&mut self, key: K, val: V, tags: TagBucket) -> Result<(), Error>
 	where
 		K: Into<Key> + Send,
 		V: Into<Key> + Send,
@@ -193,6 +173,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		// Set the key
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
+		let cf = tags.get_bytes("column_family");
 		match cf {
 			Some(_) => {
 				let cf = &self.get_column_family(cf).unwrap();
@@ -204,7 +185,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 	}
 
 	// Insert a key if it doesn't exist in the database
-	async fn put<K, V>(&mut self, cf: CF, key: K, val: V) -> Result<(), Error>
+	async fn put<K, V>(&mut self, key: K, val: V, tags: TagBucket) -> Result<(), Error>
 	where
 		K: Into<Key> + Send,
 		V: Into<Key> + Send,
@@ -222,7 +203,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
 		let (key, val) = (key.into(), val.into());
-
+		let cf = tags.get_bytes("column_family");
 		match cf {
 			Some(_) => {
 				let cf = &self.get_column_family(cf).unwrap();
@@ -243,7 +224,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 	}
 
 	// Delete a key
-	async fn del<K>(&mut self, cf: CF, key: K) -> Result<(), Error>
+	async fn del<K>(&mut self, key: K, tags: TagBucket) -> Result<(), Error>
 	where
 		K: Into<Key> + Send,
 	{
@@ -259,7 +240,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		let key = key.into();
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
-
+		let cf = tags.get_bytes("column_family");
 		let cf = &self.get_column_family(cf).unwrap();
 		match tx.get_cf(cf, &key)? {
 			Some(_v) => tx.delete_cf(cf, key)?,
@@ -270,7 +251,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 	}
 
 	// Iterate key value elements with handler
-	async fn iterate(&self, cf: CF) -> Result<Vec<Result<KeyValuePair, Error>>, Error> {
+	async fn iterate(&self, tags: TagBucket) -> Result<Vec<Result<KeyValuePair, Error>>, Error> {
 		if self.closed() {
 			return Err(Error::TxFinished);
 		}
@@ -278,6 +259,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
 
+		let cf = tags.get_bytes("column_family");
 		let get_iterator = match cf {
 			Some(_) => {
 				let get_cf = self.get_column_family(cf);
@@ -302,8 +284,8 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 
 	async fn suffix_iterate<S>(
 		&self,
-		cf: CF,
 		suffix: S,
+		tags: TagBucket,
 	) -> Result<Vec<Result<KeyValuePair, Error>>, Error>
 	where
 		S: Into<Key> + Send,
@@ -315,6 +297,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
 		let suffix: Key = suffix.into();
+		let cf = tags.get_bytes("column_family");
 		let iterator = match cf {
 			Some(_) => {
 				let cf = &self.get_column_family(cf).unwrap();
@@ -335,8 +318,8 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 	// Iterate key value elements with handler
 	async fn prefix_iterate<P>(
 		&self,
-		cf: CF,
 		prefix: P,
+		tags: TagBucket,
 	) -> Result<Vec<Result<KeyValuePair, Error>>, Error>
 	where
 		P: Into<Key> + Send,
@@ -348,6 +331,7 @@ impl SimpleTransaction for DBTransaction<DBType, TxType> {
 		let guarded_tx = self.tx.lock().await;
 		let tx = guarded_tx.as_ref().unwrap();
 		let prefix: Key = prefix.into();
+		let cf = tags.get_bytes("column_family");
 		let iterator = match cf {
 			Some(_) => {
 				let cf = &self.get_column_family(cf).unwrap();

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use db::{Datastore, KeyValuePair, SimpleTransaction, CF};
+use db::{tag, Datastore, KeyValuePair, SimpleTransaction};
 use tui::{
 	backend::Backend,
 	layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -50,14 +50,19 @@ fn build_table(pairs: Vec<KeyValuePair>) -> StatefulTable {
 impl DatabaseEditorComponent<'_> {
 	async fn suffix_scan_from_path(
 		&mut self,
-		cf: CF,
+		cf: Option<String>,
 		path: &str,
 		prefix: Vec<u8>,
 	) -> Vec<KeyValuePair> {
 		let mut result = vec![];
 		let ds = Datastore::new(path);
 		let tx = ds.transaction(false).await.unwrap();
-		let data = tx.suffix_iterate(cf, prefix).await;
+		let tags = if let Some(v) = cf {
+			tag!("column_family" => v)
+		} else {
+			tag!()
+		};
+		let data = tx.suffix_iterate(prefix, tags).await;
 		self.clear_err();
 		match data {
 			Ok(pairs) => {
@@ -74,14 +79,19 @@ impl DatabaseEditorComponent<'_> {
 
 	async fn prefix_scan_from_path(
 		&mut self,
-		cf: CF,
+		cf: Option<String>,
 		path: &str,
 		prefix: Vec<u8>,
 	) -> Vec<KeyValuePair> {
 		let mut result = vec![];
 		let ds = Datastore::new(path);
 		let tx = ds.transaction(false).await.unwrap();
-		let data = tx.prefix_iterate(cf, prefix).await;
+		let tags = if let Some(v) = cf {
+			tag!("column_family" => v)
+		} else {
+			tag!()
+		};
+		let data = tx.prefix_iterate(prefix, tags).await;
 		self.clear_err();
 		match data {
 			Ok(pairs) => {
@@ -96,11 +106,16 @@ impl DatabaseEditorComponent<'_> {
 		result
 	}
 
-	async fn scan_from_path(&mut self, cf: CF, path: &str) -> Vec<KeyValuePair> {
+	async fn scan_from_path(&mut self, cf: Option<String>, path: &str) -> Vec<KeyValuePair> {
 		let mut result = vec![];
 		let ds = Datastore::new(path);
 		let tx = ds.transaction(false).await.unwrap();
-		let data = tx.iterate(cf).await;
+		let tags = if let Some(v) = cf {
+			tag!("column_family" => v)
+		} else {
+			tag!()
+		};
+		let data = tx.iterate(tags).await;
 		self.clear_err();
 		match data {
 			Ok(pairs) => {
@@ -116,21 +131,33 @@ impl DatabaseEditorComponent<'_> {
 		result
 	}
 
-	pub async fn prefix_scan_database(&mut self, cf: CF, name: &str, path: &str, prefix: Vec<u8>) {
+	pub async fn prefix_scan_database(
+		&mut self,
+		cf: Option<String>,
+		name: &str,
+		path: &str,
+		prefix: Vec<u8>,
+	) {
 		let db_path = format!("{}:{}", name, path);
 		let pairs = self.prefix_scan_from_path(cf, &db_path, prefix).await;
 		self.table = build_table(pairs.to_vec());
 		self.pairs = pairs;
 	}
 
-	pub async fn suffix_scan_database(&mut self, cf: CF, name: &str, path: &str, suffix: Vec<u8>) {
+	pub async fn suffix_scan_database(
+		&mut self,
+		cf: Option<String>,
+		name: &str,
+		path: &str,
+		suffix: Vec<u8>,
+	) {
 		let db_path = format!("{}:{}", name, path);
 		let pairs = self.suffix_scan_from_path(cf, &db_path, suffix).await;
 		self.table = build_table(pairs.to_vec());
 		self.pairs = pairs;
 	}
 
-	pub async fn scan_database(&mut self, cf: CF, name: &str, path: &str) {
+	pub async fn scan_database(&mut self, cf: Option<String>, name: &str, path: &str) {
 		let db_path = format!("{}:{}", name, path);
 		let pairs = self.scan_from_path(cf, &db_path).await;
 		self.table = build_table(pairs.to_vec());

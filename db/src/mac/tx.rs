@@ -29,14 +29,14 @@ macro_rules! impl_global_transaction {
 			}
 
 			// Count number of items
-			async fn count(&mut self, cf: CF) -> Result<usize, Error> {
+			async fn count(&mut self, tags: TagBucket) -> Result<usize, Error> {
 				match self {
 					$(
 						#[cfg(feature = $feat)]
 						Transaction {
 							inner: Inner::$x(ds),
 							..
-						} => ds.count(cf).await,
+						} => ds.count(tags).await,
 					)*
 				}
 			}
@@ -55,44 +55,27 @@ macro_rules! impl_global_transaction {
 			}
 
 			// Check if a key exists
-			async fn exi<K: Into<Key> + Send>(&self, cf: CF, key: K) -> Result<bool, Error> {
+			async fn exi<K: Into<Key> + Send>(&self, key: K, tags: TagBucket) -> Result<bool, Error> {
 				match self {
 					$(
 						#[cfg(feature = $feat)]
 						Transaction {
 							inner: Inner::$x(ds),
 							..
-						} => ds.exi(cf, key).await,
+						} => ds.exi(key, tags).await,
 					)*
 				}
 			}
 
 			/// Fetch a key from the database
-			async fn get<K: Into<Key> + Send>(&self, cf: CF, key: K) -> Result<Option<Val>, Error> {
+			async fn get<K: Into<Key> + Send>(&self, key: K, tags: TagBucket) -> Result<Option<Val>, Error> {
 				match self {
 					$(
 						#[cfg(feature = $feat)]
 						Transaction {
 							inner: Inner::$x(ds),
 							..
-						} => ds.get(cf, key).await,
-					)*
-				}
-			}
-
-			// OPTIONAL Fetch multiple keys from the database
-			async fn multi_get<K: Into<Key> + Send + AsRef<[u8]>>(
-				&self,
-				cf: CF,
-				keys: Vec<K>,
-			) -> Result<Vec<Option<Val>>, Error> {
-				match self {
-					$(
-						#[cfg(feature = $feat)]
-						Transaction {
-							inner: Inner::$x(ds),
-							..
-						} => ds.multi_get(cf, keys).await,
+						} => ds.get(key, tags).await,
 					)*
 				}
 			}
@@ -100,9 +83,9 @@ macro_rules! impl_global_transaction {
 			/// Insert or update a key in the database
 			async fn set<K: Into<Key> + Send, V: Into<Key> + Send>(
 				&mut self,
-				cf: CF,
 				key: K,
 				val: V,
+				tags: TagBucket
 			) -> Result<(), Error> {
 				match self {
 					$(
@@ -110,7 +93,7 @@ macro_rules! impl_global_transaction {
 						Transaction {
 							inner: Inner::$x(ds),
 							..
-						} => ds.set(cf, key, val).await,
+						} => ds.set(key, val, tags).await,
 					)*
 				}
 			}
@@ -118,9 +101,9 @@ macro_rules! impl_global_transaction {
 			/// Insert a key if it doesn't exist in the database
 			async fn put<K: Into<Key> + Send, V: Into<Key> + Send>(
 				&mut self,
-				cf: CF,
 				key: K,
 				val: V,
+				tags: TagBucket
 			) -> Result<(), Error> {
 				match self {
 					$(
@@ -128,28 +111,28 @@ macro_rules! impl_global_transaction {
 						Transaction {
 							inner: Inner::$x(ds),
 							..
-						} => ds.put(cf, key, val).await,
+						} => ds.put(key, val, tags).await,
 					)*
 				}
 			}
 
 			/// Delete a key
-			async fn del<K: Into<Key> + Send>(&mut self, cf: CF, key: K) -> Result<(), Error> {
+			async fn del<K: Into<Key> + Send>(&mut self, key: K, tags: TagBucket) -> Result<(), Error> {
 				match self {
 					$(
 						#[cfg(feature = $feat)]
 						Transaction {
 							inner: Inner::$x(ds),
 							..
-						} => ds.del(cf, key ).await,
+						} => ds.del(key, tags).await,
 					)*
 				}
 			}
 
 			async fn prefix_iterate<P>(
 				&self,
-				cf: CF,
 				prefix: P,
+				tags: TagBucket
 			) -> Result<Vec<Result<(Val, Val), Error>>, Error>
 			where
 				P: Into<Key> + Send,
@@ -160,15 +143,15 @@ macro_rules! impl_global_transaction {
 						Transaction {
 							inner: Inner::$x(ds),
 							..
-						} => ds.prefix_iterate(cf, prefix).await,
+						} => ds.prefix_iterate(prefix, tags).await,
 					)*
 				}
 			}
 
 			async fn suffix_iterate<S>(
 				&self,
-				cf: CF,
 				suffix: S,
+				tags: TagBucket,
 			) -> Result<Vec<Result<(Val, Val), Error>>, Error>
 			where
 				S: Into<Key> + Send,
@@ -179,18 +162,18 @@ macro_rules! impl_global_transaction {
 						Transaction {
 							inner: Inner::$x(ds),
 							..
-						} => ds.suffix_iterate(cf, suffix).await,
+						} => ds.suffix_iterate(suffix, tags).await,
 					)*
 				}
 			}
 
-			async fn iterate(&self, cf: CF) -> Result<Vec<Result<(Val, Val), Error>>, Error> {
+			async fn iterate(&self, tags: TagBucket) -> Result<Vec<Result<(Val, Val), Error>>, Error> {
 				match self {
 					$(
 						Transaction {
 							inner: Inner::$x(ds),
 							..
-						} => ds.iterate(cf).await,
+						} => ds.iterate(tags).await,
 					)*
 				}
 			}
