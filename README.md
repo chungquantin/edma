@@ -51,7 +51,7 @@ border-radius: 10px;" src="https://user-images.githubusercontent.com/56880684/20
 - [ ] NEW: Universal Key Value Storage support (UKV)
 - [ ] NEW: Sled support
 - [ ] NEW: LevelDB support
-- Adding consistent mode for editor view
+- [ ] Adding consistent mode for editor view
 
 ## Getting Started
 
