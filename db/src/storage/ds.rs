@@ -112,7 +112,7 @@ impl Datastore {
 mod test {
 	use crate::{
 		constant::{ColumnFamily, COLUMN_FAMILIES},
-		SimpleTransaction,
+		tag, SimpleTransaction,
 	};
 
 	use super::Datastore;
@@ -121,9 +121,6 @@ mod test {
 	async fn should_create() {
 		let db = Datastore::new("redb:../temp/v1.redb");
 		assert!(db.transaction(false).await.is_ok());
-
-		// Seeding database
-		let cf = None;
 
 		let key1 = i32::to_be_bytes(2001);
 		let key2 = "new key new data hehe";
@@ -134,9 +131,9 @@ mod test {
 		let val3 = "this is a new value";
 
 		let mut tx = db.transaction(true).await.unwrap();
-		tx.set(cf.clone(), key1, val1).await.unwrap();
-		tx.set(cf.clone(), key2, val2).await.unwrap();
-		tx.set(cf.clone(), key3, val3).await.unwrap();
+		tx.set(key1, val1, tag!()).await.unwrap();
+		tx.set(key2, val2, tag!()).await.unwrap();
+		tx.set(key3, val3, tag!()).await.unwrap();
 		tx.commit().await.unwrap();
 	}
 
@@ -147,8 +144,6 @@ mod test {
 
 		// Seeding database
 		let cf_name = COLUMN_FAMILIES.get(&ColumnFamily::TestSuite).unwrap();
-		let cf = Some(cf_name.to_string().into());
-
 		let key1 = i32::to_be_bytes(2100);
 		let key2 = "cf => hello world";
 		let key3 = "cf => this is a key";
@@ -158,9 +153,10 @@ mod test {
 		let val3 = "cf => this is a new value";
 
 		let mut tx = db.transaction(true).await.unwrap();
-		tx.set(cf.clone(), key1, val1).await.unwrap();
-		tx.set(cf.clone(), key2, val2).await.unwrap();
-		tx.set(cf.clone(), key3, val3).await.unwrap();
+		let tags = tag!("column_family" => cf_name.clone());
+		tx.set(key1, val1, tags.clone()).await.unwrap();
+		tx.set(key2, val2, tags.clone()).await.unwrap();
+		tx.set(key3, val3, tags.clone()).await.unwrap();
 		tx.commit().await.unwrap();
 	}
 }

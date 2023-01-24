@@ -3,7 +3,8 @@ mod interface;
 #[macro_use]
 mod mac;
 mod constant;
-mod model;
+#[macro_use]
+pub mod model;
 mod storage;
 mod util;
 
