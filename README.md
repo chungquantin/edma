@@ -46,6 +46,13 @@ border-radius: 10px;" src="https://user-images.githubusercontent.com/56880684/20
 -   Interactive terminal interface with keyboard only control
 -   Iterate key-value pairs from column family and table
 
+## Roadmap
+
+- [ ] NEW: Universal Key Value Storage support (UKV)
+- [ ] NEW: Sled support
+- [ ] NEW: LevelDB support
+- Adding consistent mode for editor view
+
 ## Getting Started
 
 ### Installation
