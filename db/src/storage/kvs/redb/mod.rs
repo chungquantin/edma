@@ -7,8 +7,8 @@ pub use tx::*;
 pub use ty::*;
 
 use crate::{
-	util::generate_path, DBTransaction, DatastoreAdapter, Error, StorageAdapter,
-	StorageAdapterName, StorageVariant,
+	util::{generate_path, get_absolute_path},
+	DBTransaction, DatastoreAdapter, Error, StorageAdapter, StorageAdapterName, StorageVariant,
 };
 pub struct ReDBAdapter(StorageAdapter<DBType>);
 
@@ -20,7 +20,8 @@ impl ReDBAdapter {
 
 	pub fn new(path: &str) -> Result<ReDBAdapter, Error> {
 		let path = &path["redb:".len()..];
-		let db_instance = unsafe { Database::create(path).unwrap() };
+		let abs_path = get_absolute_path(path);
+		let db_instance = unsafe { Database::create(abs_path.as_str()).unwrap() };
 
 		Ok(ReDBAdapter(StorageAdapter::<DBType>::new(
 			StorageAdapterName::ReDB,

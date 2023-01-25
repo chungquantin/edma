@@ -45,6 +45,5 @@ path-absolutize = "3.0.14"
 [dev-dependencies]
 tokio = { version = "1.21.2", features = ["macros", "rt"] }
 
-
 [lib]
 name = "db"

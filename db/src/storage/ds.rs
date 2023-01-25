@@ -119,7 +119,7 @@ mod test {
 
 	#[tokio::test]
 	async fn should_create() {
-		let db = Datastore::new("redb:../temp/v1.redb");
+		let db = Datastore::new("redb:../temp/redb");
 		assert!(db.transaction(false).await.is_ok());
 
 		let key1 = i32::to_be_bytes(2001);
@@ -134,6 +134,8 @@ mod test {
 		tx.set(key1, val1, tag!()).await.unwrap();
 		tx.set(key2, val2, tag!()).await.unwrap();
 		tx.set(key3, val3, tag!()).await.unwrap();
+		let iter = tx.iterate(tag!()).await.unwrap();
+		assert!(iter.len() == 3);
 		tx.commit().await.unwrap();
 	}
 
@@ -157,6 +159,8 @@ mod test {
 		tx.set(key1, val1, tags.clone()).await.unwrap();
 		tx.set(key2, val2, tags.clone()).await.unwrap();
 		tx.set(key3, val3, tags.clone()).await.unwrap();
+		let iter = tx.iterate(tags.clone()).await.unwrap();
+		assert!(iter.len() == 3);
 		tx.commit().await.unwrap();
 	}
 }

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use db::{tag, Datastore, KeyValuePair, SimpleTransaction};
+use db::{tag, Datastore, KeyValuePair, SimpleTransaction, TagBucket};
 use tui::{
 	backend::Backend,
 	layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -86,11 +86,7 @@ impl DatabaseEditorComponent<'_> {
 		let mut result = vec![];
 		let ds = Datastore::new(path);
 		let tx = ds.transaction(false).await.unwrap();
-		let tags = if let Some(v) = cf {
-			tag!("column_family" => v)
-		} else {
-			tag!()
-		};
+		let tags = self.build_tags(cf);
 		let data = tx.prefix_iterate(prefix, tags).await;
 		self.clear_err();
 		match data {
@@ -106,15 +102,20 @@ impl DatabaseEditorComponent<'_> {
 		result
 	}
 
-	async fn scan_from_path(&mut self, cf: Option<String>, path: &str) -> Vec<KeyValuePair> {
-		let mut result = vec![];
-		let ds = Datastore::new(path);
-		let tx = ds.transaction(false).await.unwrap();
+	fn build_tags(&self, cf: Option<String>) -> TagBucket {
 		let tags = if let Some(v) = cf {
 			tag!("column_family" => v)
 		} else {
 			tag!()
 		};
+		tags
+	}
+
+	async fn scan_from_path(&mut self, cf: Option<String>, path: &str) -> Vec<KeyValuePair> {
+		let mut result = vec![];
+		let ds = Datastore::new(path);
+		let tx = ds.transaction(false).await.unwrap();
+		let tags = self.build_tags(cf);
 		let data = tx.iterate(tags).await;
 		self.clear_err();
 		match data {

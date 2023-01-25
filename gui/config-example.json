@@ -2,7 +2,7 @@
   "databases": [
     {
       "name": "rocksdb",
-      "path": "../temp"
+      "path": "../temp/cf"
     },
     {
       "name": "redb",
