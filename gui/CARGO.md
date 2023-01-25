@@ -12,16 +12,19 @@ Embedded Database Management for All
 </pre>
 <br/>
 
-<p>
+<p align="center">
  <a href="https://github.com/nomadiz/edma"><img src="https://img.shields.io/badge/built_with-Rust-dca282.svg?style=flat-square"></a>
 <a href="https://crates.io/crates/edma"><img src="https://img.shields.io/crates/v/edma.svg?logo=rust"/></a>
-<a href="https://github.com/nomadiz/edma"><img src="https://img.shields.io/github/v/release/nomadiz/edma?color=%23ff00a0&include_prereleases&label=version&sort=semver&style=flat-square"></a>
+<a href="https://github.com/nomadiz/edma"><img src="https://img.shields.io/github/v/release/nomadiz/edma?color=%23ff00a0&include_releases&label=version&sort=semver&style=flat-square"></a>
 <a href="https://github.com/nomadiz/edma/blob/master/LICENSE">
 <img src="https://img.shields.io/badge/license-MIT License-00bfff.svg?style=flat-square"></a>
 <a href="https://github.com/nomadiz/edma/graphs/contributors" alt="Contributors">
 <img src="https://img.shields.io/github/contributors/nomadiz/edma?color=green" /></a>
 <a href="https://github.com/nomadiz/edma/pulse" alt="Activity">
 	</a>
+</p>
+<p align="center">
+<a href="https://www.producthunt.com/posts/edma?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-edma" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=370554&theme=dark" alt="EDMA - A&#0032;terminal&#0032;app&#0032;for&#0032;embedded&#0032;database&#0032;management&#0046; | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
 </p>
 
 ## What is EDMA?
@@ -36,24 +39,36 @@ border-radius: 10px;" src="https://user-images.githubusercontent.com/56880684/20
 
 ## Features
 
--   Multi embedded database supported: `RocksDB`, `Redb`
+-   Multi embedded database supported: `RocksDB`, `Redb`, `Sled
+-   `
 -   Cross-platform supported: `Windows`, `Linux` and `MacOS`
 -   Custom byte layout deserialization
 -   Execute database command directly in terminal
 -   Interactive terminal interface with keyboard only control
 -   Iterate key-value pairs from column family and table
 
+## Roadmap
+
+-   [ ] NEW: Universal Key Value Storage support (UKV)
+-   [x] NEW: Sled support
+-   [ ] NEW: LevelDB support
+-   [ ] Adding consistent mode for editor view
+
+## Supported Storages
+
+EDMA supports multiple databases with easy plug-to-play architecture. Please check below list for supported databases and its features:
+
+| Database name | Description                                                    | EDMA release                                                                | Pull request                                                |
+| ------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| RocksDB       | Support both non-column and column byte data viewer (`COLUMN`) | [v0.1.0-beta.4](https://github.com/nomadiz/edma/releases/tag/v0.1.0-beta.4) | N/A                                                         |
+| ReDB          | Support default database (Will add `TABLE` view)               | [v0.1.0-beta.4](https://github.com/nomadiz/edma/releases/tag/v0.1.0-beta.4) | N/A                                                         |
+| Sled          | Support both non-tree and tree byte data viewer (`TREE`)       | [v0.1.0-beta.5](https://github.com/nomadiz/edma/releases/tag/v0.1.0-beta.5) | [#8 Sled support](https://github.com/nomadiz/edma/issues/8) |
+
+To create a PR for a database integration, please go to [`Issues > New Issue > Feature request`](https://github.com/nomadiz/edma/issues/new?assignees=&labels=&template=feature_request.md&title=)
+
 ## Getting Started
 
 ### Installation
-
-#### With Homebrew (Linux, macOS)
-
-If you’re using Homebrew or Linuxbrew, install the edma formula:
-
-```
-brew install nomadiz/tap/edma
-```
 
 #### With Cargo (Linux, macOS, Windows)
 
@@ -174,11 +189,23 @@ border-radius: 10px;" src="https://user-images.githubusercontent.com/56880684/20
 
 EDMA supports inline command to interact with embedded databases. The list of supported commands are
 
-### `COLUMN` or `TABLE`: Iterate with defined column famility or table
+### - `COLUMN` or `TABLE`
+
+Iterate with defined column famility or table
 
 #### Arguments
 
 -   `String`: Column family name
+
+### - `PREFIX` or `SUFFIX`
+
+Iterate filtered by prefix or suffix.
+
+Note: This command is for key iteration not value iteration.
+
+#### Arguments
+
+-   `String`: Prefix value or suffix value
 
 ## Configuration
 
@@ -232,6 +259,10 @@ Configuration file example
 		{
 			"name": "rocksdb",
 			"path": "/temp"
+		},
+		{
+			"name": "sled",
+			"path": "/temp/sled"
 		}
 	],
 	"templates": [

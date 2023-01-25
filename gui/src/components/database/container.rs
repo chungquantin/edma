@@ -5,6 +5,7 @@ use crate::{
 	utils::get_absolute_path,
 };
 use anyhow::Result;
+use db::tag;
 use tui::{
 	backend::Backend,
 	layout::{Constraint, Direction, Layout, Rect},
@@ -65,25 +66,29 @@ impl<'a> DatabaseTabComponent<'a> {
 
 	async fn handle_command_event(&mut self) {
 		let commands = self.command.commands.to_vec();
-		let cf_handle = None;
+		let mut tags = tag!();
 		let (name, path, _) = self.get_database_info();
 		for command in commands {
 			match command.token.as_str() {
 				// COLUMN is specified for RocksDB, Redb should be TABLE
 				"COLUMN" => {
-					let cf_handle = Some(command.value);
-					self.editor.scan_database(cf_handle.clone(), &name, &path).await;
+					tags.insert("column_family", command.value);
+					self.editor.scan_database(tags.clone(), &name, &path).await;
+				}
+				"TREE" => {
+					tags.insert("tree", command.value);
+					self.editor.scan_database(tags.clone(), &name, &path).await;
 				}
 				// PREFIX and SUFFIX scan only support key traversal not value traversal
 				"PREFIX" => {
 					let prefix = &command.value;
 					let bytes = prefix.as_bytes().to_vec();
-					self.editor.prefix_scan_database(cf_handle.clone(), &name, &path, bytes).await;
+					self.editor.prefix_scan_database(tags.clone(), &name, &path, bytes).await;
 				}
 				"SUFFIX" => {
 					let suffix = &command.value;
 					let bytes = suffix.as_bytes().to_vec();
-					self.editor.suffix_scan_database(cf_handle.clone(), &name, &path, bytes).await;
+					self.editor.suffix_scan_database(tags.clone(), &name, &path, bytes).await;
 				}
 				_ => {}
 			}
@@ -95,7 +100,7 @@ impl<'a> DatabaseTabComponent<'a> {
 		if self.explorer.state().selected().is_some() {
 			let (name, path, abs_p) = self.get_database_info();
 			self.status.set_text(Span::raw(abs_p));
-			self.editor.scan_database(None, &name, &path).await;
+			self.editor.scan_database(tag!(), &name, &path).await;
 		} else {
 			self.status.reset();
 		}

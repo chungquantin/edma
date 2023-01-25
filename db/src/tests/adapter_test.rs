@@ -1,13 +1,13 @@
 use std::str::from_utf8;
 
 use crate::{
-	constant::{ColumnFamily, COLUMN_FAMILIES},
+	constant::{ColumnFamily, KEYSPACES},
 	tag, DatastoreAdapter, SimpleTransaction,
 };
 
 pub async fn should_set_key(adapter: impl DatastoreAdapter) {
 	let adapter = adapter.spawn();
-	let cf_name = COLUMN_FAMILIES.get(&ColumnFamily::TestSuite).unwrap();
+	let cf_name = KEYSPACES.get(&ColumnFamily::TestSuite).unwrap();
 	let mut tx = adapter.transaction(true).await.unwrap();
 	let tags = tag!("column_family" => cf_name.clone());
 

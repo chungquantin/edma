@@ -1,6 +1,6 @@
 [package]
 name = "edma"
-version = "0.1.0-beta.4"
+version = "0.1.0-beta.5"
 publish = true
 edition = "2021"
 readme = "CARGO.md"
@@ -27,7 +27,7 @@ tui = { version = "0.19", default-features = false, features = ['crossterm'] }
 thiserror = "1.0"
 anyhow = "1.0.66"
 tokio = { version = "1.11.0", features = ["full"] }
-edma_storage = { path = "../db", version = "0.0.1" }
+edma_storage = { path = "../db", version = "0.0.2" }
 path-absolutize = "3.0.14"
 unicode-width = "0.1.10"
 uuid = "1.2.2"

@@ -71,6 +71,18 @@ impl CommandComponent {
 						}
 					}
 				}
+				t if token.starts_with("TREE") => {
+					let value = t.split('=').nth(1);
+					match value {
+						Some(v) => self.add_command(Command {
+							token: "TREE".to_string(),
+							value: v.to_string(),
+						}),
+						None => {
+							return self.set_invalid(true, "No TREE value found");
+						}
+					}
+				}
 				t if token.starts_with("PREFIX") => {
 					let value = t.split('=').nth(1);
 					match value {

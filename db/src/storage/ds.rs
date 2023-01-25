@@ -7,6 +7,7 @@ use super::ReDBAdapter;
 
 #[cfg(feature = "kv-rocksdb")]
 use super::RocksDBAdapter;
+use super::SledAdapter;
 
 #[derive(Copy, Clone)]
 pub struct DatastoreRef<'a> {
@@ -27,6 +28,8 @@ pub enum Inner {
 	RocksDB(RocksDBAdapter),
 	#[cfg(feature = "kv-redb")]
 	ReDB(ReDBAdapter),
+	#[cfg(feature = "kv-sled")]
+	Sled(SledAdapter),
 }
 
 pub struct Datastore {
@@ -43,7 +46,7 @@ impl Datastore {
 	pub fn new(path: &str) -> Datastore {
 		match path {
 			#[cfg(feature = "kv-rocksdb")]
-			s if s.starts_with("default:") | s.starts_with("rocksdb:") | s.eq("default") => {
+			s if s.starts_with("rocksdb:") => {
 				let db = RocksDBAdapter::new(s, None).unwrap();
 
 				Datastore {
@@ -56,6 +59,14 @@ impl Datastore {
 
 				Datastore {
 					inner: Inner::ReDB(db),
+				}
+			}
+			#[cfg(feature = "kv-sled")]
+			s if s.starts_with("sled:") => {
+				let db = SledAdapter::new(s).unwrap();
+
+				Datastore {
+					inner: Inner::Sled(db),
 				}
 			}
 			_ => unimplemented!(),
@@ -81,7 +92,8 @@ impl Datastore {
 		}
 		impl_transaction_method!(
 			RocksDB feat "kv-rocksdb",
-			ReDB feat "kv-redb"
+			ReDB feat "kv-redb",
+			Sled feat "kv-sled"
 		)
 	}
 
@@ -103,7 +115,8 @@ impl Datastore {
 		}
 		impl_transaction_method!(
 			RocksDB feat "kv-rocksdb",
-			ReDB feat "kv-redb"
+			ReDB feat "kv-redb",
+			Sled feat "kv-sled"
 		)
 	}
 }
@@ -111,15 +124,40 @@ impl Datastore {
 #[cfg(test)]
 mod test {
 	use crate::{
-		constant::{ColumnFamily, COLUMN_FAMILIES},
+		constant::{ColumnFamily, KEYSPACES},
 		tag, SimpleTransaction,
 	};
 
 	use super::Datastore;
 
 	#[tokio::test]
-	async fn should_create() {
-		let db = Datastore::new("redb:../temp/v1.redb");
+	async fn should_rocksdb_create_with_cf() {
+		let db = Datastore::new("rocksdb:../temp/cf");
+		assert!(db.transaction(false).await.is_ok());
+
+		// Seeding database
+		let cf_name = KEYSPACES.get(&ColumnFamily::TestSuite).unwrap();
+		let key1 = i32::to_be_bytes(2100);
+		let key2 = "cf => hello world";
+		let key3 = "cf => this is a key";
+
+		let val1 = "cf => mock value";
+		let val2 = "cf => mock value 2";
+		let val3 = "cf => this is a new value";
+
+		let mut tx = db.transaction(true).await.unwrap();
+		let tags = tag!("column_family" => cf_name.clone());
+		tx.set(key1, val1, tags.clone()).await.unwrap();
+		tx.set(key2, val2, tags.clone()).await.unwrap();
+		tx.set(key3, val3, tags.clone()).await.unwrap();
+		let iter = tx.iterate(tags.clone()).await.unwrap();
+		assert!(iter.len() == 3);
+		tx.commit().await.unwrap();
+	}
+
+	#[tokio::test]
+	async fn should_redb_create() {
+		let db = Datastore::new("redb:../temp/redb");
 		assert!(db.transaction(false).await.is_ok());
 
 		let key1 = i32::to_be_bytes(2001);
@@ -134,29 +172,56 @@ mod test {
 		tx.set(key1, val1, tag!()).await.unwrap();
 		tx.set(key2, val2, tag!()).await.unwrap();
 		tx.set(key3, val3, tag!()).await.unwrap();
+		let iter = tx.iterate(tag!()).await.unwrap();
+		assert!(iter.len() == 3);
 		tx.commit().await.unwrap();
 	}
 
 	#[tokio::test]
-	async fn should_create_with_cf() {
-		let db = Datastore::new("rocksdb:../temp/cf");
+	async fn should_sled_create() {
+		let db = Datastore::new("sled:../temp");
 		assert!(db.transaction(false).await.is_ok());
 
 		// Seeding database
-		let cf_name = COLUMN_FAMILIES.get(&ColumnFamily::TestSuite).unwrap();
 		let key1 = i32::to_be_bytes(2100);
-		let key2 = "cf => hello world";
-		let key3 = "cf => this is a key";
+		let key2 = "hello world";
+		let key3 = "this is a key";
 
-		let val1 = "cf => mock value";
-		let val2 = "cf => mock value 2";
-		let val3 = "cf => this is a new value";
+		let val1 = "mock value";
+		let val2 = "mock value 2";
+		let val3 = "this is a new value";
 
 		let mut tx = db.transaction(true).await.unwrap();
-		let tags = tag!("column_family" => cf_name.clone());
+		tx.set(key1, val1, tag!()).await.unwrap();
+		tx.set(key2, val2, tag!()).await.unwrap();
+		tx.set(key3, val3, tag!()).await.unwrap();
+		let iter = tx.iterate(tag!()).await.unwrap();
+		assert!(iter.len() == 3);
+		tx.commit().await.unwrap();
+	}
+
+	#[tokio::test]
+	async fn should_sled_create_tree() {
+		let db = Datastore::new("sled:../temp/cf");
+		assert!(db.transaction(false).await.is_ok());
+
+		// Seeding database
+		let tree_name = KEYSPACES.get(&ColumnFamily::TestSuite).unwrap();
+		let key1 = i32::to_be_bytes(2100);
+		let key2 = "tree => hello world";
+		let key3 = "tree => this is a key";
+
+		let val1 = "tree => mock value";
+		let val2 = "tree => mock value 2";
+		let val3 = "tree => this is a new value";
+
+		let mut tx = db.transaction(true).await.unwrap();
+		let tags = tag!("tree" => tree_name.clone());
 		tx.set(key1, val1, tags.clone()).await.unwrap();
 		tx.set(key2, val2, tags.clone()).await.unwrap();
 		tx.set(key3, val3, tags.clone()).await.unwrap();
+		let iter = tx.iterate(tags.clone()).await.unwrap();
+		assert!(iter.len() == 3);
 		tx.commit().await.unwrap();
 	}
 }

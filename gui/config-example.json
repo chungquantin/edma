@@ -2,11 +2,19 @@
   "databases": [
     {
       "name": "rocksdb",
-      "path": "../temp"
+      "path": "../temp/cf"
     },
     {
       "name": "redb",
       "path": "../temp/redb"
+    },
+    {
+      "name": "sled",
+      "path": "../temp"
+    },
+    {
+      "name": "sled",
+      "path": "../temp/cf"
     }
   ],
   "templates": [
