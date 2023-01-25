@@ -39,7 +39,8 @@ border-radius: 10px;" src="https://user-images.githubusercontent.com/56880684/20
 
 ## Features
 
--   Multi embedded database supported: `RocksDB`, `Redb`
+-   Multi embedded database supported: `RocksDB`, `Redb`, `Sled
+-   `
 -   Cross-platform supported: `Windows`, `Linux` and `MacOS`
 -   Custom byte layout deserialization
 -   Execute database command directly in terminal
@@ -48,10 +49,22 @@ border-radius: 10px;" src="https://user-images.githubusercontent.com/56880684/20
 
 ## Roadmap
 
-- [ ] NEW: Universal Key Value Storage support (UKV)
-- [ ] NEW: Sled support
-- [ ] NEW: LevelDB support
-- [ ] Adding consistent mode for editor view
+-   [ ] NEW: Universal Key Value Storage support (UKV)
+-   [x] NEW: Sled support
+-   [ ] NEW: LevelDB support
+-   [ ] Adding consistent mode for editor view
+
+## Supported Storages
+
+EDMA supports multiple databases with easy plug-to-play architecture. Please check below list for supported databases and its features:
+
+| Database name | Description                                                    | EDMA release                                                                | Pull request                                                |
+| ------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| RocksDB       | Support both non-column and column byte data viewer (`COLUMN`) | [v0.1.0-beta.4](https://github.com/nomadiz/edma/releases/tag/v0.1.0-beta.4) | N/A                                                         |
+| ReDB          | Support default database (Will add `TABLE` view)               | [v0.1.0-beta.4](https://github.com/nomadiz/edma/releases/tag/v0.1.0-beta.4) | N/A                                                         |
+| Sled          | Support both non-tree and tree byte data viewer (`TREE`)       | [v0.1.0-beta.5](https://github.com/nomadiz/edma/releases/tag/v0.1.0-beta.5) | [#8 Sled support](https://github.com/nomadiz/edma/issues/8) |
+
+To create a PR for a database integration, please go to [`Issues > New Issue > Feature request`](https://github.com/nomadiz/edma/issues/new?assignees=&labels=&template=feature_request.md&title=)
 
 ## Getting Started
 
@@ -202,6 +215,7 @@ Database name should be these two below
 
 -   `rocksdb`: RocksDB
 -   `redb`: Redb
+-   `sled`: Sled
 
 Database path should be `String` type
 
@@ -246,6 +260,10 @@ Configuration file example
 		{
 			"name": "rocksdb",
 			"path": "/temp"
+		},
+		{
+			"name": "sled",
+			"path": "/temp/sled"
 		}
 	],
 	"templates": [

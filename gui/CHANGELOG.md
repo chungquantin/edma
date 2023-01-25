@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## [0.1.0-beta.5] - 2023-01-25
+
+### Added
+
+-   Migrate from fixed column family design to TagBucket datastructure
+-   Allows more databases to be integrated into EDMA using TagBucket
+-   Supported tags: `tree` (for Sled), `column_family` (for RocksDB)
+-   Add Sled integration: Allows iterate and view database item stored globally and stored in a tree using command `TREE=<tree_name_goes_here>`
+
 ## [0.1.0-beta.4] - 2022-12-13
 
 ### Added

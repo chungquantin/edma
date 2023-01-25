@@ -28,6 +28,10 @@ impl TagBucket {
 		self.0.get(key).cloned()
 	}
 
+	pub fn insert(&mut self, key: TagKey, val: TagValue) {
+		self.0.insert(key, val);
+	}
+
 	pub fn unchecked_get(&self, key: TagKey) -> TagValue {
 		self.0.get(key).unwrap().clone()
 	}

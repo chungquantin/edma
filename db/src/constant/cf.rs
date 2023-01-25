@@ -8,7 +8,7 @@ pub enum ColumnFamily {
 }
 
 lazy_static! {
-	pub static ref COLUMN_FAMILIES: HashMap<ColumnFamily, String> =
+	pub static ref KEYSPACES: HashMap<ColumnFamily, String> =
 		HashMap::from([(ColumnFamily::TestSuite, "test_suite:v1".to_string()),]);
-	pub static ref CF_NAMES: Vec<&'static String> = COLUMN_FAMILIES.values().collect();
+	pub static ref CF_NAMES: Vec<&'static String> = KEYSPACES.values().collect();
 }

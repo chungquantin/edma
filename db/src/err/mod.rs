@@ -67,3 +67,10 @@ impl From<redb::Error> for Error {
 		Error::Tx(e.to_string())
 	}
 }
+
+#[cfg(feature = "kv-sled")]
+impl From<sled::Error> for Error {
+	fn from(e: sled::Error) -> Error {
+		Error::Tx(e.to_string())
+	}
+}
