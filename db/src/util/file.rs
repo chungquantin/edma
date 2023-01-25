@@ -46,5 +46,5 @@ pub fn database_path(name: &str, id: Option<i32>) -> String {
 	}
 	.join(format!("edma-{}-{}", name, id));
 
-	String::from(format!("{}:", name)) + &path_to_string(&path).unwrap()
+	format!("{}:", name) + &path_to_string(&path).unwrap()
 }
