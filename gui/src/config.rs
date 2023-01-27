@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs, path::Path};
+use std::{collections::HashMap, fs, path::{Path, PathBuf}};
 
 use serde_json::Value;
 use structopt::StructOpt;
@@ -15,9 +15,12 @@ pub struct DatabaseConfig {
 
 #[derive(StructOpt, Debug)]
 pub struct CliConfig {
-	/// Set the config file
-	#[structopt(long, short, global = true)]
-	config_path: Option<std::path::PathBuf>,
+	/// Set the config file)
+	#[structopt(long, short, global = true, default_value="./edma.json")]
+	config_path: std::path::PathBuf,
+	/// Create a new example config file
+	#[structopt(long, global = true)]
+	create_config: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -58,14 +61,9 @@ fn build_template(name: &str, variant: LayoutVariant) -> LayoutTemplate {
 
 impl Config {
 	pub fn new(config: &CliConfig) -> Self {
-		let binding = Path::new("./config-example.json").to_path_buf();
-		let path = match &config.config_path {
-			Some(c) => c,
-			None => &binding,
-		};
 		Config {
 			databases: Default::default(),
-			path: get_absolute_path_buf(path.to_path_buf()),
+			path: get_absolute_path_buf(config.config_path.to_path_buf()),
 			templates: Default::default(),
 			key_config: KeyConfig {
 				backspace: Key::Backspace,
@@ -98,9 +96,24 @@ impl Config {
 	}
 }
 
+fn create_config_example(path: &PathBuf) {
+	let config_example = include_str!("../config-example.json");
+	if !path.exists() {
+		println!("Creating config file: {}", path.to_str().unwrap());
+		fs::write(path, config_example).unwrap();
+	} else {
+		panic!("Config file already exists: {}", path.to_str().unwrap());
+	}
+}
+
 pub fn load_config(cli: &CliConfig) -> Config {
 	let mut config = Config::new(cli);
-	let data = fs::read_to_string(config.clone().path).expect("Unable to read file");
+	if cli.create_config {
+		create_config_example(&cli.config_path);
+	}
+	let Ok(data) = fs::read_to_string(&config.path) else {
+		panic!("Unable to read config file: {}. Run with `--create-config` to create an example config file", config.path)
+	};
 	let res: serde_json::Value = serde_json::from_str(&data).expect("Unable to parse");
 
 	if let Some(d) = res.get("databases") {

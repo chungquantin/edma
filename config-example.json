@@ -1,0 +1,39 @@
+{
+  "databases": [
+    {
+      "name": "rocksdb",
+      "path": "../temp/cf"
+    },
+    {
+      "name": "redb",
+      "path": "../temp/redb"
+    },
+    {
+      "name": "sled",
+      "path": "../temp"
+    },
+    {
+      "name": "sled",
+      "path": "../temp/cf"
+    }
+  ],
+  "templates": [
+    {
+      "name": "Custom layout",
+      "layouts": [
+        {
+          "name": "name",
+          "from": 0,
+          "to": 5,
+          "variant": "String"
+        },
+        {
+          "name": "id",
+          "from": 5,
+          "to": 10,
+          "variant": "Int64"
+        }
+      ]
+    }
+  ]
+}
