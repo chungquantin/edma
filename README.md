@@ -39,8 +39,7 @@ border-radius: 10px;" src="https://user-images.githubusercontent.com/56880684/20
 
 ## Features
 
--   Multi embedded database supported: `RocksDB`, `Redb`, `Sled
--   `
+-   Multi embedded database supported: `RocksDB`, `Redb`, `Sled`
 -   Cross-platform supported: `Windows`, `Linux` and `MacOS`
 -   Custom byte layout deserialization
 -   Execute database command directly in terminal
