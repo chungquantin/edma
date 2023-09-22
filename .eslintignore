@@ -1,0 +1,8 @@
+**/dist
+**/.git
+**/.svn
+**/.hg
+**/node_modules
+**/widget
+**/build
+**/*.d.ts

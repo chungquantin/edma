@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs, path::{Path, PathBuf}};
+use std::{collections::HashMap, fs, path::PathBuf};
 
 use serde_json::Value;
 use structopt::StructOpt;
@@ -16,7 +16,7 @@ pub struct DatabaseConfig {
 #[derive(StructOpt, Debug)]
 pub struct CliConfig {
 	/// Set the config file)
-	#[structopt(long, short, global = true, default_value="./edma.json")]
+	#[structopt(long, short, global = true, default_value = "./edma.json")]
 	config_path: std::path::PathBuf,
 	/// Create a new example config file
 	#[structopt(long, global = true)]

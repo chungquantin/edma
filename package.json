@@ -1,0 +1,53 @@
+{
+  "name": "scripion",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "format": "npm run lint:fix & npm run prettier:fix",
+    "check": "npm run lint & npm run prettier:check",
+    "lint": "npx eslint --debug '**/*.{js,jsx,ts,tsx}'",
+    "lint:fix": "npx eslint --fix '**/*.{js, jsx, ts, tsx}'",
+    "prettier:fix": "prettier --config .prettierrc.cjs '**/*.{js,jsx,ts,tsx}' --write",
+    "prettier:check": "prettier --config .prettierrc.cjs '**/*.{js,jsx,ts,tsx}' --check"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^5.2.6",
+    "@tauri-apps/api": "^1.4.0",
+    "@trivago/prettier-plugin-sort-imports": "^4.2.0",
+    "antd": "^5.8.4",
+    "argv-split": "^2.0.1",
+    "bluebird": "^3.7.2",
+    "date-fns": "^2.30.0",
+    "fuse.js": "^6.6.2",
+    "moment": "^2.29.4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-icons": "^4.11.0",
+    "react-spring": "^9.7.2",
+    "sass": "^1.66.1",
+    "scss": "^0.2.4",
+    "tauri-plugin-sql-api": "github:tauri-apps/tauri-plugin-sql",
+    "tauri-plugin-sqlite-api": "github:lzdyes/tauri-plugin-sqlite#v0.1.1",
+    "zustand": "^4.4.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^1.4.0",
+    "@types/bluebird": "^3.5.39",
+    "@types/react": "^18.2.15",
+    "@types/react-dom": "^18.2.7",
+    "@vitejs/plugin-react": "^4.0.3",
+    "eslint": "^8.3.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-config-react-app": "^7.0.1",
+    "eslint-plugin-prettier": "^4.0.0",
+    "eslint-webpack-plugin": "^3.1.1",
+    "prettier": "^2.6.2",
+    "typescript": "^5.0.2",
+    "vite": "^4.4.4"
+  }
+}

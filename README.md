@@ -115,7 +115,7 @@ edma 0.1.0
 A cross-platform TUI database management tool written in Rust
 
 USAGE:
-    gui [OPTIONS]
+    tui [OPTIONS]
 
 FLAGS:
     -h, --help       Prints help information

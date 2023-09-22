@@ -1,10 +1,6 @@
-**/target
-**/.temp
-*/.DS_Store
-.env
-temp
-
+.vscode
 # Logs
+
 logs
 *.log
 npm-debug.log*

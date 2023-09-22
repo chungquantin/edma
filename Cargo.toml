@@ -1,2 +1,3 @@
 [workspace]
-members = ["db", "gui"]
+members = ["db", "src-tauri"]
+resolver = "2"
