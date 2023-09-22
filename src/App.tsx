@@ -1,52 +1,84 @@
-import { useState } from 'react';
+/* eslint-disable react-hooks/exhaustive-deps */
+import { useEffect } from 'react';
 
-import { invoke } from '@tauri-apps/api/tauri';
+import { Layout } from 'antd';
 
-import './App.css';
-import reactLogo from './assets/react.svg';
+import AnimatedComponent from './components/AnimatedComponent';
+import WorkspaceContainer from './components/WorkspaceContainer';
+import WorkspaceHeader from './components/WorkspaceHeader';
+import WorkspaceListTab from './components/WorkspaceListTab';
+import { STRIPE_BOX_SHADOW } from './constants';
+import { MIDDLE_STYLE } from './constants/style';
+import { useBackendInvoker } from './hooks';
+import './index.scss';
+import { Workspace, useDatabaseWorkspaceStore } from './stores';
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState('');
-  const [name, setName] = useState('');
+  const { selectedWorkspace } = useDatabaseWorkspaceStore();
+  const { setHomeDirectoryPath, setShellDirectoryPath, setWorkspaces } =
+    useDatabaseWorkspaceStore();
+  const {
+    handleInitializeDatabase,
+    handleExecuteCommand,
+    handleGetShellPath,
+    handleGetAllWorkspaces,
+  } = useBackendInvoker();
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
-    setGreetMsg(await invoke('greet', { name }));
-  }
+  useEffect(() => {
+    const initHistory = async () => {
+      const homeDirectoryPath = await handleExecuteCommand('echo $HOME');
+      setHomeDirectoryPath(homeDirectoryPath);
+      const shellPath = await handleGetShellPath();
+      setShellDirectoryPath(shellPath);
+    };
+    initHistory();
+  }, []);
+
+  useEffect(() => {
+    const init = async () => {
+      await handleInitializeDatabase();
+      const workspaceList = await handleGetAllWorkspaces();
+      const workspaces: Record<string, Workspace> = {};
+      for (const workspaceListItem of workspaceList) {
+        workspaces[workspaceListItem.id.toString()] = workspaceListItem;
+      }
+      setWorkspaces(workspaces);
+    };
+    init();
+  }, []);
 
   return (
-    <div className="container">
-      <h1>Welcome to Tauri!</h1>
-
-      <div className="row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div style={{ overflow: 'hidden' }}>
+      <div
+        className="container"
+        style={{ boxShadow: STRIPE_BOX_SHADOW, height: '100vh', width: '100vw' }}>
+        <AnimatedComponent.OpacityFadeInDiv delay={300}>
+          <Layout>
+            {selectedWorkspace && (
+              <Layout.Sider width={280} style={{ height: 'calc(100% - 85px)' }}>
+                <div
+                  style={{
+                    overflow: 'auto',
+                    height: '100vh',
+                    padding: '20px 10px',
+                  }}>
+                  <WorkspaceListTab />
+                </div>
+              </Layout.Sider>
+            )}
+            <Layout.Content style={{ position: 'relative' }}>
+              {selectedWorkspace && (
+                <Layout.Header style={{ padding: 0, ...MIDDLE_STYLE }}>
+                  <WorkspaceHeader />
+                </Layout.Header>
+              )}
+              <div style={{ overflow: 'auto', height: '100%' }}>
+                <WorkspaceContainer />
+              </div>
+            </Layout.Content>
+          </Layout>
+        </AnimatedComponent.OpacityFadeInDiv>
       </div>
-
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={e => {
-          e.preventDefault();
-          greet();
-        }}>
-        <input
-          id="greet-input"
-          onChange={e => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-
-      <p>{greetMsg}</p>
     </div>
   );
 }
