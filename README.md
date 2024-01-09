@@ -23,9 +23,6 @@ Embedded Database Management for All
 <a href="https://github.com/nomadiz/edma/pulse" alt="Activity">
 	</a>
 </p>
-<p align="center">
-<a href="https://www.producthunt.com/posts/edma?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-edma" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=370554&theme=dark" alt="EDMA - A&#0032;terminal&#0032;app&#0032;for&#0032;embedded&#0032;database&#0032;management&#0046; | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
-</p>
 
 ## What is EDMA?
 
@@ -291,7 +288,10 @@ Configuration file example
 
 Without these awesome open source projects, EDMA can't be complete. Please share the spotlight with these repo below:[`gobang`](https://github.com/TaKO8Ki/gobang), [`tui-rs`](https://github.com/fdehau/tui-rs), [`spotify-tui`](https://github.com/Rigellute/spotify-tui) and [`tui-re-tree-widget`](https://github.com/EdJoPaTo/tui-rs-tree-widget)
 
-## Community
+## How to contribute
 
--   View Nomadic Engineers blog [Blog](https://nomadiz.hashnode.dev/)
--   Support the creator [Twitter](https://twitter.com/chasechung111)
+Before committing to the tasks in the community, please skim through the guidelines below to grasp the overall idea of how the community works first. It does not take long but I believe it will give you a big picture of the vision and culture of TheLowLevelers.
+
+- [TheLowLevelers Contribution Guidelines 🤝](https://github.com/orgs/lowlevelers/discussions/8)
+- [TheLowLevelers Community Guidelines 🔥](https://github.com/orgs/lowlevelers/discussions/3)
+- [FAQ Who own the community assets?](https://github.com/orgs/lowlevelers/discussions/9)
