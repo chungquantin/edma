@@ -8,9 +8,10 @@ use crate::{
 	utils::{get_absolute_path_buf, sanitize, ByteLayout, LayoutTemplate, LayoutVariant},
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct DatabaseConfig {
 	pub path: String,
+	pub tags: Option<HashMap<String, String>>,
 }
 
 #[derive(StructOpt, Debug)]
@@ -170,8 +171,17 @@ fn load_databases(json_database: &Value) -> HashMap<String, Vec<DatabaseConfig>>
 	for database in databases.unwrap().iter() {
 		let path = sanitize(&database.get("path").unwrap().to_string());
 		let name = sanitize(&database.get("name").unwrap().to_string());
+		let tags = database.get("tags").and_then(|t| {
+			let tags_obj = t.as_object()?;
+			let mut map = HashMap::new();
+			for (key, val) in tags_obj {
+				map.insert(key.clone(), val.as_str().unwrap_or("").to_string());
+			}
+			Some(map)
+		});
 		databases_config.entry(name).or_default().push(DatabaseConfig {
 			path,
+			tags,
 		});
 	}
 
