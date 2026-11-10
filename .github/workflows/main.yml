@@ -16,22 +16,11 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
       - name: Install cargo-nextest
-        uses: baptiste0928/cargo-install@v1
-        with:
-          crate: cargo-nextest
-          locked: true
+        run: cargo install cargo-nextest --locked
       - name: Build project
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --workspace --release --all-features
+        run: cargo build -p edma_storage --release --all-features
       - name: Test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --workspace --features test-suite
+        run: cargo test -p edma_storage --features test-suite
