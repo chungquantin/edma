@@ -9,7 +9,7 @@ use tui::{
 	backend::Backend,
 	layout::Rect,
 	style::{Color, Modifier, Style},
-	text::Text,
+	text::{Span, Spans, Text},
 	widgets::{Block, Borders, Paragraph},
 	Frame,
 };
@@ -26,12 +26,34 @@ pub struct Command {
 	pub value: String,
 }
 
+const COMMAND_KEYWORDS: &[&str] = &["COLUMN=", "TABLE=", "TREE=", "PREFIX=", "SUFFIX="];
+
+/// Find the best matching keyword for the current input token.
+/// Returns the full keyword (including '=') if the input is a prefix of it.
+fn get_completion(input: &str) -> Option<String> {
+	// Get the last token being typed (after the last space)
+	let last_token = input.rsplit(' ').next().unwrap_or("");
+	if last_token.is_empty() {
+		return None;
+	}
+
+	// Find keywords that start with the current input (case-insensitive)
+	let upper = last_token.to_uppercase();
+	for keyword in COMMAND_KEYWORDS {
+		if keyword.starts_with(&upper) && *keyword != upper {
+			return Some(keyword.to_string());
+		}
+	}
+	None
+}
+
 pub struct CommandComponent {
 	config: Config,
 	text: Vec<char>,
 	focus: Focus,
 	invalid: (bool, String),
 	pub commands: Vec<Command>,
+	completion: Option<String>,
 }
 
 impl CommandComponent {
@@ -42,6 +64,7 @@ impl CommandComponent {
 			focus: Focus::Container,
 			invalid: (false, "".to_string()),
 			commands: vec![],
+			completion: None,
 		}
 	}
 
@@ -51,6 +74,26 @@ impl CommandComponent {
 
 	fn add_command(&mut self, command: Command) {
 		self.commands.push(command);
+	}
+
+	fn update_completion(&mut self) {
+		let input: String = self.text.iter().collect();
+		self.completion = get_completion(&input);
+	}
+
+	fn accept_completion(&mut self) {
+		if let Some(ref keyword) = self.completion {
+			// Replace the last token with the full keyword
+			let input: String = self.text.iter().collect();
+			let last_space = input.rfind(' ');
+			let prefix = match last_space {
+				Some(idx) => &input[..=idx],
+				None => "",
+			};
+			let new_text = format!("{}{}", prefix, keyword);
+			self.text = new_text.chars().collect();
+			self.completion = None;
+		}
 	}
 
 	fn handle_command(&mut self) {
@@ -135,12 +178,18 @@ impl CommandComponent {
 					self.handle_command();
 					return Ok(EventState::Consumed);
 				}
+				Key::Tab => {
+					self.accept_completion();
+					return Ok(EventState::Consumed);
+				}
 				Key::Char(v) => {
 					self.text.push(v);
+					self.update_completion();
 					return Ok(EventState::Consumed);
 				}
 				k if k == self.config.key_config.backspace => {
 					self.text.pop();
+					self.update_completion();
 					return Ok(EventState::Consumed);
 				}
 				_ => {}
@@ -197,8 +246,24 @@ impl RenderAbleComponent for CommandComponent {
 				});
 			}
 
-			let textarea_widget = textarea.widget();
+			// Show completion suggestion as shadow text in the title
+			let hint_label = if !*invalid {
+				self.completion.as_ref().map(|completion| {
+					let input: String = self.text.iter().collect();
+					let last_token = input.rsplit(' ').next().unwrap_or("");
+					let remaining = &completion[last_token.len()..];
+					format!("{} [{}] (Tab: {})", label, keycode, remaining)
+				})
+			} else {
+				None
+			};
 
+			if let Some(ref hint) = hint_label {
+				let container = render_container(hint, focused);
+				textarea.set_block(container);
+			}
+
+			let textarea_widget = textarea.widget();
 			f.render_widget(textarea_widget, rect);
 		}
 
