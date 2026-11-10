@@ -21,6 +21,6 @@ jobs:
       - name: Install cargo-nextest
         run: cargo install cargo-nextest --locked
       - name: Build project
-        run: cargo build -p edma_storage --release --features kv-redb,kv-sled,test-suite
+        run: cargo build -p edma_storage --release --no-default-features --features kv-redb,kv-sled,test-suite
       - name: Test
-        run: cargo test -p edma_storage --features kv-redb,kv-sled,test-suite
+        run: cargo test -p edma_storage --no-default-features --features kv-redb,kv-sled,test-suite
