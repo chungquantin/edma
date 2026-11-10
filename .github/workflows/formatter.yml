@@ -19,7 +19,7 @@ jobs:
         with:
           components: clippy, rustfmt
       - name: Automatically apply lint suggestions
-        run: cargo clippy --fix -p edma_storage -p edma
+        run: cargo clippy --fix -p edma_storage --features kv-redb,kv-sled,test-suite
       - name: Format check packages
         run: cargo fmt --all -- --check
       - name: Commit changes
@@ -36,6 +36,6 @@ jobs:
         with:
           components: clippy, rustfmt
       - name: Run clippy check on workspace
-        run: cargo clippy -p edma_storage -p edma
+        run: cargo clippy -p edma_storage --features kv-redb,kv-sled,test-suite
       - name: Format all packages
         run: cargo fmt --all
