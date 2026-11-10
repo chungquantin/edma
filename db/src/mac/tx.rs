@@ -170,6 +170,7 @@ macro_rules! impl_global_transaction {
 			async fn iterate(&self, tags: TagBucket) -> Result<Vec<Result<(Val, Val), Error>>, Error> {
 				match self {
 					$(
+						#[cfg(feature = $feat)]
 						Transaction {
 							inner: Inner::$x(ds),
 							..
