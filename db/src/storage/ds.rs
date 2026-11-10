@@ -130,8 +130,10 @@ mod test {
 
 	use super::Datastore;
 
+	#[cfg(feature = "kv-rocksdb")]
 	#[tokio::test]
 	async fn should_rocksdb_create_with_cf() {
+		std::fs::create_dir_all("../temp/cf").unwrap();
 		let db = Datastore::new("rocksdb:../temp/cf");
 		assert!(db.transaction(false).await.is_ok());
 
@@ -157,6 +159,8 @@ mod test {
 
 	#[tokio::test]
 	async fn should_redb_create() {
+		std::fs::create_dir_all("../temp").unwrap();
+		let _ = std::fs::remove_file("../temp/redb");
 		let db = Datastore::new("redb:../temp/redb");
 		assert!(db.transaction(false).await.is_ok());
 
@@ -179,6 +183,7 @@ mod test {
 
 	#[tokio::test]
 	async fn should_sled_create() {
+		std::fs::create_dir_all("../temp").unwrap();
 		let db = Datastore::new("sled:../temp");
 		assert!(db.transaction(false).await.is_ok());
 
@@ -202,6 +207,7 @@ mod test {
 
 	#[tokio::test]
 	async fn should_sled_create_tree() {
+		std::fs::create_dir_all("../temp/cf").unwrap();
 		let db = Datastore::new("sled:../temp/cf");
 		assert!(db.transaction(false).await.is_ok());
 
