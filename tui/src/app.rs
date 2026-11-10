@@ -14,7 +14,7 @@ use tui::{
 };
 
 use crate::{
-	components::{DatabaseTabComponent, HomeTabComponent, MenuContainerComponent},
+	components::{DatabaseTabComponent, HelpModalComponent, HomeTabComponent, MenuContainerComponent},
 	events::Key,
 };
 
@@ -23,6 +23,7 @@ pub struct AppComponent<'a> {
 	database: DatabaseTabComponent<'a>,
 	menu: MenuContainerComponent,
 	layout: LayoutTabComponent<'a>,
+	help: HelpModalComponent,
 	focus: Focus,
 	config: Config,
 }
@@ -34,6 +35,7 @@ impl<'a> AppComponent<'a> {
 			database: DatabaseTabComponent::new(config.clone()),
 			menu: MenuContainerComponent::new(config.clone()),
 			layout: LayoutTabComponent::new(config.clone()),
+			help: HelpModalComponent::new(),
 			focus: Focus::MenuContainer,
 			config,
 		}
@@ -94,6 +96,7 @@ impl<'a> AppComponent<'a> {
 				}
 			};
 		}
+		self.help.render(f, window, false)?;
 		Ok(())
 	}
 
@@ -102,6 +105,19 @@ impl<'a> AppComponent<'a> {
 	}
 
 	pub async fn event(&mut self, key: Key) -> anyhow::Result<EventState> {
+		// Toggle help modal on '/' keypress
+		if key == Key::Char('/') && !self.help.is_open() {
+			self.help.toggle();
+			return Ok(EventState::Consumed);
+		}
+
+		// When help modal is open, let it handle all events
+		if self.help.is_open() {
+			if self.help.event(key).await?.is_consumed() {
+				return Ok(EventState::Consumed);
+			}
+		}
+
 		if self.components_event(key).await?.is_consumed() {
 			return Ok(EventState::Consumed);
 		};
