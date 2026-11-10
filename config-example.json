@@ -2,7 +2,10 @@
   "databases": [
     {
       "name": "rocksdb",
-      "path": "../temp/cf"
+      "path": "../temp/cf",
+      "tags": {
+        "column_family": "default"
+      }
     },
     {
       "name": "redb",
@@ -14,7 +17,10 @@
     },
     {
       "name": "sled",
-      "path": "../temp/cf"
+      "path": "../temp/cf",
+      "tags": {
+        "tree": "name-of-tree"
+      }
     }
   ],
   "templates": [
