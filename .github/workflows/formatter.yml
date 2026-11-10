@@ -14,22 +14,16 @@ jobs:
     name: Format apply
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
+          components: clippy, rustfmt
       - name: Automatically apply lint suggestions
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --fix --workspace
+        run: cargo clippy --fix -p edma_storage -p edma
       - name: Format check packages
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+        run: cargo fmt --all -- --check
       - name: Commit changes
-        uses: stefanzweifel/git-auto-commit-action@v4
+        uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: Apply formatting changes
           branch: ${{ github.head_ref }}
@@ -37,17 +31,11 @@ jobs:
     name: Format check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
+          components: clippy, rustfmt
       - name: Run clippy check on workspace
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --workspace
+        run: cargo clippy -p edma_storage -p edma
       - name: Format all packages
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all
+        run: cargo fmt --all
