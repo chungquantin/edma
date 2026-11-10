@@ -6,9 +6,14 @@ mod rocksdb;
 #[cfg(feature = "kv-sled")]
 mod sled;
 
+#[cfg(feature = "kv-leveldb")]
+mod leveldb;
+
 #[cfg(feature = "kv-redb")]
 pub use self::redb::*;
 #[cfg(feature = "kv-rocksdb")]
 pub use self::rocksdb::*;
 #[cfg(feature = "kv-sled")]
 pub use self::sled::*;
+#[cfg(feature = "kv-leveldb")]
+pub use self::leveldb::*;

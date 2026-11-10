@@ -9,6 +9,9 @@ use super::ReDBAdapter;
 use super::RocksDBAdapter;
 use super::SledAdapter;
 
+#[cfg(feature = "kv-leveldb")]
+use super::LevelDBAdapter;
+
 #[derive(Copy, Clone)]
 pub struct DatastoreRef<'a> {
 	pub db: &'a Datastore,
@@ -30,6 +33,8 @@ pub enum Inner {
 	ReDB(ReDBAdapter),
 	#[cfg(feature = "kv-sled")]
 	Sled(SledAdapter),
+	#[cfg(feature = "kv-leveldb")]
+	LevelDB(LevelDBAdapter),
 }
 
 pub struct Datastore {
@@ -69,6 +74,14 @@ impl Datastore {
 					inner: Inner::Sled(db),
 				}
 			}
+			#[cfg(feature = "kv-leveldb")]
+			s if s.starts_with("leveldb:") => {
+				let db = LevelDBAdapter::new(s).unwrap();
+
+				Datastore {
+					inner: Inner::LevelDB(db),
+				}
+			}
 			_ => unimplemented!(),
 		}
 	}
@@ -93,7 +106,8 @@ impl Datastore {
 		impl_transaction_method!(
 			RocksDB feat "kv-rocksdb",
 			ReDB feat "kv-redb",
-			Sled feat "kv-sled"
+			Sled feat "kv-sled",
+			LevelDB feat "kv-leveldb"
 		)
 	}
 
@@ -116,7 +130,8 @@ impl Datastore {
 		impl_transaction_method!(
 			RocksDB feat "kv-rocksdb",
 			ReDB feat "kv-redb",
-			Sled feat "kv-sled"
+			Sled feat "kv-sled",
+			LevelDB feat "kv-leveldb"
 		)
 	}
 }
@@ -221,6 +236,29 @@ mod test {
 		tx.set(key2, val2, tags.clone()).await.unwrap();
 		tx.set(key3, val3, tags.clone()).await.unwrap();
 		let iter = tx.iterate(tags.clone()).await.unwrap();
+		assert!(iter.len() == 3);
+		tx.commit().await.unwrap();
+	}
+
+	#[cfg(feature = "kv-leveldb")]
+	#[tokio::test]
+	async fn should_leveldb_create() {
+		let db = Datastore::new("leveldb:../temp/leveldb");
+		assert!(db.transaction(false).await.is_ok());
+
+		let key1 = i32::to_be_bytes(2100);
+		let key2 = "hello world";
+		let key3 = "this is a key";
+
+		let val1 = "mock value";
+		let val2 = "mock value 2";
+		let val3 = "this is a new value";
+
+		let mut tx = db.transaction(true).await.unwrap();
+		tx.set(key1, val1, tag!()).await.unwrap();
+		tx.set(key2, val2, tag!()).await.unwrap();
+		tx.set(key3, val3, tag!()).await.unwrap();
+		let iter = tx.iterate(tag!()).await.unwrap();
 		assert!(iter.len() == 3);
 		tx.commit().await.unwrap();
 	}

@@ -74,3 +74,10 @@ impl From<sled::Error> for Error {
 		Error::Tx(e.to_string())
 	}
 }
+
+#[cfg(feature = "kv-leveldb")]
+impl From<leveldb::database::error::Error> for Error {
+	fn from(e: leveldb::database::error::Error) -> Error {
+		Error::Tx(e.to_string())
+	}
+}

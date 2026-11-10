@@ -15,6 +15,9 @@ use super::RocksDBTransaction;
 #[cfg(feature = "kv-sled")]
 use super::SledTransaction;
 
+#[cfg(feature = "kv-leveldb")]
+use super::LevelDBTransaction;
+
 #[allow(clippy::large_enum_variant)]
 pub(super) enum Inner {
 	#[cfg(feature = "kv-rocksdb")]
@@ -23,6 +26,8 @@ pub(super) enum Inner {
 	ReDB(ReDBTransaction),
 	#[cfg(feature = "kv-sled")]
 	Sled(SledTransaction),
+	#[cfg(feature = "kv-leveldb")]
+	LevelDB(LevelDBTransaction),
 }
 
 pub struct Transaction {
@@ -32,5 +37,6 @@ pub struct Transaction {
 impl_global_transaction!(
 	RocksDB; feat "kv-rocksdb",
 	ReDB; feat "kv-redb",
-	Sled; feat "kv-sled"
+	Sled; feat "kv-sled",
+	LevelDB; feat "kv-leveldb"
 );

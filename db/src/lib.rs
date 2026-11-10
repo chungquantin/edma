@@ -12,6 +12,8 @@ mod util;
 pub use crate::storage::kvs::ReDBAdapter;
 #[cfg(feature = "kv-rocksdb")]
 pub use crate::storage::kvs::RocksDBAdapter;
+#[cfg(feature = "kv-leveldb")]
+pub use crate::storage::kvs::LevelDBAdapter;
 #[macro_use]
 #[cfg(test)]
 pub mod tests;

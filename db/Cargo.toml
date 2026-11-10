@@ -21,19 +21,22 @@ license = "MIT"
 
 
 [features]
-default = ["kv-redb", "kv-rocksdb", "kv-sled", "test-suite"]
+default = ["kv-redb", "kv-rocksdb", "kv-sled", "kv-leveldb", "test-suite"]
 kv-sled = ["dep:sled"]
 kv-rocksdb = ["dep:rocksdb"]
 kv-redb = ["dep:redb"]
+kv-leveldb = ["dep:leveldb"]
 test-suite = []
 debug-suite = []
 
 [dependencies]
 redb = { version = "0.10.0", optional = true }
 sled = { version = "0.34.7", optional = true }
-rocksdb = { version = "0.19.0", optional = true, features = [
+rocksdb = { version = "0.21.0", optional = true, features = [
  "multi-threaded-cf",
 ] }
+leveldb = { version = "0.8.6", optional = true, default-features = false }
+db-key = "0.0.5"
 chrono = "0.4.22"
 thiserror = "1.0.37"
 async-trait = "0.1.58"
