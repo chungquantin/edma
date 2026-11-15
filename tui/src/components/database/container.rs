@@ -5,7 +5,7 @@ use crate::{
 	utils::get_absolute_path,
 };
 use anyhow::Result;
-use db::tag;
+use db::{tag, TagBucket};
 use tui::{
 	backend::Backend,
 	layout::{Constraint, Direction, Layout, Rect},
@@ -64,9 +64,27 @@ impl<'a> DatabaseTabComponent<'a> {
 		(name, path, abs_p)
 	}
 
+	fn get_default_tags(&self) -> TagBucket {
+		let selected_file = self.explorer.state().selected().unwrap_or(0);
+		let selected_db = self.get_selected_database();
+		let databases = self.config.databases.get(&selected_db).unwrap();
+		let database = &databases[selected_file];
+
+		let mut tags = TagBucket::default();
+		if let Some(config_tags) = &database.tags {
+			if let Some(cf) = config_tags.get("column_family") {
+				tags.insert("column_family", cf.clone());
+			}
+			if let Some(tree) = config_tags.get("tree") {
+				tags.insert("tree", tree.clone());
+			}
+		}
+		tags
+	}
+
 	async fn handle_command_event(&mut self) {
 		let commands = self.command.commands.to_vec();
-		let mut tags = tag!();
+		let mut tags = self.get_default_tags();
 		let (name, path, _) = self.get_database_info();
 		for command in commands {
 			match command.token.as_str() {
@@ -100,7 +118,8 @@ impl<'a> DatabaseTabComponent<'a> {
 		if self.explorer.state().selected().is_some() {
 			let (name, path, abs_p) = self.get_database_info();
 			self.status.set_text(Span::raw(abs_p));
-			self.editor.scan_database(tag!(), &name, &path).await;
+			let tags = self.get_default_tags();
+			self.editor.scan_database(tags, &name, &path).await;
 		} else {
 			self.status.reset();
 		}
